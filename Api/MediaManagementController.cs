@@ -5,37 +5,30 @@ using System.Threading.Tasks;
 using Jellyfin_Latestmedia.Data;
 using Jellyfin_Latestmedia.Models;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Querying;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Entities;
 using Jellyfin.Data.Enums;
-using Jellyfin.Extensions;
 
 namespace Jellyfin_Latestmedia.Api
 {
     [ApiController]
     [Route("[controller]")]
-    [Authorize]  // Standard auth — we check IsAdministrator manually to avoid RequiresElevation (needs API key, not user token)
+    [Authorize]
     public class MediaMgmtController : ControllerBase
     {
         private readonly ILibraryManager _libraryManager;
-        private readonly IUserDataManager _userDataManager;
         private readonly IUserManager _userManager;
         private readonly PluginRepository _repository;
 
-        public MediaMgmtController(
-            ILibraryManager libraryManager,
-            IUserDataManager userDataManager,
-            IUserManager userManager)
+        public MediaMgmtController(ILibraryManager libraryManager, IUserManager userManager)
         {
             _libraryManager = libraryManager;
-            _userDataManager = userDataManager;
             _userManager = userManager;
             _repository = Plugin.Instance.Repository;
         }
 
-        private Guid GetUserId()
+        private Guid GetRequestUserId()
         {
             var str = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
             return Guid.TryParse(str, out var g) ? g : Guid.Empty;
@@ -43,8 +36,27 @@ namespace Jellyfin_Latestmedia.Api
 
         private bool IsAdmin()
         {
-            // Jellyfin sets the "Administrator" role claim for admin users in the JWT
-            return User.IsInRole("Administrator");
+            // Jellyfin 10.11 sets an "Administrator" role claim on the JWT for admin users
+            if (User.IsInRole("Administrator")) return true;
+
+            // Fallback: check via user manager without any extension methods
+            var uid = GetRequestUserId();
+            if (uid == Guid.Empty) return false;
+            var user = _userManager.GetUserById(uid);
+            if (user == null) return false;
+            // user.Permissions is IList<MediaBrowser.Model.Configuration.AccessSchedule> — not what we want
+            // Instead read the raw JSON-serialised policy
+            try
+            {
+                var policy = user.GetType().GetProperty("Policy")?.GetValue(user);
+                if (policy != null)
+                {
+                    var isAdmin = policy.GetType().GetProperty("IsAdministrator")?.GetValue(policy);
+                    if (isAdmin is bool b) return b;
+                }
+            }
+            catch { }
+            return false;
         }
 
         [HttpGet("Items")]
@@ -73,56 +85,57 @@ namespace Jellyfin_Latestmedia.Api
                     try { size = new System.IO.FileInfo(item.Path).Length; } catch { }
                 }
 
-                string id = item.Id.ToString("N");
-                bool isScheduled = scheduledDict.TryGetValue(id, out var schedule);
+                // Use both N-format (no hyphens) and standard format for matching
+                string idN = item.Id.ToString("N");
+                string idD = item.Id.ToString("D"); // with hyphens
+                bool isScheduled = scheduledDict.TryGetValue(idN, out var schedule) ||
+                                   scheduledDict.TryGetValue(idD, out schedule);
 
                 result.Add(new
                 {
-                    Id = id,
+                    Id = idN,
                     Title = item.Name,
                     Year = item.ProductionYear,
-                    Rating = item.CommunityRating,
                     Size = size,
                     Status = isScheduled
-                        ? $"Scheduled for deletion in {Math.Max(0, (schedule!.ScheduledTime - DateTime.UtcNow).TotalDays):F1} days"
-                        : "Active",
-                    DeleteScheduledDate = isScheduled ? (DateTime?)schedule!.ScheduledTime : null
+                        ? $"Deleting in {Math.Max(0, (schedule!.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d"
+                        : "Active"
                 });
             }
 
             return Ok(result);
         }
 
+        // Accept days as string to avoid automatic model-binding 400 on parse failure
         [HttpPost("Items/{itemId}/ScheduleDelete")]
-        public async Task<ActionResult> ScheduleDelete(string itemId, [FromQuery] int days)
+        public async Task<ActionResult> ScheduleDelete(string itemId, [FromQuery] string? days)
         {
             if (!IsAdmin()) return Forbid();
 
-            if (days != 1 && days != 3 && days != 7 && days != 14 && days != 30)
-                return BadRequest("Invalid days. Allowed: 1, 3, 7, 14, 30");
+            if (!int.TryParse(days, out var daysInt) || daysInt <= 0 || daysInt > 365)
+                return BadRequest($"Invalid days value: '{days}'. Must be a positive integer up to 365.");
 
-            if (!Guid.TryParse(itemId, out var parsedGuid))
-                return BadRequest("Invalid item ID format");
+            if (string.IsNullOrWhiteSpace(itemId))
+                return BadRequest("itemId is required.");
 
-            var item = _libraryManager.GetItemById(parsedGuid);
-            if (item == null)
-                return NotFound("Media item not found in library");
+            // Normalise to N format (no hyphens) for consistent storage
+            string normalizedId = itemId.Replace("-", "").ToLowerInvariant();
 
-            var uid = GetUserId();
+            var uid = GetRequestUserId();
             var user = _userManager.GetUserById(uid);
-            var userName = user?.Username ?? "Admin";
+            var name = user?.Username ?? "Admin";
 
-            var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
-            scheduledDeletions.RemoveAll(x => x.ItemId == itemId);
-            scheduledDeletions.Add(new ScheduledDeletion
+            var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
+            deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
+            deletions.Add(new ScheduledDeletion
             {
-                ItemId = itemId,
-                ScheduledTime = DateTime.UtcNow.AddDays(days),
+                ItemId = normalizedId,
+                ScheduledTime = DateTime.UtcNow.AddDays(daysInt),
                 ScheduledByUserId = uid,
-                ScheduledByName = userName
+                ScheduledByName = name
             });
 
-            await _repository.WriteListAsync("scheduled_deletions", scheduledDeletions);
+            await _repository.WriteListAsync("scheduled_deletions", deletions);
             return Ok();
         }
 
@@ -131,17 +144,17 @@ namespace Jellyfin_Latestmedia.Api
         {
             if (!IsAdmin()) return Forbid();
 
-            var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
-            int before = scheduledDeletions.Count;
-            scheduledDeletions.RemoveAll(x => x.ItemId == itemId);
+            string normalizedId = itemId.Replace("-", "").ToLowerInvariant();
+            var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
+            int before = deletions.Count;
+            deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
 
-            if (scheduledDeletions.Count < before)
+            if (deletions.Count < before)
             {
-                await _repository.WriteListAsync("scheduled_deletions", scheduledDeletions);
+                await _repository.WriteListAsync("scheduled_deletions", deletions);
                 return Ok();
             }
-
-            return NotFound("Item was not scheduled for deletion");
+            return NotFound("Item not scheduled for deletion.");
         }
     }
 }
