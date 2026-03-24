@@ -1,475 +1,703 @@
 (function () {
     'use strict';
 
+    // ─── Constants ────────────────────────────────────────────────────────────
+    const PLUGIN_ID = 'f94d6caf-2a62-4dd7-9f64-684ce8efff43';
+
+    const ICONS = {
+        latest: `<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>`,
+        manage: `<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>`,
+        chat:   `<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`
+    };
+
+    // ─── State ────────────────────────────────────────────────────────────────
     const STATE = {
-        pluginId: 'f94d6caf-2a62-4dd7-9f64-684ce8efff43',
-        isAdmin: false,
-        userId: '',
-        userName: '',
-        token: '',
         serverUrl: '',
-        keys: { privateKey: null, publicKey: null },
-        config: null,
+        token: '',
+        userId: '',
+        isAdmin: false,
+        config: { EnableLatestMediaButton: true, EnableMediaManagement: true, EnableChat: true },
+        keys: { privateKey: null, publicKey: null, pubBase64: null },
+        injected: false,
         chatPollTimer: null
     };
 
-    const ICONS = {
-        latest: `<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>`,
-        manage: `<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>`,
-        chat: `<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`
-    };
-
+    // ─── Styles ───────────────────────────────────────────────────────────────
     const style = document.createElement('style');
     style.innerHTML = `
-        .lm-header-btn { display: inline-flex; align-items: center; justify-content: center; position: relative; margin-left: .5em; cursor: pointer; color: var(--theme-text-color); }
-        .lm-header-btn:hover { color: var(--theme-primary-color); }
-        .lm-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; font-weight: bold; }
-        
-        .lm-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 99999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-        .lm-modal { background: var(--theme-background-color); border-radius: 8px; width: 90%; max-width: 1000px; max-height: 90%; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--theme-primary-color); }
-        .lm-modal-hidden { display: none !important; }
-        .lm-modal-header { padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); }
-        .lm-modal-header h2 { margin: 0; font-size: 1.2rem; }
-        .lm-modal-close { cursor: pointer; background: transparent; border: none; color: inherit; font-size: 1.5rem; }
-        .lm-modal-body { padding: 20px; overflow-y: auto; flex: 1; }
-        
-        .lm-table { width: 100%; border-collapse: collapse; text-align: left; }
-        .lm-table th, .lm-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .lm-table th { background: rgba(0,0,0,0.2); }
-        .lm-btn { background: var(--theme-primary-color); color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.9em; }
-        .lm-btn-danger { background: #e53935; }
-        .lm-btn:hover { filter: brightness(1.2); }
-        
-        .lm-dropdown { position: absolute; top: 100%; right: 0; width: 350px; max-height: 500px; background: var(--theme-background-color); border: 1px solid var(--theme-primary-color); border-radius: 8px; overflow-y: auto; z-index: 9999; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
-        .lm-dropdown.active { display: block; }
-        .lm-card { display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; text-decoration: none; color: inherit; }
-        .lm-card:hover { background: rgba(255,255,255,0.05); }
-        .lm-poster { width: 50px; height: 75px; object-fit: cover; border-radius: 4px; }
-        
-        .lm-type-badge { font-size: 0.7em; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
-        .lm-type-movie { background: #1976d2; }
-        .lm-type-series { background: #388e3c; }
-        .lm-type-anime { background: #7b1fa2; }
-        
-        .lm-chat-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 350px; background: var(--theme-background-color); border-left: 1px solid var(--theme-primary-color); z-index: 99999; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; }
-        .lm-chat-panel.open { transform: translateX(0); }
-        .lm-chat-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .lm-chat-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: rgba(0,0,0,0.2); }
-        .lm-chat-tab.active { background: var(--theme-primary-color); color: white; }
-        .lm-chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-        .lm-chat-bubble { max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 0.9em; word-wrap: break-word; }
-        .lm-chat-bubble.own { align-self: flex-end; background: var(--theme-primary-color); color: white; border-bottom-right-radius: 2px; }
-        .lm-chat-bubble.other { align-self: flex-start; background: rgba(255,255,255,0.1); color: var(--theme-text-color); border-bottom-left-radius: 2px; }
-        .lm-chat-bubble.broadcast { align-self: center; background: #fb8c00; color: white; text-align: center; }
-        .lm-chat-input-area { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 5px; }
-        .lm-chat-input { flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); color: inherit; padding: 8px; border-radius: 4px; }
-        
-        @media (max-width: 768px) {
-            .lm-header-btn { display: none !important; }
-            .lm-chat-panel { width: 100%; }
+        /* Header buttons — equidistant spacing */
+        .lm-btn-wrap {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            color: inherit;
+            flex-shrink: 0;
+        }
+        .lm-btn-wrap:hover { color: var(--theme-custom-header-text-color, var(--primary-text-color)); opacity: 0.8; }
+        .lm-unread-badge {
+            position: absolute;
+            top: 2px; right: 2px;
+            background: #e53935;
+            color: #fff;
+            border-radius: 50%;
+            min-width: 16px;
+            height: 16px;
+            font-size: 10px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 3px;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Latest Media dropdown */
+        .lm-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 340px;
+            max-height: 480px;
+            overflow-y: auto;
+            background: rgba(30,30,30,0.97);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            z-index: 9999;
+            display: none;
+        }
+        .lm-dropdown.open { display: block; }
+        .lm-dropdown-header {
+            padding: 12px 16px 8px;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            opacity: 0.5;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .lm-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.15s;
+        }
+        .lm-card:hover { background: rgba(255,255,255,0.07); }
+        .lm-card:last-child { border-bottom: none; }
+        .lm-poster { width: 42px; height: 63px; object-fit: cover; border-radius: 4px; background: rgba(255,255,255,0.05); flex-shrink: 0; }
+        .lm-card-meta { flex: 1; min-width: 0; }
+        .lm-card-title { font-size: 0.9em; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lm-card-sub { font-size: 0.75em; opacity: 0.55; margin-top: 3px; display: flex; gap: 8px; align-items: center; }
+        .lm-type-badge {
+            font-size: 0.68em; font-weight: 700; padding: 1px 5px;
+            border-radius: 3px; color: #fff; text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .lm-type-movie  { background: #1565c0; }
+        .lm-type-series { background: #2e7d32; }
+        .lm-type-anime  { background: #6a1b9a; }
+        .lm-type-other  { background: #555;    }
+        .lm-empty { padding: 24px; text-align: center; opacity: 0.5; font-size: 0.9em; }
+
+        /* Admin modal */
+        .lm-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 99998;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .lm-modal {
+            background: var(--theme-background-color, #1a1a1a);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            width: 92%; max-width: 1000px; max-height: 88vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+        }
+        .lm-modal-hdr {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+        }
+        .lm-modal-hdr h2 { margin: 0; font-size: 1.1rem; }
+        .lm-modal-close {
+            cursor: pointer; background: none; border: none;
+            color: inherit; font-size: 1.4rem; line-height: 1; opacity: 0.6;
+        }
+        .lm-modal-close:hover { opacity: 1; }
+        .lm-modal-body { padding: 0; overflow-y: auto; flex: 1; }
+        .lm-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+        .lm-table th { padding: 10px 14px; text-align: left; background: rgba(0,0,0,0.2); font-weight: 600; position: sticky; top: 0; }
+        .lm-table td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        .lm-table tr:hover td { background: rgba(255,255,255,0.03); }
+        .lm-btn { display: inline-block; background: var(--theme-primary-color, #00a4dc); color: #fff; border: none; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em; white-space: nowrap; }
+        .lm-btn-danger { background: #c62828; }
+        .lm-btn:hover { filter: brightness(1.15); }
+        .lm-select { background: rgba(255,255,255,0.07); color: inherit; border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 4px 8px; font-size: 0.84em; cursor: pointer; }
+
+        /* Chat panel — bottom-right, translucent */
+        .lm-chat-panel {
+            position: fixed;
+            bottom: 0; right: 20px;
+            width: 340px;
+            height: 500px;
+            max-height: 70vh;
+            background: rgba(25, 25, 35, 0.88);
+            backdrop-filter: blur(18px) saturate(1.3);
+            -webkit-backdrop-filter: blur(18px) saturate(1.3);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-bottom: none;
+            border-radius: 12px 12px 0 0;
+            box-shadow: 0 -4px 40px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            z-index: 9997;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        .lm-chat-panel.open { transform: translateY(0); }
+
+        .lm-chat-titlebar {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            cursor: pointer; /* drag affordance */
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .lm-chat-titlebar-title { flex: 1; font-size: 0.88em; font-weight: 600; }
+        .lm-chat-title-close { cursor: pointer; background: none; border: none; color: inherit; font-size: 1.2rem; opacity: 0.6; line-height: 1; }
+        .lm-chat-title-close:hover { opacity: 1; }
+
+        .lm-chat-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+        .lm-chat-tab {
+            flex: 1; padding: 8px 10px;
+            text-align: center; cursor: pointer;
+            font-size: 0.8em; font-weight: 600;
+            color: rgba(255,255,255,0.5);
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .lm-chat-tab:hover { color: rgba(255,255,255,0.8); }
+        .lm-chat-tab.active { color: var(--theme-primary-color, #00a4dc); border-bottom-color: var(--theme-primary-color, #00a4dc); }
+
+        .lm-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+        }
+        .lm-chat-messages::-webkit-scrollbar { width: 4px; }
+        .lm-chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .lm-chat-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+        .lm-bubble { max-width: 82%; padding: 7px 12px; border-radius: 16px; font-size: 0.85em; line-height: 1.4; word-wrap: break-word; }
+        .lm-bubble.own { align-self: flex-end; background: var(--theme-primary-color, #00a4dc); color: #fff; border-bottom-right-radius: 4px; }
+        .lm-bubble.other { align-self: flex-start; background: rgba(255,255,255,0.12); color: inherit; border-bottom-left-radius: 4px; }
+        .lm-bubble.broadcast { align-self: center; background: rgba(230,130,0,0.8); color: #fff; text-align: center; border-radius: 8px; max-width: 95%; }
+        .lm-bubble-name { font-size: 0.72em; opacity: 0.65; margin-bottom: 3px; }
+
+        .lm-chat-input-area {
+            display: flex;
+            gap: 6px;
+            padding: 8px 10px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            flex-shrink: 0;
+            background: rgba(0,0,0,0.15);
+        }
+        .lm-chat-input {
+            flex: 1;
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            color: inherit;
+            padding: 7px 14px;
+            font-size: 0.85em;
+            outline: none;
+        }
+        .lm-chat-input:focus { border-color: var(--theme-primary-color, #00a4dc); }
+        .lm-chat-send {
+            background: var(--theme-primary-color, #00a4dc);
+            color: #fff; border: none; border-radius: 50%;
+            width: 32px; height: 32px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .lm-chat-send:hover { filter: brightness(1.15); }
+
+        .lm-dm-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.15s;
+        }
+        .lm-dm-row:hover { background: rgba(255,255,255,0.07); }
+        .lm-dm-badge {
+            margin-left: auto;
+            background: #e53935;
+            color: #fff;
+            font-size: 0.7em;
+            font-weight: 700;
+            border-radius: 10px;
+            padding: 1px 6px;
+        }
+
+        @media (max-width: 767px) {
+            .lm-btn-wrap { display: none !important; }
+            .lm-chat-panel { width: 100%; right: 0; border-radius: 12px 12px 0 0; }
         }
     `;
     document.head.appendChild(style);
 
-    async function apiRequest(endpoint, options = {}) {
+    // ─── Helper: API request ──────────────────────────────────────────────────
+    async function api(endpoint, options = {}) {
         const url = `${STATE.serverUrl}/${endpoint}`;
-        const headers = {
-            'Authorization': `MediaBrowser Client="Jellyfin Web", Device="Plugin", DeviceId="PluginId", Version="1.0.0", Token="${STATE.token}"`,
-            'Content-Type': 'application/json'
-        };
-        const res = await fetch(url, { ...options, headers });
-        if (!res.ok) throw new Error(`API Error: ${res.status}`);
-        return res.status !== 204 ? res.json().catch(()=>({})) : {};
-    }
-
-    const Crypto = {
-        async init() {
-            try {
-                const db = await this.openDb();
-                const stored = await this.getKeyPair(db);
-                if (stored) {
-                    STATE.keys = stored;
-                } else {
-                    const kp = await window.crypto.subtle.generateKey(
-                        { name: 'ECDH', namedCurve: 'P-256' },
-                        true,
-                        ['deriveKey']
-                    );
-                    const rawPub = await window.crypto.subtle.exportKey('raw', kp.publicKey);
-                    STATE.keys = { 
-                        privateKey: kp.privateKey, 
-                        publicKey: kp.publicKey,
-                        pubBase64: this.buf2b64(rawPub)
-                    };
-                    await this.storeKeyPair(db, STATE.keys);
-                }
-                await apiRequest(`Chat/Keys`, { method: 'POST', body: JSON.stringify({ publickey: STATE.keys.pubBase64 }) });
-            } catch (e) { console.error("[LatestMedia] Crypto init error", e); }
-        },
-        async openDb() {
-            return new Promise((resolve, reject) => {
-                const req = indexedDB.open('JellyfinChatCrypto', 1);
-                req.onupgradeneeded = e => e.target.result.createObjectStore('keys', { keyPath: 'id' });
-                req.onsuccess = e => resolve(e.target.result);
-                req.onerror = e => reject(e);
-            });
-        },
-        async getKeyPair(db) {
-            return new Promise((resolve) => {
-                const tx = db.transaction('keys', 'readonly');
-                const req = tx.objectStore('keys').get('mykey');
-                req.onsuccess = () => resolve(req.result ? req.result.keys : null);
-            });
-        },
-        async storeKeyPair(db, keys) {
-            return new Promise((resolve) => {
-                const tx = db.transaction('keys', 'readwrite');
-                tx.objectStore('keys').put({ id: 'mykey', keys });
-                tx.oncomplete = resolve;
-            });
-        },
-        async importRemoteKey(b64) {
-             return await window.crypto.subtle.importKey('raw', this.b642buf(b64), { name: 'ECDH', namedCurve: 'P-256' }, true, []);
-        },
-        async deriveAes(remotePubKey) {
-            return await window.crypto.subtle.deriveKey(
-                { name: 'ECDH', public: remotePubKey },
-                STATE.keys.privateKey,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt', 'decrypt']
-            );
-        },
-        async encrypt(text, remotePubB64) {
-            const remoteKey = await this.importRemoteKey(remotePubB64);
-            const aesKey = await this.deriveAes(remoteKey);
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const enc = new TextEncoder().encode(text);
-            const ciphertext = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, enc);
-            return { cipherResult: this.buf2b64(ciphertext), nonce: this.buf2b64(iv) };
-        },
-        async decrypt(cipherB64, nonceB64, remotePubB64) {
-            try {
-                const remoteKey = await this.importRemoteKey(remotePubB64);
-                const aesKey = await this.deriveAes(remoteKey);
-                const iv = this.b642buf(nonceB64);
-                const cipher = this.b642buf(cipherB64);
-                const dec = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, aesKey, cipher);
-                return new TextDecoder().decode(dec);
-            } catch (e) {
-                return "[Decryption Failed]";
+        const res = await fetch(url, {
+            ...options,
+            headers: {
+                'Authorization': `MediaBrowser Client="Jellyfin Web", Device="Plugin", DeviceId="PluginUI1", Version="1.0.0", Token="${STATE.token}"`,
+                'Content-Type': 'application/json',
+                ...(options.headers || {})
             }
-        },
-        buf2b64(buf) { return btoa(String.fromCharCode(...new Uint8Array(buf))); },
-        b642buf(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer; }
-    };
-
-    function createHeaderButton(id, icon, onClick) {
-        const btn = document.createElement('div');
-        btn.className = 'lm-header-btn plugin-header-btn headerButton';
-        btn.id = id;
-        btn.innerHTML = icon;
-        btn.addEventListener('click', onClick);
-        return btn;
+        });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const text = await res.text();
+        return text ? JSON.parse(text) : {};
     }
 
-    function showModal(title, contentHtml, onRender) {
+    // ─── Helper: create header button ────────────────────────────────────────
+    function mkHeaderBtn(id, icon, onClick) {
+        const wrap = document.createElement('div');
+        wrap.className = 'lm-btn-wrap';
+        wrap.id = id;
+        wrap.innerHTML = icon;
+        wrap.addEventListener('click', (e) => { e.stopPropagation(); onClick(e, wrap); });
+        return wrap;
+    }
+
+    // ─── Latest Media dropdown ────────────────────────────────────────────────
+    let latestDropdown = null;
+
+    function openLatestMedia(e, btn) {
+        // Toggle
+        if (latestDropdown && latestDropdown.parentNode) {
+            const isOpen = latestDropdown.classList.contains('open');
+            latestDropdown.classList.toggle('open', !isOpen);
+            return;
+        }
+
+        latestDropdown = document.createElement('div');
+        latestDropdown.className = 'lm-dropdown open';
+        latestDropdown.innerHTML = `<div class="lm-empty">Loading…</div>`;
+        btn.appendChild(latestDropdown);
+
+        // Close on outside click
+        setTimeout(() => {
+            document.addEventListener('click', function closeHandler(ev) {
+                if (!latestDropdown.contains(ev.target) && ev.target !== btn) {
+                    latestDropdown.classList.remove('open');
+                    document.removeEventListener('click', closeHandler);
+                }
+            });
+        }, 100);
+
+        api('LatestMedia/Items').then(items => {
+            if (!items || !items.length) {
+                latestDropdown.innerHTML = `<div class="lm-empty">No recent media found.</div>`;
+                return;
+            }
+            let html = `<div class="lm-dropdown-header">Recently Added</div>`;
+            items.forEach(item => {
+                const t = (item.Type || '').toLowerCase();
+                const cls = t === 'movie' ? 'lm-type-movie' : t === 'anime' ? 'lm-type-anime' : t === 'series' ? 'lm-type-series' : 'lm-type-other';
+                const label = item.Type || 'Other';
+                const diff = item.DateAdded ? Math.floor((Date.now() - new Date(item.DateAdded)) / 86400000) : null;
+                const age = diff === null ? '' : diff === 0 ? 'Today' : `${diff}d ago`;
+                const year = item.ProductionYear ? ` (${item.ProductionYear})` : '';
+                const poster = `${STATE.serverUrl}/Items/${item.Id}/Images/Primary?fillWidth=90&quality=75`;
+                html += `
+                    <a class="lm-card" href="#!/details?id=${item.Id}">
+                        <img class="lm-poster" loading="lazy" src="${poster}" onerror="this.style.visibility='hidden'"/>
+                        <div class="lm-card-meta">
+                            <div class="lm-card-title">${item.Title || item.Name || 'Unknown'}${year}</div>
+                            <div class="lm-card-sub">
+                                <span class="lm-type-badge ${cls}">${label}</span>
+                                ${age ? `<span>${age}</span>` : ''}
+                            </div>
+                        </div>
+                    </a>`;
+            });
+            latestDropdown.innerHTML = html;
+            latestDropdown.querySelectorAll('.lm-card').forEach(a => {
+                a.addEventListener('click', () => latestDropdown.classList.remove('open'));
+            });
+        }).catch(err => {
+            latestDropdown.innerHTML = `<div class="lm-empty">Failed to load: ${err.message}</div>`;
+        });
+    }
+
+    // ─── Media Management modal ───────────────────────────────────────────────
+    function openMediaManagement() {
         const overlay = document.createElement('div');
         overlay.className = 'lm-modal-overlay';
         overlay.innerHTML = `
             <div class="lm-modal">
-                <div class="lm-modal-header">
-                    <h2>${title}</h2>
+                <div class="lm-modal-hdr">
+                    <h2>Media Management</h2>
                     <button class="lm-modal-close">&times;</button>
                 </div>
-                <div class="lm-modal-body">${contentHtml}</div>
-            </div>
-        `;
+                <div class="lm-modal-body">
+                    <div class="lm-empty" style="padding:30px;">Loading…</div>
+                </div>
+            </div>`;
         document.body.appendChild(overlay);
         overlay.querySelector('.lm-modal-close').onclick = () => overlay.remove();
-        if (onRender) onRender(overlay.querySelector('.lm-modal-body'), overlay);
+        overlay.addEventListener('click', ev => { if (ev.target === overlay) overlay.remove(); });
+
+        const body = overlay.querySelector('.lm-modal-body');
+        loadMediaManagement(body, overlay);
     }
 
-    const LatestMediaUI = {
-        async openDropdown(btn) {
-            let drop = document.getElementById('lm-latest-dropdown');
-            if (drop) { drop.classList.toggle('active'); return; }
-            
-            drop = document.createElement('div');
-            drop.id = 'lm-latest-dropdown';
-            drop.className = 'lm-dropdown active';
-            drop.innerHTML = `<div style="padding:15px;text-align:center;">Loading...</div>`;
-            btn.appendChild(drop);
-
-            try {
-                const items = await apiRequest('LatestMedia/Items');
-                drop.innerHTML = '';
-                items.forEach(item => {
-                    const tag = item.type.toLowerCase();
-                    const tagClass = tag === 'movie' ? 'lm-type-movie' : tag === 'anime' ? 'lm-type-anime' : 'lm-type-series';
-                    const diff = Math.floor((new Date() - new Date(item.dateAdded)) / 86400000);
-                    const timeAgo = diff === 0 ? 'Today' : `${diff}d ago`;
-
-                    const a = document.createElement('a');
-                    a.className = 'lm-card';
-                    a.href = `#!/details?id=${item.id}`;
-                    a.innerHTML = `
-                        <img class="lm-poster" src="${STATE.serverUrl}${item.posterUrl}" />
-                        <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-                            <strong style="margin-bottom:5px;">${item.title} (${item.productionYear || '?'})</strong>
-                            <div><span class="lm-type-badge ${tagClass}">${item.type}</span> <span style="font-size:0.8em;opacity:0.7">${timeAgo}</span></div>
-                        </div>
-                    `;
-                    a.onclick = () => drop.classList.remove('active');
-                    drop.appendChild(a);
-                });
-            } catch (e) {
-                drop.innerHTML = `<div style="padding:15px;">Failed to load</div>`;
+    function loadMediaManagement(body, overlay) {
+        api('MediaMgmt/Items').then(items => {
+            if (!items || !items.length) {
+                body.innerHTML = `<div class="lm-empty" style="padding:30px;">No media items found.</div>`;
+                return;
             }
-        }
-    };
-
-    const MediaMgmtUI = {
-        async openAdminModal() {
-            showModal('Media Management', 'Loading items...', async (body) => {
-                try {
-                    const items = await apiRequest('MediaMgmt/Items');
-                    let html = `<table class="lm-table"><thead><tr><th>Title</th><th>Year</th><th>Size (MB)</th><th>Status</th><th>Actions</th></tr></thead><tbody>`;
-                    items.forEach(i => {
-                        const sizeMb = (i.size / 1024 / 1024).toFixed(2);
-                        html += `<tr>
-                            <td>${i.title}</td>
-                            <td>${i.year || '-'}</td>
-                            <td>${sizeMb}</td>
-                            <td>${i.status}</td>
-                            <td>
-                                ${i.status === 'Active' ? 
-                                `<select class="lm-schedule-sel" data-id="${i.id}">
-                                    <option value="">Schedule Delete...</option>
-                                    <option value="1">Empty Trash in 1 Day</option>
-                                    <option value="7">Empty Trash in 7 Days</option>
-                                    <option value="30">Empty Trash in 30 Days</option>
-                                </select>` 
-                                : `<button class="lm-btn lm-btn-danger lm-cancel-del" data-id="${i.id}">Cancel</button>`}
-                            </td>
-                        </tr>`;
-                    });
-                    html += `</tbody></table>`;
-                    body.innerHTML = html;
-
-                    body.querySelectorAll('.lm-schedule-sel').forEach(sel => {
-                        sel.onchange = async (e) => {
-                            if (!e.target.value) return;
-                            await apiRequest(`MediaMgmt/Items/${e.target.dataset.id}/ScheduleDelete?days=${e.target.value}`, { method: 'POST' });
-                            MediaMgmtUI.openAdminModal();
-                        };
-                    });
-                    body.querySelectorAll('.lm-cancel-del').forEach(btn => {
-                        btn.onclick = async (e) => {
-                            await apiRequest(`MediaMgmt/Items/${e.target.dataset.id}/CancelDelete`, { method: 'DELETE' });
-                            MediaMgmtUI.openAdminModal();
-                        };
-                    });
-                } catch(e) { body.innerHTML = "Access Denied."; }
+            let html = `
+                <table class="lm-table">
+                    <thead><tr>
+                        <th>Title</th><th>Year</th><th>Size (MB)</th><th>Status</th><th>Actions</th>
+                    </tr></thead>
+                    <tbody>`;
+            items.forEach(i => {
+                const sizeMb = i.Size ? (i.Size / 1048576).toFixed(1) : '—';
+                const isScheduled = i.Status && i.Status !== 'Active';
+                const statusText = i.Status || 'Active';
+                html += `<tr>
+                    <td>${i.Title || '—'}</td>
+                    <td>${i.Year || '—'}</td>
+                    <td>${sizeMb}</td>
+                    <td>${statusText}</td>
+                    <td>${isScheduled
+                        ? `<button class="lm-btn lm-btn-danger lm-cancel-del" data-id="${i.Id}">Cancel</button>`
+                        : `<select class="lm-select lm-schedule-sel" data-id="${i.Id}">
+                               <option value="">Schedule Delete…</option>
+                               <option value="1">1 Day</option>
+                               <option value="3">3 Days</option>
+                               <option value="7">1 Week</option>
+                               <option value="14">2 Weeks</option>
+                               <option value="30">1 Month</option>
+                           </select>`
+                    }</td>
+                </tr>`;
             });
-        }
-    };
+            html += `</tbody></table>`;
+            body.innerHTML = html;
 
-    const ChatUI = {
+            body.querySelectorAll('.lm-schedule-sel').forEach(sel => {
+                sel.onchange = async (e) => {
+                    if (!e.target.value) return;
+                    try {
+                        await api(`MediaMgmt/Items/${e.target.dataset.id}/ScheduleDelete?days=${e.target.value}`, { method: 'POST' });
+                        loadMediaManagement(body, overlay);
+                    } catch (err) { alert('Failed: ' + err.message); }
+                };
+            });
+            body.querySelectorAll('.lm-cancel-del').forEach(btn => {
+                btn.onclick = async (e) => {
+                    try {
+                        await api(`MediaMgmt/Items/${e.target.dataset.id}/CancelDelete`, { method: 'DELETE' });
+                        loadMediaManagement(body, overlay);
+                    } catch (err) { alert('Failed: ' + err.message); }
+                };
+            });
+        }).catch(err => {
+            body.innerHTML = `<div class="lm-empty" style="padding:30px;">Access denied or error: ${err.message}</div>`;
+        });
+    }
+
+    // ─── Chat Panel ───────────────────────────────────────────────────────────
+    const Chat = {
         panel: null,
-        mode: 'public',
+        activeTab: 'public',   // 'public' | {userId, name}
         init() {
+            if (this.panel) return;
             this.panel = document.createElement('div');
             this.panel.className = 'lm-chat-panel';
             this.panel.innerHTML = `
+                <div class="lm-chat-titlebar">
+                    <span class="lm-chat-titlebar-title">💬 Chat</span>
+                    <button class="lm-chat-title-close">&times;</button>
+                </div>
                 <div class="lm-chat-tabs">
-                    <div class="lm-chat-tab active" id="lm-tab-public">Public Chat</div>
-                    <div class="lm-chat-tab" id="lm-tab-dms">DMs</div>
-                    <div class="lm-modal-close" id="lm-chat-close" style="padding:10px;">&times;</div>
+                    <div class="lm-chat-tab active" data-tab="public">Public Chat</div>
+                    <div class="lm-chat-tab" data-tab="dms">Direct Messages</div>
                 </div>
-                <div class="lm-chat-messages" id="lm-chat-view"></div>
+                <div class="lm-chat-messages" id="lm-chat-messages"></div>
                 <div class="lm-chat-input-area">
-                    <input type="text" class="lm-chat-input" id="lm-chat-input" placeholder="Type a message..." />
-                    <button class="lm-btn" id="lm-chat-send">Send</button>
-                    ${STATE.isAdmin ? '<button class="lm-btn lm-btn-danger" id="lm-chat-broadcast">B-Cast</button>' : ''}
-                </div>
-            `;
+                    <input class="lm-chat-input" id="lm-chat-inp" type="text" placeholder="Type a message…" maxlength="500"/>
+                    <button class="lm-chat-send" id="lm-chat-send-btn" title="Send">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    </button>
+                    ${STATE.isAdmin ? `<button class="lm-btn lm-btn-danger" id="lm-broadcast-btn" style="border-radius:4px;font-size:0.72em;" title="Broadcast to all">📢</button>` : ''}
+                </div>`;
             document.body.appendChild(this.panel);
 
-            document.getElementById('lm-chat-close').onclick = () => this.panel.classList.remove('open');
-            document.getElementById('lm-tab-public').onclick = () => this.switchTab('public');
-            document.getElementById('lm-tab-dms').onclick = () => this.switchTab('dms');
-            
-            const inp = document.getElementById('lm-chat-input');
-            const snd = document.getElementById('lm-chat-send');
-            const bct = document.getElementById('lm-chat-broadcast');
-            
-            snd.onclick = () => this.sendMessage(inp.value);
-            inp.onkeypress = (e) => { if(e.key === 'Enter') this.sendMessage(inp.value); };
-            if (bct) bct.onclick = () => this.sendBroadcast(inp.value);
+            this.panel.querySelector('.lm-chat-title-close').onclick = () => this.close();
 
-            this.updateBadge();
-            if (!STATE.chatPollTimer) STATE.chatPollTimer = setInterval(() => this.poll(), 5000);
+            this.panel.querySelectorAll('.lm-chat-tab').forEach(tab => {
+                tab.onclick = () => {
+                    this.panel.querySelectorAll('.lm-chat-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    this.activeTab = tab.dataset.tab;
+                    this.render();
+                };
+            });
+
+            const inp = this.panel.querySelector('#lm-chat-inp');
+            this.panel.querySelector('#lm-chat-send-btn').onclick = () => this.send(inp.value);
+            inp.addEventListener('keyup', e => { if (e.key === 'Enter') this.send(inp.value); });
+
+            const bcast = this.panel.querySelector('#lm-broadcast-btn');
+            if (bcast) bcast.onclick = () => this.broadcast(inp.value);
+
+            this.startPolling();
         },
-        toggle() {
-            if (!this.panel) this.init();
-            this.panel.classList.toggle('open');
-            if (this.panel.classList.contains('open')) this.render();
-        },
-        switchTab(target) {
-            this.mode = target;
-            document.getElementById('lm-tab-public').classList.toggle('active', target === 'public');
-            document.getElementById('lm-tab-dms').classList.toggle('active', target === 'dms');
+
+        open() {
+            this.init();
+            this.panel.classList.add('open');
             this.render();
         },
-        async render() {
-            const view = document.getElementById('lm-chat-view');
-            
-            if (this.mode === 'public') {
-                const msgs = await apiRequest('Chat/Messages');
-                this.drawBubbles(view, msgs, m => m.content, m => m.isBroadcast);
-            } else if (this.mode === 'dms') {
-                const convos = await apiRequest('Chat/DM/Conversations');
-                let html = `<div style="padding:10px;"><input type="text" id="lm-dm-search" class="lm-chat-input" placeholder="Search user to DM..." style="width:100%" /></div>`;
-                convos.forEach(c => {
-                    const fw = c.unreadCount > 0 ? "bold" : "normal";
-                    html += `<div class="lm-card lm-dm-thread" data-id="${c.userId}" data-name="${c.userName}" style="font-weight:${fw}">
-                        ${c.userName} ${c.unreadCount > 0 ? `<span class="lm-badge" style="position:static; margin-left:10px;">${c.unreadCount}</span>` : ''}
-                    </div>`;
-                });
-                view.innerHTML = html;
+        close() {
+            if (this.panel) this.panel.classList.remove('open');
+        },
+        toggle() {
+            if (!this.panel || !this.panel.classList.contains('open')) this.open();
+            else this.close();
+        },
 
-                document.getElementById('lm-dm-search').onkeypress = async (e) => {
-                    if (e.key === 'Enter') {
-                        const users = await apiRequest(`Chat/DM/Users?query=${e.target.value}`);
-                        if (users.length > 0) this.openDm(users[0]);
-                        else alert("User not found");
+        async render() {
+            const view = this.panel.querySelector('#lm-chat-messages');
+            if (!view) return;
+
+            if (this.activeTab === 'public') {
+                try {
+                    const msgs = await api('Chat/Messages');
+                    this.drawBubbles(view, msgs, m => m.Content || m.content, m => m.IsBroadcast || m.isBroadcast);
+                } catch { view.innerHTML = '<div class="lm-empty">Could not load messages.</div>'; }
+
+            } else if (this.activeTab === 'dms') {
+                try {
+                    const convos = await api('Chat/DM/Conversations');
+                    if (!convos.length) {
+                        view.innerHTML = `
+                            <div style="padding:10px;">
+                                <input id="lm-dm-search" class="lm-chat-input" style="width:100%;border-radius:8px;" placeholder="Search users to DM…" />
+                            </div>
+                            <div class="lm-empty" style="padding-top:0;">No conversations yet.</div>`;
+                    } else {
+                        let html = `<div style="padding:10px;"><input id="lm-dm-search" class="lm-chat-input" style="width:100%;border-radius:8px;" placeholder="Search users to DM…" /></div>`;
+                        convos.forEach(c => {
+                            html += `<div class="lm-dm-row" data-uid="${c.UserId || c.userId}" data-name="${c.UserName || c.userName || 'User'}">
+                                ${c.UserName || c.userName || 'User'}
+                                ${(c.UnreadCount || c.unreadCount) > 0 ? `<span class="lm-dm-badge">${c.UnreadCount || c.unreadCount}</span>` : ''}
+                            </div>`;
+                        });
+                        view.innerHTML = html;
+                        view.querySelectorAll('.lm-dm-row').forEach(row => {
+                            row.onclick = () => { this.activeTab = { userId: row.dataset.uid, name: row.dataset.name }; this.render(); };
+                        });
                     }
-                };
-                view.querySelectorAll('.lm-dm-thread').forEach(el => el.onclick = () => this.openDm({id: el.dataset.id, name: el.dataset.name}));
-            } else if (typeof this.mode === 'object') {
-                view.innerHTML = `<div style="padding:5px; text-align:center; opacity:0.7;">Chatting with ${this.mode.name}. E2E Encrypted.</div>`;
-                const msgs = await apiRequest(`Chat/DM/${this.mode.id}/Messages`);
-                const pkRes = await apiRequest(`Chat/Keys/${this.mode.id}`);
-                
-                for (let m of msgs) {
-                    m.plaintext = await Crypto.decrypt(m.ciphertext, m.nonce, m.senderPublicKey);
-                }
-                
-                this.drawBubbles(view, msgs, m => m.plaintext);
+                    const srch = view.querySelector('#lm-dm-search');
+                    if (srch) {
+                        srch.onkeypress = async e => {
+                            if (e.key !== 'Enter') return;
+                            try {
+                                const users = await api(`Chat/DM/Users?query=${encodeURIComponent(e.target.value)}`);
+                                if (users.length) { this.activeTab = { userId: users[0].Id || users[0].id, name: users[0].Name || users[0].name }; this.render(); }
+                                else alert('User not found.');
+                            } catch (err) { alert(err.message); }
+                        };
+                    }
+                } catch { view.innerHTML = '<div class="lm-empty">Could not load DMs.</div>'; }
+
+            } else if (typeof this.activeTab === 'object') {
+                // DM thread view
+                view.innerHTML = `<div class="lm-empty" style="padding:8px 12px;font-size:0.75em;">DM with <b>${this.activeTab.name}</b> — E2E encrypted</div>`;
+                try {
+                    const msgs = await api(`Chat/DM/${this.activeTab.userId}/Messages`);
+                    this.drawBubbles(view, msgs, m => `[encrypted] ${m.Ciphertext ? '🔒' : m.ciphertext ? '🔒' : m.Content || m.content}`, () => false);
+                } catch { view.innerHTML += '<div class="lm-empty">Could not load messages.</div>'; }
             }
         },
-        drawBubbles(container, msgs, getTxt, isBcast = ()=>false) {
+
+        drawBubbles(container, msgs, getText, isBroadcast = () => false) {
+            if (!Array.isArray(msgs) || !msgs.length) {
+                const existing = container.querySelector('.lm-empty');
+                if (!existing) container.innerHTML = '<div class="lm-empty">No messages yet.</div>';
+                return;
+            }
+            // Only replace content bubbles, keep search box at top if present
+            const search = container.querySelector('#lm-dm-search, input');
+            const keepEl = search ? search.parentElement : null;
+            container.innerHTML = '';
+            if (keepEl) container.appendChild(keepEl);
+
             msgs.forEach(m => {
-                const isOwn = m.senderId === STATE.userId;
-                const cls = isBcast(m) ? 'broadcast' : (isOwn ? 'own' : 'other');
-                const b = document.createElement('div');
-                b.className = `lm-chat-bubble ${cls}`;
-                b.innerHTML = `<div style="font-size:0.7em;opacity:0.7">${m.senderName || 'Anonymous'}</div>` + getTxt(m);
-                container.appendChild(b);
+                const senderId = m.SenderId || m.senderId;
+                const isOwn = senderId === STATE.userId;
+                const bcast = isBroadcast(m);
+                const cls = bcast ? 'broadcast' : isOwn ? 'own' : 'other';
+                const div = document.createElement('div');
+                div.className = `lm-bubble ${cls}`;
+                div.innerHTML = `<div class="lm-bubble-name">${m.SenderName || m.senderName || (isOwn ? 'You' : 'User')}</div>${getText(m)}`;
+                container.appendChild(div);
             });
             container.scrollTop = container.scrollHeight;
         },
-        async sendMessage(txt) {
-            if (!txt.trim()) return;
-            document.getElementById('lm-chat-input').value = '';
 
-            if (this.mode === 'public') {
-                await apiRequest('Chat/Messages', { method: 'POST', body: JSON.stringify({ content: txt }) });
-            } else if (typeof this.mode === 'object') {
-                const pkRes = await apiRequest(`Chat/Keys/${this.mode.id}`);
-                const { cipherResult, nonce } = await Crypto.encrypt(txt, pkRes.publicKey);
-                await apiRequest(`Chat/DM/${this.mode.id}/Messages`, {
-                    method: 'POST',
-                    body: JSON.stringify({ ciphertext: cipherResult, nonce: nonce, senderPublicKey: STATE.keys.pubBase64 })
-                });
-            }
-            this.render();
-        },
-        async sendBroadcast(txt) {
-            if (!txt.trim()) return;
-            document.getElementById('lm-chat-input').value = '';
-            await apiRequest('Chat/Broadcast', { method: 'POST', body: JSON.stringify({ content: txt }) });
-            if (this.mode === 'public') this.render();
-        },
-        openDm(user) {
-            this.mode = user;
-            this.render();
-        },
-        async poll() {
+        async send(txt) {
+            if (!txt || !txt.trim()) return;
+            const inp = this.panel.querySelector('#lm-chat-inp');
+            inp.value = '';
             try {
-                const convos = await apiRequest('Chat/DM/Conversations');
-                if (convos && convos.length !== undefined) {
-                    const unread = convos.reduce((a,c) => a + c.unreadCount, 0);
-                    const badge = document.getElementById('lm-chat-badge');
-                    if (badge) {
-                        badge.style.display = unread > 0 ? 'inline-block' : 'none';
-                        badge.innerText = unread;
-                    }
+                if (this.activeTab === 'public') {
+                    await api('Chat/Messages', { method: 'POST', body: JSON.stringify({ content: txt }) });
+                } else if (typeof this.activeTab === 'object') {
+                    await api(`Chat/DM/${this.activeTab.userId}/Messages`, { method: 'POST', body: JSON.stringify({ content: txt }) });
                 }
-                if (this.panel && this.panel.classList.contains('open')) this.render();
-            } catch(e) {}
+                this.render();
+            } catch (e) { inp.value = txt; alert('Send failed: ' + e.message); }
         },
-        async updateBadge() { this.poll(); }
+
+        async broadcast(txt) {
+            if (!txt || !txt.trim()) return;
+            const inp = this.panel.querySelector('#lm-chat-inp');
+            inp.value = '';
+            try {
+                await api('Chat/Broadcast', { method: 'POST', body: JSON.stringify({ content: txt }) });
+                this.render();
+            } catch (e) { inp.value = txt; alert('Broadcast failed: ' + e.message); }
+        },
+
+        async updateBadge() {
+            try {
+                const convos = await api('Chat/DM/Conversations');
+                const unread = convos.reduce((s, c) => s + (c.UnreadCount || c.unreadCount || 0), 0);
+                const badge = document.getElementById('lm-chat-badge');
+                if (badge) { badge.style.display = unread > 0 ? 'flex' : 'none'; badge.textContent = unread; }
+            } catch { }
+        },
+
+        startPolling() {
+            if (STATE.chatPollTimer) return;
+            STATE.chatPollTimer = setInterval(() => {
+                this.updateBadge();
+                if (this.panel && this.panel.classList.contains('open')) this.render();
+            }, 8000);
+        }
     };
 
-    // --- Dynamic Injection System ---
-    let isLoading = false;
-
-    async function attemptInjection() {
-        const target = document.querySelector('.headerRight');
-        if (!target) return; // Wait until UI renders
-        if (document.getElementById('lm-btn-latest')) return; // Already injected
-        if (isLoading) return;
-        
-        // Ensure user is actually logged in and API is ready
-        if (!window.ApiClient || !window.ApiClient.accessToken()) return; 
-
-        isLoading = true;
+    // ─── E2E Crypto (stub – not blocking injection) ───────────────────────────
+    async function initCrypto() {
         try {
-            STATE.serverUrl = ApiClient.serverAddress();
-            STATE.token = ApiClient.accessToken();
-
-            const me = await apiRequest('Users/Me');
-            STATE.isAdmin = me.Policy.IsAdministrator;
-            STATE.userId = me.Id;
-            STATE.userName = me.Name;
-
-            // Wait, what plugin endpoint gives us the configuration? 
-            // The standard endpoint is Plugins/{Id}/Configuration
-            STATE.config = await apiRequest(`Plugins/${STATE.pluginId}/Configuration`);
-            
-            await Crypto.init();
-
-            // Inject the elements if enabled in config
-            if (STATE.config.EnableLatestMediaButton) {
-                const bLatest = createHeaderButton('lm-btn-latest', ICONS.latest, (e) => LatestMediaUI.openDropdown(bLatest));
-                target.insertBefore(bLatest, target.firstChild);
-            }
-
-            if (STATE.isAdmin && STATE.config.EnableMediaManagement) {
-                const bManage = createHeaderButton('lm-btn-manage', ICONS.manage, () => MediaMgmtUI.openAdminModal());
-                target.insertBefore(bManage, target.firstChild);
-            }
-
-            if (STATE.config.EnableChat) {
-                const bChat = createHeaderButton('lm-btn-chat', ICONS.chat, () => ChatUI.toggle());
-                const badge = document.createElement('span');
-                badge.id = 'lm-chat-badge';
-                badge.className = 'lm-badge';
-                badge.style.display = 'none';
-                bChat.appendChild(badge);
-                target.insertBefore(bChat, target.firstChild);
-            }
-        } catch(e) {
-            console.warn("[LatestMedia] Injection failed or auth not ready:", e);
-        } finally {
-            isLoading = false;
+            const kp = await window.crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveKey']);
+            const raw = await window.crypto.subtle.exportKey('raw', kp.publicKey);
+            const b64 = btoa(String.fromCharCode(...new Uint8Array(raw)));
+            STATE.keys = { privateKey: kp.privateKey, publicKey: kp.publicKey, pubBase64: b64 };
+            await api('Chat/Keys', { method: 'POST', body: JSON.stringify({ publickey: b64 }) });
+        } catch (e) {
+            console.debug('[LatestMedia] Crypto init skipped:', e.message);
         }
     }
 
-    // Attach silent dom observer
-    const observer = new MutationObserver(() => attemptInjection());
+    // ─── Injection ────────────────────────────────────────────────────────────
+    let injecting = false;
+
+    async function tryInject() {
+        if (STATE.injected || injecting) return;
+        if (!window.ApiClient || !window.ApiClient.accessToken()) return;
+
+        const headerRight = document.querySelector('.headerRight, .headerButtons, .headerButton-right, [class*="headerRight"]');
+        if (!headerRight) return;
+        if (document.getElementById('lm-btn-latest')) { STATE.injected = true; return; }
+
+        injecting = true;
+        try {
+            STATE.serverUrl = (ApiClient.serverAddress ? ApiClient.serverAddress() : location.origin).replace(/\/$/, '');
+            STATE.token = ApiClient.accessToken();
+
+            const me = await api('Users/Me');
+            STATE.userId = me.Id;
+            STATE.isAdmin = me.Policy && me.Policy.IsAdministrator;
+
+            STATE.config = await api(`Plugins/${PLUGIN_ID}/Configuration`);
+
+            const frag = document.createDocumentFragment();
+
+            if (STATE.config.EnableLatestMediaButton) {
+                const b = mkHeaderBtn('lm-btn-latest', ICONS.latest, openLatestMedia);
+                frag.appendChild(b);
+            }
+
+            if (STATE.isAdmin && STATE.config.EnableMediaManagement) {
+                const b = mkHeaderBtn('lm-btn-manage', ICONS.manage, () => openMediaManagement());
+                frag.appendChild(b);
+            }
+
+            if (STATE.config.EnableChat) {
+                const b = mkHeaderBtn('lm-btn-chat', ICONS.chat, () => Chat.toggle());
+                const badge = document.createElement('span');
+                badge.id = 'lm-chat-badge';
+                badge.className = 'lm-unread-badge';
+                b.appendChild(badge);
+                frag.appendChild(b);
+                initCrypto();
+            }
+
+            // Prepend to headerRight so our buttons sit next to existing ones
+            headerRight.insertBefore(frag, headerRight.firstChild);
+            STATE.injected = true;
+
+        } catch (e) {
+            console.debug('[LatestMedia] Injection deferred:', e.message);
+        } finally {
+            injecting = false;
+        }
+    }
+
+    // Watch for DOM changes (Jellyfin is a SPA)
+    const observer = new MutationObserver(() => tryInject());
     observer.observe(document.body, { childList: true, subtree: true });
 
+    // Also poll in case SPA navigation replaces the header
+    setInterval(() => {
+        if (!document.getElementById('lm-btn-latest')) STATE.injected = false;
+        tryInject();
+    }, 3000);
+
+    tryInject();
 })();
