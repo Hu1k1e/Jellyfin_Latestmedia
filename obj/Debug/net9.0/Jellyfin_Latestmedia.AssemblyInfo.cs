@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Jellyfin_Latestmedia")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.3.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.3.0+692b0592fc396170f70b2f63189b53398dfee4f6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.3.0+043607fa6294e5b481702166a189f51ae1b53126")]
 [assembly: System.Reflection.AssemblyProductAttribute("Jellyfin_Latestmedia")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Jellyfin_Latestmedia")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.3.0")]

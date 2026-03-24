@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Latest Media & Management Configuration</title>
+    <title>Latest Media &amp; Management Configuration</title>
 </head>
 <body>
     <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
         <div data-role="content">
             <div class="content-primary">
-                <h1>Latest Media & Management Settings</h1>
-                <form class="pluginConfigurationForm">
+                <h1>Latest Media &amp; Management Settings</h1>
+                <form id="LatestMediaConfigForm" class="pluginConfigurationForm">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
                             <input type="checkbox" is="emby-checkbox" id="EnableLatestMediaButton" />
@@ -58,50 +58,50 @@
             </div>
         </div>
         <script type="text/javascript">
-            var LatestMediaConfig = {
-                pluginUniqueId: "f94d6caf-2a62-4dd7-9f64-684ce8efff43",
+            (function () {
+                var pluginId = 'f94d6caf-2a62-4dd7-9f64-684ce8efff43';
 
-                loadData: function (view) {
-                    ApiClient.getPluginConfiguration(LatestMediaConfig.pluginUniqueId).then(function (config) {
-                        view.querySelector('#EnableLatestMediaButton').checked = config.EnableLatestMediaButton;
-                        view.querySelector('#EnableMediaManagement').checked = config.EnableMediaManagement;
-                        view.querySelector('#EnableChat').checked = config.EnableChat;
-                        view.querySelector('#PublicChatRetentionHours').value = config.PublicChatRetentionHours;
-                        view.querySelector('#DmRetentionDays').value = config.DmRetentionDays;
-                        view.querySelector('#LatestMediaCount').value = config.LatestMediaCount;
+                function loadConfig() {
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        document.getElementById('EnableLatestMediaButton').checked = !!config.EnableLatestMediaButton;
+                        document.getElementById('EnableMediaManagement').checked = !!config.EnableMediaManagement;
+                        document.getElementById('EnableChat').checked = !!config.EnableChat;
+                        document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
+                        document.getElementById('DmRetentionDays').value = config.DmRetentionDays || 7;
+                        document.getElementById('LatestMediaCount').value = config.LatestMediaCount || 50;
+                    }).catch(function (err) {
+                        console.error('[LatestMedia] Failed to load config', err);
                     });
-                },
+                }
 
-                onSubmit: function (e) {
+                function saveConfig(e) {
                     e.preventDefault();
-                    var view = Dashboard.getCurrentView();
-                    
                     Dashboard.showLoadingMsg();
 
-                    ApiClient.getPluginConfiguration(LatestMediaConfig.pluginUniqueId).then(function (config) {
-                        config.EnableLatestMediaButton = view.querySelector('#EnableLatestMediaButton').checked;
-                        config.EnableMediaManagement = view.querySelector('#EnableMediaManagement').checked;
-                        config.EnableChat = view.querySelector('#EnableChat').checked;
-                        config.PublicChatRetentionHours = parseInt(view.querySelector('#PublicChatRetentionHours').value) || 24;
-                        config.DmRetentionDays = parseInt(view.querySelector('#DmRetentionDays').value) || 7;
-                        config.LatestMediaCount = parseInt(view.querySelector('#LatestMediaCount').value) || 50;
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.EnableLatestMediaButton = document.getElementById('EnableLatestMediaButton').checked;
+                        config.EnableMediaManagement = document.getElementById('EnableMediaManagement').checked;
+                        config.EnableChat = document.getElementById('EnableChat').checked;
+                        config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
+                        config.DmRetentionDays = parseInt(document.getElementById('DmRetentionDays').value) || 7;
+                        config.LatestMediaCount = parseInt(document.getElementById('LatestMediaCount').value) || 50;
 
-                        ApiClient.updatePluginConfiguration(LatestMediaConfig.pluginUniqueId, config).then(function (result) {
-                            Dashboard.processPluginConfigurationUpdateResult(result);
-                        });
+                        return ApiClient.updatePluginConfiguration(pluginId, config);
+                    }).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    }).catch(function (err) {
+                        console.error('[LatestMedia] Failed to save config', err);
+                        Dashboard.hideLoadingMsg();
+                        alert('Failed to save settings. Check console for details.');
                     });
-                    
+
                     return false;
                 }
-            };
 
-            document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
-                LatestMediaConfig.loadData(this);
-            });
-
-            document.querySelector('.pluginConfigurationForm').addEventListener('submit', function (e) {
-                LatestMediaConfig.onSubmit(e);
-            });
+                // Attach events once DOM is ready
+                document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', loadConfig);
+                document.getElementById('LatestMediaConfigForm').addEventListener('submit', saveConfig);
+            })();
         </script>
     </div>
 </body>
