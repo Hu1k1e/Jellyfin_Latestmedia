@@ -4,6 +4,21 @@
         <name>Jellyfin_Latestmedia</name>
     </assembly>
     <members>
+        <member name="M:Jellyfin_Latestmedia.Api.ChatController.GetMyCode">
+            <summary>Returns the current user's unique chat code (first 6 chars of userId, uppercase).</summary>
+        </member>
+        <member name="M:Jellyfin_Latestmedia.Api.ChatController.GetUserByCode(System.String)">
+            <summary>Find a user by their 6-char unique chat code.</summary>
+        </member>
+        <member name="M:Jellyfin_Latestmedia.Api.ChatController.GetOnlineCount">
+            <summary>Returns count of currently active sessions (online users).</summary>
+        </member>
+        <member name="P:Jellyfin_Latestmedia.Models.EncryptedPrivateMessage.Content">
+            <summary>Plain text content (used when E2E is not set up).</summary>
+        </member>
+        <member name="P:Jellyfin_Latestmedia.Models.EncryptedPrivateMessage.Ciphertext">
+            <summary>Base64 encoded AES-GCM ciphertext (optional, for E2E encrypted DMs).</summary>
+        </member>
         <member name="T:Jellyfin_Latestmedia.Models.PatchRequestPayload">
             <summary>
             Payload type passed by the File Transformation Plugin to registered callback methods.

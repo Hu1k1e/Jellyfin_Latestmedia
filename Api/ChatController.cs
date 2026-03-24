@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Jellyfin_Latestmedia.Data;
 using Jellyfin_Latestmedia.Models;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Session;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,11 +18,52 @@ namespace Jellyfin_Latestmedia.Api
     {
         private readonly PluginRepository _repository;
         private readonly IUserManager _userManager;
+        private readonly ISessionManager _sessionManager;
 
-        public ChatController(IUserManager userManager)
+        public ChatController(IUserManager userManager, ISessionManager sessionManager)
         {
             _repository = Plugin.Instance.Repository;
             _userManager = userManager;
+            _sessionManager = sessionManager;
+        }
+
+        /// <summary>Returns the current user's unique chat code (first 6 chars of userId, uppercase).</summary>
+        [HttpGet("MyCode")]
+        public ActionResult<object> GetMyCode()
+        {
+            var userId = GetUserId();
+            if (userId == Guid.Empty) return Unauthorized();
+            var code = userId.ToString("N")[..6].ToUpperInvariant();
+            return Ok(new { Code = code, UserId = userId.ToString("N") });
+        }
+
+        /// <summary>Find a user by their 6-char unique chat code.</summary>
+        [HttpGet("DM/Users/ByCode/{code}")]
+        public ActionResult<object> GetUserByCode(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code) || code.Length != 6)
+                return BadRequest("Code must be exactly 6 characters.");
+
+            code = code.ToUpperInvariant();
+            var match = _userManager.Users.FirstOrDefault(u =>
+                u.Id.ToString("N")[..6].ToUpperInvariant() == code);
+
+            if (match == null) return NotFound("No user found with that code.");
+
+            return Ok(new { Id = match.Id.ToString("N"), Name = match.Username });
+        }
+
+        /// <summary>Returns count of currently active sessions (online users).</summary>
+        [HttpGet("Online")]
+        public ActionResult<object> GetOnlineCount()
+        {
+            var sessions = _sessionManager.Sessions;
+            var online = sessions
+                .Where(s => s.UserId != Guid.Empty && (DateTime.UtcNow - s.LastActivityDate).TotalMinutes < 5)
+                .Select(s => s.UserId)
+                .Distinct()
+                .Count();
+            return Ok(new { Count = online });
         }
 
         private Guid GetUserId()
@@ -224,26 +266,30 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult> SendDm(Guid targetUserId, [FromBody] EncryptedPrivateMessage request)
         {
             var userId = GetUserId();
-            
-            if (string.IsNullOrWhiteSpace(request.Ciphertext) || 
-                string.IsNullOrWhiteSpace(request.Nonce) || 
-                string.IsNullOrWhiteSpace(request.SenderPublicKey))
+
+            // Accept either plain content OR encrypted payload
+            bool hasPlainContent = !string.IsNullOrWhiteSpace(request.Content);
+            bool hasEncrypted = !string.IsNullOrWhiteSpace(request.Ciphertext);
+
+            if (!hasPlainContent && !hasEncrypted)
             {
-                return BadRequest("Invalid encrypted message format");
+                return BadRequest("Message must have content or encrypted payload.");
             }
 
             var filename = _repository.GetChatDmFileName(userId, targetUserId);
             var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
-            
+
+            // Populate sender info
             request.Id = Guid.NewGuid().ToString("N");
             request.SenderId = userId;
+            request.SenderName = GetUserName();
             request.RecipientId = targetUserId;
             request.Timestamp = DateTime.UtcNow;
             request.IsRead = false;
 
             messages.Add(request);
             await _repository.WriteListAsync(filename, messages);
-            
+
             return Ok();
         }
 
