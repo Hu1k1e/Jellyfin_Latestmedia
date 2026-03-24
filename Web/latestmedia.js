@@ -118,6 +118,25 @@ st.innerHTML=`
 .pg{background:${G};color:#fff}.dn{background:#c62828;color:#fff}.gh{background:rgba(255,255,255,.1);color:inherit}
 .lmBtn:hover{filter:brightness(1.15)}
 
+/* Series hierarchy */
+.lmSRow{cursor:pointer;user-select:none}
+.lmSRow:hover td{background:rgba(255,255,255,.035)}
+.lmSRow td:first-child{font-weight:600}
+.lmSnRow td{padding-left:28px!important}
+.lmSnRow:hover td{background:rgba(255,255,255,.03)}
+.lmEpRow td{padding-left:52px!important;opacity:.85}
+.lmEpRow:hover td{background:rgba(255,255,255,.025)}
+.lmArr{display:inline-block;transition:transform .2s;margin-right:5px;font-size:.7em}
+.lmArr.open{transform:rotate(90deg)}
+.lmMTabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
+  background:rgba(255,255,255,.02)}
+.lmMTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
+  font-size:.8em;font-weight:600;color:rgba(255,255,255,.4);
+  border-bottom:2px solid transparent;transition:all .2s}
+.lmMTab:hover{color:rgba(255,255,255,.75)}
+.lmMTab.on{color:${G};border-bottom-color:${G}}
+.lmMMSrch{padding:12px 16px 8px}
+
 /* Confirm dialog */
 .lmCf{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.65);backdrop-filter:blur(5px)}
@@ -292,62 +311,126 @@ function renderR(b,items){
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
 function renderL(b,items){
-  b.innerHTML=items.map(i=>`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${esc(i.Title||i.Name||'?')}</div><div class="lmSub"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">⏳ ${i.DaysRemaining??'?'}d left</span></div></div></a>`).join('');
+  b.innerHTML=items.map(i=>{
+    const ctx=(i.SeriesName||i.seasonName)?`<div style="font-size:.72em;opacity:.5;margin-top:1px">${esc(i.SeriesName||'')}${i.SeasonName?' \u2022 '+esc(i.SeasonName):''}</div>`:'';
+    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${esc(i.Title||i.Name||'?')}</div>${ctx}<div class="lmSub"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 ${i.DaysRemaining??'?'}d left</span></div></div></a>`;
+  }).join('');
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
 
 /* ── Media Management ── */
+let mmTab='movies';
 function openMgmt(){
   const ov=document.createElement('div');ov.className='lmOv';
-  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div style="padding:0 14px 8px"><input id="lmMMSearch" class="lmInp" placeholder="Search movies & shows…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
+  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMTabs"><div class="lmMTab on" data-mt="movies">Movies</div><div class="lmMTab" data-mt="series">Series</div></div><div class="lmMMSrch"><input id="lmMMSearch" class="lmInp" placeholder="Search…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.lmMCl').onclick=()=>ov.remove();
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
-  loadMM(ov);
+  ov.querySelectorAll('.lmMTab').forEach(t=>t.addEventListener('click',()=>{
+    ov.querySelectorAll('.lmMTab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+    mmTab=t.dataset.mt;loadMM(ov);
+  }));
+  mmTab='movies';loadMM(ov);
 }
+
+const SCHED_SEL=`<select class="lmSel lmSD"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+
+function bindActions(b,ov){
+  b.querySelectorAll('.lmSD').forEach(s=>{
+    s.onchange=async()=>{
+      if(!s.value)return;
+      const id=s.dataset.id,t=s.dataset.t||'this item';
+      const ok=await cfm(`Schedule <b>${esc(t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
+      if(!ok){s.value='';return}
+      try{await api(`MediaMgmt/Items/${id}/ScheduleDelete?days=${s.value}`,{method:'POST'});loadMM(ov)}
+      catch(ex){alert('Error: '+ex.message);s.value=''}
+    };
+  });
+  b.querySelectorAll('.lmCD').forEach(btn=>btn.onclick=async()=>{
+    if(!await cfm('Cancel scheduled deletion?'))return;
+    try{await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});loadMM(ov)}
+    catch(ex){alert('Error: '+ex.message)}
+  });
+}
+
+function actionCell(id,title,status){
+  const sched=status&&status!=='Active';
+  return sched?`<button class="lmBtn dn lmCD" data-id="${id}">Cancel</button>`
+    :`<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+}
+
 function loadMM(ov){
   const b=document.getElementById('lmMM');if(!b)return;
-  api('MediaMgmt/Items').then(items=>{
-    if(!items||!items.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No items.</div>';return}
-    
-    function renderTable(filtered){
-      let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Year</th><th>MB</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
-      if(!filtered.length){h+='<tr><td colspan="5" style="text-align:center;opacity:.5;padding:18px">No matches found.</td></tr>'}
-      filtered.forEach(i=>{
-        const mb=i.Size?(i.Size/1048576).toFixed(1):'—';
-        const sched=i.Status&&i.Status!=='Active';
-        h+=`<tr><td>${esc(i.Title||'—')}</td><td>${i.Year||'—'}</td><td>${mb}</td><td>${esc(i.Status||'Active')}</td><td>${sched
-          ?`<button class="lmBtn dn lmCD" data-id="${i.Id}">Cancel</button>`
-          :`<select class="lmSel lmSD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`
-        }</td></tr>`;
-      });
-      b.innerHTML=h+'</tbody></table>';
-      b.querySelectorAll('.lmSD').forEach(s=>s.onchange=async()=>{
-        if(!s.value)return;
-        const ok=await cfm(`Schedule <b>${esc(s.dataset.t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
-        if(!ok){s.value='';return}
-        try{await api(`MediaMgmt/Items/${s.dataset.id}/ScheduleDelete?days=${s.value}`,{method:'POST'});loadMM(ov)}
-        catch(ex){alert('Error '+ex.message);s.value=''}
-      });
-      b.querySelectorAll('.lmCD').forEach(btn=>btn.onclick=async()=>{
-        if(!await cfm('Cancel scheduled deletion?'))return;
-        try{await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});loadMM(ov)}
-        catch(ex){alert('Error '+ex.message)}
-      });
-    }
-    
-    renderTable(items);
-    
-    const si=document.getElementById('lmMMSearch');
-    if(si){
-      si.value='';
-      si.oninput=()=>{
+  b.innerHTML='<div class="lmEmpty" style="padding:28px">Loading…</div>';
+  const si=document.getElementById('lmMMSearch');if(si)si.value='';
+
+  if(mmTab==='movies'){
+    api('MediaMgmt/Items').then(items=>{
+      if(!items||!items.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No movies found.</div>';return}
+      function renderMovies(filtered){
+        let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Year</th><th>MB</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+        if(!filtered.length){h+='<tr><td colspan="5" style="text-align:center;opacity:.5;padding:18px">No matches.</td></tr>'}
+        filtered.forEach(i=>{
+          const mb=i.Size?(i.Size/1048576).toFixed(1):'\u2014';
+          h+=`<tr><td>${esc(i.Title||'\u2014')}</td><td>${i.Year||'\u2014'}</td><td>${mb}</td><td>${esc(i.Status||'Active')}</td><td>${actionCell(i.Id,i.Title,i.Status)}</td></tr>`;
+        });
+        b.innerHTML=h+'</tbody></table>';
+        bindActions(b,ov);
+      }
+      renderMovies(items);
+      if(si) si.oninput=()=>{
         const q=si.value.trim().toLowerCase();
-        if(!q){renderTable(items);return}
-        renderTable(items.filter(i=>(i.Title||'').toLowerCase().includes(q)));
+        renderMovies(q?items.filter(i=>(i.Title||'').toLowerCase().includes(q)):items);
       };
-    }
-  }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
+    }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
+  } else {
+    api('MediaMgmt/Series').then(series=>{
+      if(!series||!series.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No series found.</div>';return}
+      function renderSeries(filtered){
+        let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Episodes</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+        if(!filtered.length){h+='<tr><td colspan="4" style="text-align:center;opacity:.5;padding:18px">No matches.</td></tr>'}
+        filtered.forEach(sr=>{
+          const rid='s_'+sr.Id;
+          const totalEps=(sr.Seasons||[]).reduce((a,sn)=>a+(sn.Episodes||[]).length,0);
+          h+=`<tr class="lmSRow" data-rid="${rid}"><td><span class="lmArr" data-rid="${rid}">\u25b6</span>${esc(sr.Title)} ${sr.Year?'('+sr.Year+')':''}</td><td>${sr.SeasonCount||0} Seasons \u2022 ${totalEps} Eps</td><td>${esc(sr.Status||'Active')}</td><td>${actionCell(sr.Id,sr.Title+' (Entire Series)',sr.Status)}</td></tr>`;
+          (sr.Seasons||[]).forEach(sn=>{
+            const snrid='sn_'+sn.Id;
+            h+=`<tr class="lmSnRow" data-parent="${rid}" data-rid="${snrid}" style="display:none"><td><span class="lmArr" data-rid="${snrid}">\u25b6</span>${esc(sn.Title)}</td><td>${sn.EpisodeCount||0} Episodes</td><td>${esc(sn.Status||'Active')}</td><td>${actionCell(sn.Id,sr.Title+' \u2022 '+sn.Title,sn.Status)}</td></tr>`;
+            (sn.Episodes||[]).forEach(ep=>{
+              const mb=ep.Size?(ep.Size/1048576).toFixed(1):'\u2014';
+              h+=`<tr class="lmEpRow" data-parent="${snrid}" style="display:none"><td>E${ep.Episode??'?'}: ${esc(ep.Title)}</td><td>${mb} MB</td><td>${esc(ep.Status||'Active')}</td><td>${actionCell(ep.Id,sr.Title+' \u2022 '+sn.Title+' \u2022 E'+ep.Episode,ep.Status)}</td></tr>`;
+            });
+          });
+        });
+        b.innerHTML=h+'</tbody></table>';
+        // Toggle expand/collapse
+        b.querySelectorAll('.lmSRow,.lmSnRow').forEach(row=>{
+          row.addEventListener('click',ev=>{
+            if(ev.target.closest('.lmSel,.lmBtn,.lmCD'))return;
+            const rid=row.dataset.rid;
+            const arr=row.querySelector('.lmArr');
+            const open=arr.classList.toggle('open');
+            b.querySelectorAll(`[data-parent="${rid}"]`).forEach(r=>{
+              r.style.display=open?'':'none';
+              if(!open){
+                // collapse nested children too
+                const nArr=r.querySelector('.lmArr');
+                if(nArr){nArr.classList.remove('open');}
+                const nrid=r.dataset.rid;
+                if(nrid)b.querySelectorAll(`[data-parent="${nrid}"]`).forEach(nr=>nr.style.display='none');
+              }
+            });
+          });
+        });
+        bindActions(b,ov);
+      }
+      renderSeries(series);
+      if(si) si.oninput=()=>{
+        const q=si.value.trim().toLowerCase();
+        renderSeries(q?series.filter(s=>(s.Title||'').toLowerCase().includes(q)):series);
+      };
+    }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
+  }
 }
 
 /* ── Chat ── */

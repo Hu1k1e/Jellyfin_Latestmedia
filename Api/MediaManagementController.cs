@@ -84,7 +84,7 @@ namespace Jellyfin_Latestmedia.Api
 
             var query = new InternalItemsQuery
             {
-                IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Episode },
+                IncludeItemTypes = new[] { BaseItemKind.Movie },
                 IsFolder = false,
                 Recursive = true
             };
@@ -100,9 +100,8 @@ namespace Jellyfin_Latestmedia.Api
                     try { size = new System.IO.FileInfo(item.Path).Length; } catch { }
                 }
 
-                // Use both N-format (no hyphens) and standard format for matching
                 string idN = item.Id.ToString("N");
-                string idD = item.Id.ToString("D"); // with hyphens
+                string idD = item.Id.ToString("D");
                 bool isScheduled = scheduledDict.TryGetValue(idN, out var schedule) ||
                                    scheduledDict.TryGetValue(idD, out schedule);
 
@@ -119,6 +118,104 @@ namespace Jellyfin_Latestmedia.Api
             }
 
             return Ok(result);
+        }
+
+        [HttpGet("Series")]
+        public async Task<ActionResult<object>> GetSeriesHierarchy()
+        {
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
+
+            var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
+            var schedSet = new HashSet<string>(scheduledDeletions.Select(s => s.ItemId.Replace("-", "").ToLowerInvariant()));
+            var schedDict = scheduledDeletions.ToDictionary(k => k.ItemId.Replace("-", "").ToLowerInvariant(), v => v);
+
+            // Get all series containers
+            var seriesQuery = new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { BaseItemKind.Series },
+                Recursive = true
+            };
+            var allSeries = _libraryManager.GetItemList(seriesQuery);
+
+            var result = new List<object>();
+
+            foreach (var series in allSeries)
+            {
+                string seriesIdN = series.Id.ToString("N").ToLowerInvariant();
+                bool seriesSched = schedSet.Contains(seriesIdN);
+                string seriesStatus = seriesSched && schedDict.TryGetValue(seriesIdN, out var ss)
+                    ? $"Deleting in {Math.Max(0, (ss.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+
+                // Get seasons for this series
+                var seasonQuery = new InternalItemsQuery
+                {
+                    ParentId = series.Id,
+                    IncludeItemTypes = new[] { BaseItemKind.Season },
+                    Recursive = false
+                };
+                var seasons = _libraryManager.GetItemList(seasonQuery).OrderBy(s => s.IndexNumber ?? 0).ToList();
+
+                var seasonList = new List<object>();
+                foreach (var season in seasons)
+                {
+                    string seasonIdN = season.Id.ToString("N").ToLowerInvariant();
+                    bool seasonSched = schedSet.Contains(seasonIdN);
+                    string seasonStatus = seasonSched && schedDict.TryGetValue(seasonIdN, out var ses)
+                        ? $"Deleting in {Math.Max(0, (ses.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+
+                    // Get episodes for this season
+                    var epQuery = new InternalItemsQuery
+                    {
+                        ParentId = season.Id,
+                        IncludeItemTypes = new[] { BaseItemKind.Episode },
+                        Recursive = false
+                    };
+                    var episodes = _libraryManager.GetItemList(epQuery).OrderBy(e => e.IndexNumber ?? 0).ToList();
+
+                    var epList = episodes.Select(ep =>
+                    {
+                        string epIdN = ep.Id.ToString("N").ToLowerInvariant();
+                        bool epSched = schedSet.Contains(epIdN);
+                        string epStatus = epSched && schedDict.TryGetValue(epIdN, out var es)
+                            ? $"Deleting in {Math.Max(0, (es.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+
+                        long sz = 0;
+                        if (!string.IsNullOrEmpty(ep.Path) && System.IO.File.Exists(ep.Path))
+                        { try { sz = new System.IO.FileInfo(ep.Path).Length; } catch { } }
+
+                        return new
+                        {
+                            Id = ep.Id.ToString("N"),
+                            Title = ep.Name,
+                            Episode = ep.IndexNumber,
+                            Size = sz,
+                            Status = epStatus
+                        };
+                    }).ToList();
+
+                    seasonList.Add(new
+                    {
+                        Id = season.Id.ToString("N"),
+                        Title = season.Name,
+                        SeasonNumber = season.IndexNumber,
+                        EpisodeCount = epList.Count,
+                        Status = seasonStatus,
+                        Episodes = epList
+                    });
+                }
+
+                result.Add(new
+                {
+                    Id = series.Id.ToString("N"),
+                    Title = series.Name,
+                    Year = series.ProductionYear,
+                    SeasonCount = seasonList.Count,
+                    Status = seriesStatus,
+                    Seasons = seasonList
+                });
+            }
+
+            return Ok(result.OrderBy(s => ((dynamic)s).Title));
         }
 
         // Match K3ntas route and type binding to prevent 400 errors

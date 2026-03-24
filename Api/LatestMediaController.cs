@@ -103,6 +103,23 @@ namespace Jellyfin_Latestmedia.Api
                             type = "Anime";
                         }
 
+                        // Get series/season context for episodes
+                        string seriesName = null;
+                        string seasonName = null;
+                        if (type == "Episode" && item.ParentId != Guid.Empty)
+                        {
+                            var season = _libraryManager.GetItemById(item.ParentId);
+                            if (season != null)
+                            {
+                                seasonName = season.Name;
+                                if (season.ParentId != Guid.Empty)
+                                {
+                                    var series = _libraryManager.GetItemById(season.ParentId);
+                                    if (series != null) seriesName = series.Name;
+                                }
+                            }
+                        }
+
                         result.Add(new LeavingSoonItem
                         {
                             Id = s.ItemId,
@@ -110,7 +127,9 @@ namespace Jellyfin_Latestmedia.Api
                             ScheduledDate = s.ScheduledTime,
                             DaysRemaining = daysRemaining,
                             Type = type,
-                            PosterUrl = $"/Items/{parsedGuid}/Images/Primary"
+                            PosterUrl = $"/Items/{parsedGuid}/Images/Primary",
+                            SeriesName = seriesName,
+                            SeasonName = seasonName
                         });
                     }
                 }
