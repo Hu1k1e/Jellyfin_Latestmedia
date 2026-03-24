@@ -215,7 +215,7 @@ namespace Jellyfin_Latestmedia.Api
                 });
             }
 
-            return Ok(result.OrderBy(s => ((dynamic)s).Title));
+            return Ok(result);
         }
 
         // Match K3ntas route and type binding to prevent 400 errors
