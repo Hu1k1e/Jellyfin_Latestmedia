@@ -20,6 +20,7 @@ window.addEventListener('hashchange', () => {
 });
 
 /* ── Styles ── */
+const st = document.createElement('style');
 st.innerHTML=`
 /* IMPORTANT: wrapper must NOT use opacity for hover — that cascades to children */
 .lmW{display:inline-flex;align-items:center;justify-content:center;position:relative;
