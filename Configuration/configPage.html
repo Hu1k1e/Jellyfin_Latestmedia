@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Latest Media & Management Configuration</title>
+</head>
+<body>
+    <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+        <div data-role="content">
+            <div class="content-primary">
+                <h1>Latest Media & Management Settings</h1>
+                <form class="pluginConfigurationForm">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" is="emby-checkbox" id="EnableLatestMediaButton" />
+                            <span>Enable Latest Media Button</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Shows the Latest Media dropdown in the header.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" is="emby-checkbox" id="EnableMediaManagement" />
+                            <span>Enable Media Management Button (Admin Only)</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Shows the Media Management modal for admins.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" is="emby-checkbox" id="EnableChat" />
+                            <span>Enable Chat System</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Enables the public chat and E2E encrypted DMs.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PublicChatRetentionHours">Public Chat Retention (Hours):</label>
+                        <input type="number" id="PublicChatRetentionHours" name="PublicChatRetentionHours" is="emby-input" step="1" min="1" />
+                        <div class="fieldDescription">How long public chat messages should be kept before auto-deletion.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DmRetentionDays">Private DM Retention (Days):</label>
+                        <input type="number" id="DmRetentionDays" name="DmRetentionDays" is="emby-input" step="1" min="1" />
+                        <div class="fieldDescription">How long E2E encrypted private direct messages should be kept.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="LatestMediaCount">Latest Media Items Count:</label>
+                        <input type="number" id="LatestMediaCount" name="LatestMediaCount" is="emby-input" step="1" min="1" max="200" />
+                        <div class="fieldDescription">Number of items to show in the Latest Media dropdown.</div>
+                    </div>
+
+                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                        <span>Save</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var LatestMediaConfig = {
+                pluginUniqueId: "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D",
+
+                loadData: function (view) {
+                    ApiClient.getPluginConfiguration(LatestMediaConfig.pluginUniqueId).then(function (config) {
+                        view.querySelector('#EnableLatestMediaButton').checked = config.EnableLatestMediaButton;
+                        view.querySelector('#EnableMediaManagement').checked = config.EnableMediaManagement;
+                        view.querySelector('#EnableChat').checked = config.EnableChat;
+                        view.querySelector('#PublicChatRetentionHours').value = config.PublicChatRetentionHours;
+                        view.querySelector('#DmRetentionDays').value = config.DmRetentionDays;
+                        view.querySelector('#LatestMediaCount').value = config.LatestMediaCount;
+                    });
+                },
+
+                onSubmit: function (e) {
+                    e.preventDefault();
+                    var view = Dashboard.getCurrentView();
+                    
+                    Dashboard.showLoadingMsg();
+
+                    ApiClient.getPluginConfiguration(LatestMediaConfig.pluginUniqueId).then(function (config) {
+                        config.EnableLatestMediaButton = view.querySelector('#EnableLatestMediaButton').checked;
+                        config.EnableMediaManagement = view.querySelector('#EnableMediaManagement').checked;
+                        config.EnableChat = view.querySelector('#EnableChat').checked;
+                        config.PublicChatRetentionHours = parseInt(view.querySelector('#PublicChatRetentionHours').value) || 24;
+                        config.DmRetentionDays = parseInt(view.querySelector('#DmRetentionDays').value) || 7;
+                        config.LatestMediaCount = parseInt(view.querySelector('#LatestMediaCount').value) || 50;
+
+                        ApiClient.updatePluginConfiguration(LatestMediaConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    
+                    return false;
+                }
+            };
+
+            document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
+                LatestMediaConfig.loadData(this);
+            });
+
+            document.querySelector('.pluginConfigurationForm').addEventListener('submit', function (e) {
+                LatestMediaConfig.onSubmit(e);
+            });
+        </script>
+    </div>
+</body>
+</html>
