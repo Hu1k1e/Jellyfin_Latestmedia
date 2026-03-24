@@ -31,6 +31,9 @@
 
     <None Remove="Web\latestmedia.js" />
     <EmbeddedResource Include="Web\latestmedia.js" />
+    
+    <None Remove="Web\inject.js" />
+    <EmbeddedResource Include="Web\inject.js" />
   </ItemGroup>
 
 </Project>
