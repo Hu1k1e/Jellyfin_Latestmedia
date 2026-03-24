@@ -2,17 +2,15 @@
     'use strict';
 
     const STATE = {
-        pluginId: 'A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D',
+        pluginId: 'f94d6caf-2a62-4dd7-9f64-684ce8efff43',
         isAdmin: false,
         userId: '',
         userName: '',
         token: '',
         serverUrl: '',
         keys: { privateKey: null, publicKey: null },
-        chatSettings: { isDisabled: false, isMuted: false },
-        lastChatPoll: null,
-        chatPollTimer: null,
-        unreadDMs: 0
+        config: null,
+        chatPollTimer: null
     };
 
     const ICONS = {
@@ -21,7 +19,6 @@
         chat: `<svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`
     };
 
-    // CSS Injection
     const style = document.createElement('style');
     style.innerHTML = `
         .lm-header-btn { display: inline-flex; align-items: center; justify-content: center; position: relative; margin-left: .5em; cursor: pointer; color: var(--theme-text-color); }
@@ -36,7 +33,6 @@
         .lm-modal-close { cursor: pointer; background: transparent; border: none; color: inherit; font-size: 1.5rem; }
         .lm-modal-body { padding: 20px; overflow-y: auto; flex: 1; }
         
-        /* Tables */
         .lm-table { width: 100%; border-collapse: collapse; text-align: left; }
         .lm-table th, .lm-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .lm-table th { background: rgba(0,0,0,0.2); }
@@ -44,20 +40,17 @@
         .lm-btn-danger { background: #e53935; }
         .lm-btn:hover { filter: brightness(1.2); }
         
-        /* Dropdown */
         .lm-dropdown { position: absolute; top: 100%; right: 0; width: 350px; max-height: 500px; background: var(--theme-background-color); border: 1px solid var(--theme-primary-color); border-radius: 8px; overflow-y: auto; z-index: 9999; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
         .lm-dropdown.active { display: block; }
         .lm-card { display: flex; gap: 10px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; text-decoration: none; color: inherit; }
         .lm-card:hover { background: rgba(255,255,255,0.05); }
         .lm-poster { width: 50px; height: 75px; object-fit: cover; border-radius: 4px; }
         
-        /* Type Badges */
         .lm-type-badge { font-size: 0.7em; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; }
         .lm-type-movie { background: #1976d2; }
         .lm-type-series { background: #388e3c; }
         .lm-type-anime { background: #7b1fa2; }
         
-        /* Chat UI */
         .lm-chat-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 350px; background: var(--theme-background-color); border-left: 1px solid var(--theme-primary-color); z-index: 99999; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease; }
         .lm-chat-panel.open { transform: translateX(0); }
         .lm-chat-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -71,7 +64,6 @@
         .lm-chat-input-area { padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 5px; }
         .lm-chat-input { flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); color: inherit; padding: 8px; border-radius: 4px; }
         
-        /* Responsive */
         @media (max-width: 768px) {
             .lm-header-btn { display: none !important; }
             .lm-chat-panel { width: 100%; }
@@ -79,7 +71,6 @@
     `;
     document.head.appendChild(style);
 
-    // --- API Helpers ---
     async function apiRequest(endpoint, options = {}) {
         const url = `${STATE.serverUrl}/${endpoint}`;
         const headers = {
@@ -91,33 +82,29 @@
         return res.status !== 204 ? res.json().catch(()=>({})) : {};
     }
 
-    // --- Crypto Utils (Web Crypto API) ---
     const Crypto = {
         async init() {
-            // Load from IndexedDB or generate
-            const db = await this.openDb();
-            const stored = await this.getKeyPair(db);
-            if (stored) {
-                STATE.keys = stored;
-            } else {
-                const kp = await window.crypto.subtle.generateKey(
-                    { name: 'ECDH', namedCurve: 'P-256' }, // Fallback from X25519 if not supported in all browsers, usually P-256 is universal
-                    true,
-                    ['deriveKey']
-                );
-                
-                const rawPub = await window.crypto.subtle.exportKey('raw', kp.publicKey);
-                STATE.keys = { 
-                    privateKey: kp.privateKey, 
-                    publicKey: kp.publicKey,
-                    pubBase64: this.buf2b64(rawPub)
-                };
-                await this.storeKeyPair(db, STATE.keys);
-            }
-            // Register public key with server
             try {
+                const db = await this.openDb();
+                const stored = await this.getKeyPair(db);
+                if (stored) {
+                    STATE.keys = stored;
+                } else {
+                    const kp = await window.crypto.subtle.generateKey(
+                        { name: 'ECDH', namedCurve: 'P-256' },
+                        true,
+                        ['deriveKey']
+                    );
+                    const rawPub = await window.crypto.subtle.exportKey('raw', kp.publicKey);
+                    STATE.keys = { 
+                        privateKey: kp.privateKey, 
+                        publicKey: kp.publicKey,
+                        pubBase64: this.buf2b64(rawPub)
+                    };
+                    await this.storeKeyPair(db, STATE.keys);
+                }
                 await apiRequest(`Chat/Keys`, { method: 'POST', body: JSON.stringify({ publickey: STATE.keys.pubBase64 }) });
-            } catch (e) { console.error("Crypto init error", e); }
+            } catch (e) { console.error("[LatestMedia] Crypto init error", e); }
         },
         async openDb() {
             return new Promise((resolve, reject) => {
@@ -130,8 +117,7 @@
         async getKeyPair(db) {
             return new Promise((resolve) => {
                 const tx = db.transaction('keys', 'readonly');
-                const store = tx.objectStore('keys');
-                const req = store.get('mykey');
+                const req = tx.objectStore('keys').get('mykey');
                 req.onsuccess = () => resolve(req.result ? req.result.keys : null);
             });
         },
@@ -143,10 +129,7 @@
             });
         },
         async importRemoteKey(b64) {
-             const raw = this.b642buf(b64);
-             return await window.crypto.subtle.importKey(
-                 'raw', raw, { name: 'ECDH', namedCurve: 'P-256' }, true, []
-             );
+             return await window.crypto.subtle.importKey('raw', this.b642buf(b64), { name: 'ECDH', namedCurve: 'P-256' }, true, []);
         },
         async deriveAes(remotePubKey) {
             return await window.crypto.subtle.deriveKey(
@@ -181,8 +164,6 @@
         b642buf(b64) { return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer; }
     };
 
-    // --- UI Builders ---
-
     function createHeaderButton(id, icon, onClick) {
         const btn = document.createElement('div');
         btn.className = 'lm-header-btn plugin-header-btn headerButton';
@@ -192,7 +173,6 @@
         return btn;
     }
 
-    // Modal Builder
     function showModal(title, contentHtml, onRender) {
         const overlay = document.createElement('div');
         overlay.className = 'lm-modal-overlay';
@@ -210,8 +190,6 @@
         if (onRender) onRender(overlay.querySelector('.lm-modal-body'), overlay);
     }
 
-    // --- Features ---
-
     const LatestMediaUI = {
         async openDropdown(btn) {
             let drop = document.getElementById('lm-latest-dropdown');
@@ -223,7 +201,6 @@
             drop.innerHTML = `<div style="padding:15px;text-align:center;">Loading...</div>`;
             btn.appendChild(drop);
 
-            // Fetch data
             try {
                 const items = await apiRequest('LatestMedia/Items');
                 drop.innerHTML = '';
@@ -280,29 +257,27 @@
                     html += `</tbody></table>`;
                     body.innerHTML = html;
 
-                    // Attach events
                     body.querySelectorAll('.lm-schedule-sel').forEach(sel => {
                         sel.onchange = async (e) => {
-                            const days = e.target.value;
-                            if (!days) return;
-                            await apiRequest(`MediaMgmt/Items/${e.target.dataset.id}/ScheduleDelete?days=${days}`, { method: 'POST' });
-                            MediaMgmtUI.openAdminModal(); // Refresh
+                            if (!e.target.value) return;
+                            await apiRequest(`MediaMgmt/Items/${e.target.dataset.id}/ScheduleDelete?days=${e.target.value}`, { method: 'POST' });
+                            MediaMgmtUI.openAdminModal();
                         };
                     });
                     body.querySelectorAll('.lm-cancel-del').forEach(btn => {
                         btn.onclick = async (e) => {
                             await apiRequest(`MediaMgmt/Items/${e.target.dataset.id}/CancelDelete`, { method: 'DELETE' });
-                            MediaMgmtUI.openAdminModal(); // Refresh
+                            MediaMgmtUI.openAdminModal();
                         };
                     });
-                } catch(e) { body.innerHTML = "Access Denied or Request Failed."; }
+                } catch(e) { body.innerHTML = "Access Denied."; }
             });
         }
     };
 
     const ChatUI = {
         panel: null,
-        mode: 'public', // public | obj (DM target)
+        mode: 'public',
         init() {
             this.panel = document.createElement('div');
             this.panel.className = 'lm-chat-panel';
@@ -333,12 +308,8 @@
             inp.onkeypress = (e) => { if(e.key === 'Enter') this.sendMessage(inp.value); };
             if (bct) bct.onclick = () => this.sendBroadcast(inp.value);
 
-            // Fetch DMs to populate unread badge initially
             this.updateBadge();
-            // Start polling
-            if (!STATE.chatPollTimer) {
-                STATE.chatPollTimer = setInterval(() => this.poll(), 5000);
-            }
+            if (!STATE.chatPollTimer) STATE.chatPollTimer = setInterval(() => this.poll(), 5000);
         },
         toggle() {
             if (!this.panel) this.init();
@@ -375,26 +346,14 @@
                         else alert("User not found");
                     }
                 };
-
-                view.querySelectorAll('.lm-dm-thread').forEach(el => {
-                    el.onclick = () => this.openDm({id: el.dataset.id, name: el.dataset.name});
-                });
+                view.querySelectorAll('.lm-dm-thread').forEach(el => el.onclick = () => this.openDm({id: el.dataset.id, name: el.dataset.name}));
             } else if (typeof this.mode === 'object') {
-                // Inside a DM
                 view.innerHTML = `<div style="padding:5px; text-align:center; opacity:0.7;">Chatting with ${this.mode.name}. E2E Encrypted.</div>`;
                 const msgs = await apiRequest(`Chat/DM/${this.mode.id}/Messages`);
-                
-                // Fetch target public key
                 const pkRes = await apiRequest(`Chat/Keys/${this.mode.id}`);
-                const targetPubBase64 = pkRes.publicKey;
-
-                // Decrypt
+                
                 for (let m of msgs) {
-                    if (m.senderId === STATE.userId) {
-                        m.plaintext = await Crypto.decrypt(m.ciphertext, m.nonce, m.senderPublicKey); // wait, sender is me, so I decrypt with my own key? No, I decrypt with the target's public key because the ECDH shared secret is identical.
-                    } else {
-                        m.plaintext = await Crypto.decrypt(m.ciphertext, m.nonce, m.senderPublicKey);
-                    }
+                    m.plaintext = await Crypto.decrypt(m.ciphertext, m.nonce, m.senderPublicKey);
                 }
                 
                 this.drawBubbles(view, msgs, m => m.plaintext);
@@ -413,8 +372,7 @@
         },
         async sendMessage(txt) {
             if (!txt.trim()) return;
-            const inp = document.getElementById('lm-chat-input');
-            inp.value = '';
+            document.getElementById('lm-chat-input').value = '';
 
             if (this.mode === 'public') {
                 await apiRequest('Chat/Messages', { method: 'POST', body: JSON.stringify({ content: txt }) });
@@ -423,11 +381,7 @@
                 const { cipherResult, nonce } = await Crypto.encrypt(txt, pkRes.publicKey);
                 await apiRequest(`Chat/DM/${this.mode.id}/Messages`, {
                     method: 'POST',
-                    body: JSON.stringify({
-                        ciphertext: cipherResult,
-                        nonce: nonce,
-                        senderPublicKey: STATE.keys.pubBase64
-                    })
+                    body: JSON.stringify({ ciphertext: cipherResult, nonce: nonce, senderPublicKey: STATE.keys.pubBase64 })
                 });
             }
             this.render();
@@ -443,72 +397,79 @@
             this.render();
         },
         async poll() {
-            // Update unread badges
-            const convos = await apiRequest('Chat/DM/Conversations');
-            if (convos && convos.length !== undefined) {
-                const unread = convos.reduce((a,c) => a + c.unreadCount, 0);
-                const badge = document.getElementById('lm-chat-badge');
-                if (badge) badge.style.display = unread > 0 ? 'inline-block' : 'none';
-                if (badge) badge.innerText = unread;
-            }
-            if (this.panel && this.panel.classList.contains('open')) {
-                this.render();
-            }
+            try {
+                const convos = await apiRequest('Chat/DM/Conversations');
+                if (convos && convos.length !== undefined) {
+                    const unread = convos.reduce((a,c) => a + c.unreadCount, 0);
+                    const badge = document.getElementById('lm-chat-badge');
+                    if (badge) {
+                        badge.style.display = unread > 0 ? 'inline-block' : 'none';
+                        badge.innerText = unread;
+                    }
+                }
+                if (this.panel && this.panel.classList.contains('open')) this.render();
+            } catch(e) {}
         },
         async updateBadge() { this.poll(); }
     };
 
-    // --- Core Injector ---
-    async function init() {
-        console.log("Latest Media & Management Init");
+    // --- Dynamic Injection System ---
+    let isLoading = false;
 
-        // Try getting API Token and Url
-        STATE.serverUrl = ApiClient.serverAddress();
-        STATE.token = ApiClient.accessToken();
+    async function attemptInjection() {
+        const target = document.querySelector('.headerRight');
+        if (!target) return; // Wait until UI renders
+        if (document.getElementById('lm-btn-latest')) return; // Already injected
+        if (isLoading) return;
+        
+        // Ensure user is actually logged in and API is ready
+        if (!window.ApiClient || !window.ApiClient.accessToken()) return; 
 
-        // Get Current User info
+        isLoading = true;
         try {
+            STATE.serverUrl = ApiClient.serverAddress();
+            STATE.token = ApiClient.accessToken();
+
             const me = await apiRequest('Users/Me');
             STATE.isAdmin = me.Policy.IsAdministrator;
             STATE.userId = me.Id;
             STATE.userName = me.Name;
-        } catch(e) { console.error("Could not fetch user info"); return; }
 
-        await Crypto.init();
+            // Wait, what plugin endpoint gives us the configuration? 
+            // The standard endpoint is Plugins/{Id}/Configuration
+            STATE.config = await apiRequest(`Plugins/${STATE.pluginId}/Configuration`);
+            
+            await Crypto.init();
 
-        function inject() {
-            const target = document.querySelector('.headerRight');
-            if (!target) return;
-            if (document.getElementById('lm-btn-latest')) return; // Already injected
+            // Inject the elements if enabled in config
+            if (STATE.config.EnableLatestMediaButton) {
+                const bLatest = createHeaderButton('lm-btn-latest', ICONS.latest, (e) => LatestMediaUI.openDropdown(bLatest));
+                target.insertBefore(bLatest, target.firstChild);
+            }
 
-            const bLatest = createHeaderButton('lm-btn-latest', ICONS.latest, (e) => LatestMediaUI.openDropdown(bLatest));
-            target.insertBefore(bLatest, target.firstChild);
-
-            if (STATE.isAdmin) {
+            if (STATE.isAdmin && STATE.config.EnableMediaManagement) {
                 const bManage = createHeaderButton('lm-btn-manage', ICONS.manage, () => MediaMgmtUI.openAdminModal());
                 target.insertBefore(bManage, target.firstChild);
             }
 
-            const bChat = createHeaderButton('lm-btn-chat', ICONS.chat, () => ChatUI.toggle());
-            const badge = document.createElement('span');
-            badge.id = 'lm-chat-badge';
-            badge.className = 'lm-badge';
-            badge.style.display = 'none';
-            bChat.appendChild(badge);
-            target.insertBefore(bChat, target.firstChild);
+            if (STATE.config.EnableChat) {
+                const bChat = createHeaderButton('lm-btn-chat', ICONS.chat, () => ChatUI.toggle());
+                const badge = document.createElement('span');
+                badge.id = 'lm-chat-badge';
+                badge.className = 'lm-badge';
+                badge.style.display = 'none';
+                bChat.appendChild(badge);
+                target.insertBefore(bChat, target.firstChild);
+            }
+        } catch(e) {
+            console.warn("[LatestMedia] Injection failed or auth not ready:", e);
+        } finally {
+            isLoading = false;
         }
-
-        // SPA Navigation watch
-        const observer = new MutationObserver(() => inject());
-        observer.observe(document.body, { childList: true, subtree: true });
-        inject();
     }
 
-    const startIntv = setInterval(() => {
-        if (window.ApiClient && document.querySelector('.headerRight')) {
-            clearInterval(startIntv);
-            init();
-        }
-    }, 500);
+    // Attach silent dom observer
+    const observer = new MutationObserver(() => attemptInjection());
+    observer.observe(document.body, { childList: true, subtree: true });
 
 })();
