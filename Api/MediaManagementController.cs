@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Entities;
 using Jellyfin.Data.Enums;
+using MediaBrowser.Controller.Session;
 
 namespace Jellyfin_Latestmedia.Api
 {
@@ -19,28 +20,42 @@ namespace Jellyfin_Latestmedia.Api
     {
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
+        private readonly ISessionManager _sessionManager;
         private readonly PluginRepository _repository;
 
-        public MediaMgmtController(ILibraryManager libraryManager, IUserManager userManager)
+        public MediaMgmtController(ILibraryManager libraryManager, IUserManager userManager, ISessionManager sessionManager)
         {
             _libraryManager = libraryManager;
             _userManager = userManager;
+            _sessionManager = sessionManager;
             _repository = Plugin.Instance.Repository;
         }
 
-        private Guid GetRequestUserId()
+        private async Task<Guid> GetRequestUserIdAsync()
         {
             var str = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-            return Guid.TryParse(str, out var g) ? g : Guid.Empty;
+            if (Guid.TryParse(str, out var g)) return g;
+
+            var authHeader = Request.Headers["X-Emby-Authorization"].FirstOrDefault() ?? Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(authHeader, @"Token=""([^""]+)""");
+                if (match.Success)
+                {
+                    var session = await _sessionManager.GetSessionByAuthenticationToken(match.Groups[1].Value, null, null).ConfigureAwait(false);
+                    if (session != null) return session.UserId;
+                }
+            }
+            return Guid.Empty;
         }
 
-        private bool IsAdmin()
+        private async Task<bool> IsAdminAsync()
         {
             // Jellyfin 10.11 sets an "Administrator" role claim on the JWT for admin users
             if (User.IsInRole("Administrator")) return true;
 
             // Fallback: check via user manager without any extension methods
-            var uid = GetRequestUserId();
+            var uid = await GetRequestUserIdAsync().ConfigureAwait(false);
             if (uid == Guid.Empty) return false;
             var user = _userManager.GetUserById(uid);
             if (user == null) return false;
@@ -62,7 +77,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("Items")]
         public async Task<ActionResult<object>> GetMediaItems()
         {
-            if (!IsAdmin()) return Forbid();
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
             var scheduledDict = scheduledDeletions.ToDictionary(k => k.ItemId, v => v);
@@ -108,15 +123,15 @@ namespace Jellyfin_Latestmedia.Api
 
         // Match K3ntas route and type binding to prevent 400 errors
         [HttpPost("Items/{itemId}/ScheduleDelete")]
-        public async Task<ActionResult> ScheduleDelete([FromRoute] System.ComponentModel.DataAnnotations.RequiredAttribute required, [FromRoute] Guid itemId, [FromQuery] int? days = null)
+        public async Task<ActionResult> ScheduleDelete([FromRoute] Guid itemId, [FromQuery] int? days = null)
         {
-            if (!IsAdmin()) return Forbid();
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var actualDelayDays = days ?? 7;
             if (actualDelayDays < 1 || actualDelayDays > 365)
                 return BadRequest("Invalid days value. Must be a positive integer up to 365.");
 
-            var uid = GetRequestUserId();
+            var uid = await GetRequestUserIdAsync().ConfigureAwait(false);
             var user = _userManager.GetUserById(uid);
             var name = user?.Username ?? "Admin";
 
@@ -137,9 +152,9 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpDelete("Items/{itemId}/CancelDelete")]
-        public async Task<ActionResult> CancelDelete([FromRoute] System.ComponentModel.DataAnnotations.RequiredAttribute required, [FromRoute] Guid itemId)
+        public async Task<ActionResult> CancelDelete([FromRoute] Guid itemId)
         {
-            if (!IsAdmin()) return Forbid();
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             string normalizedId = itemId.ToString("N");
             var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");

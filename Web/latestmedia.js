@@ -427,7 +427,7 @@ function renderDMList(container){
 
   // Code button
   const cb=document.createElement('button');cb.id='lmCodeBtn';cb.className='lmCodeBtn';
-  cb.innerHTML='🔑 My Chat Code';
+  cb.innerHTML='My Chat Code';
   cb.onclick=()=>toggleCodePop(panel);
   container.before(cb);
 
@@ -463,7 +463,7 @@ function toggleCodePop(panel){
   const cp=document.createElement('div');cp.id='lmCodePop';cp.className='lmCodePop';
 
   function showCode(code){
-    cp.innerHTML=`<h4>🔑 Your Chat Code</h4><small>Share this 6-character code so others can send you direct messages. Each code is unique to your account and never changes.</small><div class="lmCodeVal">${code}</div><button class="lmCopyBtn">Copy Code</button>`;
+    cp.innerHTML=`<h4>Your Chat Code</h4><small>Share this 6-character code so others can send you direct messages. Each code is unique to your account and never changes.</small><div class="lmCodeVal">${code}</div><button class="lmCopyBtn">Copy Code</button>`;
     cp.querySelector('.lmCopyBtn').onclick=()=>{
       navigator.clipboard?.writeText(code);
       cp.querySelector('.lmCopyBtn').textContent='Copied! ✓';

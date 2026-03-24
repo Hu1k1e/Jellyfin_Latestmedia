@@ -29,9 +29,9 @@ namespace Jellyfin_Latestmedia.Api
 
         /// <summary>Returns the current user's unique chat code (first 6 chars of userId, uppercase).</summary>
         [HttpGet("MyCode")]
-        public ActionResult<object> GetMyCode()
+        public async Task<ActionResult<object>> GetMyCode()
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             if (userId == Guid.Empty) return Unauthorized();
             var code = userId.ToString("N")[..6].ToUpperInvariant();
             return Ok(new { Code = code, UserId = userId.ToString("N") });
@@ -66,10 +66,23 @@ namespace Jellyfin_Latestmedia.Api
             return Ok(new { Count = online });
         }
 
-        private Guid GetUserId()
+        private async Task<Guid> GetUserIdAsync()
         {
             var userIdString = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
-            return Guid.TryParse(userIdString, out var guid) ? guid : Guid.Empty;
+            if (Guid.TryParse(userIdString, out var guid)) return guid;
+
+            // Fallback for Jellyfin 10.11 where User might not be fully populated
+            var authHeader = Request.Headers["X-Emby-Authorization"].FirstOrDefault() ?? Request.Headers["Authorization"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(authHeader))
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(authHeader, @"Token=""([^""]+)""");
+                if (match.Success)
+                {
+                    var session = await _sessionManager.GetSessionByAuthenticationToken(match.Groups[1].Value, null, null).ConfigureAwait(false);
+                    if (session != null) return session.UserId;
+                }
+            }
+            return Guid.Empty;
         }
 
         private string GetUserName()
@@ -120,7 +133,7 @@ namespace Jellyfin_Latestmedia.Api
             if (Plugin.Instance?.Configuration.EnableChat == false) return BadRequest("Chat is disabled");
             if (string.IsNullOrWhiteSpace(request.Content)) return BadRequest("Message cannot be empty");
 
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var userName = GetUserName();
 
             var messages = await _repository.ReadListAsync<ChatMessage>("chat_public");
@@ -139,7 +152,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpDelete("Messages/{id}")]
         public async Task<ActionResult> DeletePublicMessage(string id)
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
 
             var messages = await _repository.ReadListAsync<ChatMessage>("chat_public");
             var msg = messages.FirstOrDefault(m => m.Id == id);
@@ -164,7 +177,7 @@ namespace Jellyfin_Latestmedia.Api
             if (Plugin.Instance?.Configuration.EnableChat == false) return BadRequest("Chat is disabled");
             if (string.IsNullOrWhiteSpace(request.Content)) return BadRequest("Message cannot be empty");
 
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var userName = GetUserName();
 
             var broadcasts = await _repository.ReadListAsync<BroadcastMessage>("broadcast_messages");
@@ -198,7 +211,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("DM/Conversations")]
         public async Task<ActionResult<IEnumerable<object>>> GetConversations()
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var dictFiles = System.IO.Directory.GetFiles(_repository.DataDirectory, "chat_dm_*.json");
             
             var conversations = new List<object>();
@@ -241,7 +254,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("DM/{targetUserId}/Messages")]
         public async Task<ActionResult<IEnumerable<EncryptedPrivateMessage>>> GetDmMessages(Guid targetUserId)
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var filename = _repository.GetChatDmFileName(userId, targetUserId);
             
             var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
@@ -265,7 +278,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpPost("DM/{targetUserId}/Messages")]
         public async Task<ActionResult> SendDm(Guid targetUserId, [FromBody] EncryptedPrivateMessage request)
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
 
             // Accept either plain content OR encrypted payload
             bool hasPlainContent = !string.IsNullOrWhiteSpace(request.Content);
@@ -296,7 +309,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpDelete("DM/Messages/{id}")]
         public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid targetUserId)
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var filename = _repository.GetChatDmFileName(userId, targetUserId);
             
             var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
@@ -333,7 +346,7 @@ namespace Jellyfin_Latestmedia.Api
         {
             if (string.IsNullOrWhiteSpace(request.PublicKey)) return BadRequest("Key cannot be empty");
             
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var keys = await _repository.ReadListAsync<UserPublicKey>("user_keys");
             
             keys.RemoveAll(k => k.UserId == userId);
@@ -353,7 +366,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("Settings")]
         public async Task<ActionResult<ChatSettings>> GetSettings()
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             var settings = await _repository.ReadItemAsync<ChatSettings>($"chat_settings_{userId:N}");
             return Ok(settings ?? new ChatSettings());
         }
@@ -361,7 +374,7 @@ namespace Jellyfin_Latestmedia.Api
         [HttpPost("Settings")]
         public async Task<ActionResult> UpdateSettings([FromBody] ChatSettings request)
         {
-            var userId = GetUserId();
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
             
             if (request.IsMuted && request.MuteExpiresAt == null && request.IsCurrentlyMuted())
             {
