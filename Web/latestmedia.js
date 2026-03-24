@@ -80,9 +80,7 @@ st.innerHTML=`
 /* Modal */
 .lmOv{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);
   z-index:99997;display:flex;align-items:center;justify-content:center}
-.lmMod{background:var(--theme-background-color,#111);border:1px solid rgba(255,255,255,.1);
-  border-radius:12px;width:92%;max-width:980px;max-height:88vh;
-  display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.65)}
+.lmMod{width:92%;max-width:980px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
 .lmMHdr{display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);
   background:rgba(255,255,255,.025);flex-shrink:0}
@@ -110,8 +108,8 @@ st.innerHTML=`
 /* Confirm dialog */
 .lmCf{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.65);backdrop-filter:blur(5px)}
-.lmCfb{background:#121212;border:1px solid rgba(255,255,255,.12);border-radius:10px;
-  padding:22px 26px;max-width:350px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,.6);text-align:center}
+.lmCfb{border:1px solid rgba(255,255,255,.12);border-radius:10px;
+  padding:22px 26px;max-width:350px;width:90%;text-align:center}
 .lmCfb p{margin:0 0 16px;font-size:.9em;line-height:1.5}
 .lmCfa{display:flex;gap:10px;justify-content:center}
 
@@ -198,14 +196,17 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 function api(ep,opts={}){
   const base=S.url||location.origin;
   const t=`MediaBrowser Client="Jellyfin Web", Device="Plugin", DeviceId="LMPl1", Version="1.0.0", Token="${S.tok}"`;
-  return fetch(`${base}/${ep}`,{...opts,headers:{'Authorization':t,'X-Emby-Authorization':t,'Content-Type':'application/json',...(opts.headers||{})}})
+  const headers = { 'Authorization': t, 'X-Emby-Authorization': t, ...(opts.headers||{}) };
+  if (opts.body) headers['Content-Type'] = 'application/json';
+  
+  return fetch(`${base}/${ep}`,{...opts, headers})
     .then(r=>{if(!r.ok)throw new Error(r.status+'');return r.text().then(t=>t?JSON.parse(t):{})});
 }
 
 function cfm(msg){
   return new Promise(res=>{
     const el=document.createElement('div');el.className='lmCf';
-    el.innerHTML=`<div class="lmCfb"><p>${msg}</p><div class="lmCfa"><button class="lmBtn pg">Proceed</button><button class="lmBtn gh">Cancel</button></div></div>`;
+    el.innerHTML=`<div class="lmPanel lmCfb"><p>${msg}</p><div class="lmCfa"><button class="lmBtn pg">Proceed</button><button class="lmBtn gh">Cancel</button></div></div>`;
     document.body.appendChild(el);
     el.querySelector('.pg').onclick=()=>{el.remove();res(true)};
     el.querySelector('.gh').onclick=()=>{el.remove();res(false)};
@@ -219,19 +220,25 @@ function mkBtn(id,icon,cb){
   return d;
 }
 
-// ── Outside-click: use a full-screen transparent layer ──────────────────────
-// This is bulletproof — no propagation games needed
-let _closeOverlay=null;
-function outsideClose(exclude,cb){
-  if(_closeOverlay)_closeOverlay.remove();
-  const ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;z-index:9998;background:none;';
-  _closeOverlay=ov;
-  document.body.appendChild(ov);
-  // Clicking the overlay closes; clicking the panel doesn't hit overlay (it's under z-index:9999)
-  ov.addEventListener('click',()=>{ov.remove();_closeOverlay=null;cb()});
+// ── Outside-click: robust composedPath check ───────────────────────────────
+function outsideClose(exclude, cb){
+  setTimeout(()=>{
+    function h(e){
+      if(exclude && e.composedPath && !e.composedPath().includes(exclude)){
+        cb();
+      }
+    }
+    exclude._outsideHandler = h;
+    document.addEventListener('mousedown', h);
+  }, 10);
 }
-function removeOverlay(){if(_closeOverlay){_closeOverlay.remove();_closeOverlay=null;}}
+
+function removeOverlay(exclude){
+  if(exclude && exclude._outsideHandler){
+    document.removeEventListener('mousedown', exclude._outsideHandler);
+    exclude._outsideHandler = null;
+  }
+}
 
 /* ── Latest Media Dropdown ── */
 let ddOpen=false;
@@ -244,7 +251,11 @@ function openDD(e,wrap){
   loadTab('r');
   outsideClose(dd,()=>closeDD(wrap));
 }
-function closeDD(wrap){const d=document.getElementById('lmDD');if(d)d.remove();ddOpen=false;removeOverlay();}
+function closeDD(wrap){
+  const d=document.getElementById('lmDD');
+  if(d){ removeOverlay(d); d.remove(); }
+  ddOpen=false;
+}
 
 function tyC(t){return t==='Movie'?'mv':t==='Series'||t==='Episode'?'sr':t==='Anime'?'an':'ot'}
 
@@ -274,7 +285,7 @@ function renderL(b,items){
 /* ── Media Management ── */
 function openMgmt(){
   const ov=document.createElement('div');ov.className='lmOv';
-  ov.innerHTML=`<div class="lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
+  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.lmMCl').onclick=()=>ov.remove();
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
@@ -350,9 +361,9 @@ function openChat(wrap){
 }
 
 function closeChat(){
-  const p=document.getElementById('lmChat');if(p)p.remove();
+  const p=document.getElementById('lmChat');
+  if(p){ removeOverlay(p); p.remove(); }
   if(S.timer){clearInterval(S.timer);S.timer=null}
-  removeOverlay();
 }
 
 function toggleEmoji(panel,inp){
