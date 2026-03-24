@@ -5,7 +5,7 @@
   },
   "projects": {
     "D:\\Anti Gravity\\Jellyfin Media and Chat functions\\Jellyfin_Latestmedia.csproj": {
-      "version": "1.0.0",
+      "version": "1.0.3",
       "restore": {
         "projectUniqueName": "D:\\Anti Gravity\\Jellyfin Media and Chat functions\\Jellyfin_Latestmedia.csproj",
         "projectName": "Jellyfin_Latestmedia",
@@ -45,12 +45,14 @@
           "targetAlias": "net9.0",
           "dependencies": {
             "Jellyfin.Controller": {
+              "include": "Compile, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "target": "Package",
-              "version": "[10.11.0-unstable.*, )"
+              "version": "[10.11.5, )"
             },
             "Jellyfin.Model": {
+              "include": "Compile, Build, Native, ContentFiles, Analyzers, BuildTransitive",
               "target": "Package",
-              "version": "[10.11.0-unstable.*, )"
+              "version": "[10.11.5, )"
             }
           },
           "imports": [
