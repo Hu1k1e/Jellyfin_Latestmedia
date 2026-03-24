@@ -1,6 +1,7 @@
 [
   {
     "guid": "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D",
+    "id": "A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D",
     "name": "Latest Media & Management",
     "description": "Adds Latest Media, Media Management, and Chat to the Jellyfin header. Includes End-to-End encrypted DMs and admin scheduled deletions.",
     "overview": "Comprehensive plugin providing recently added UI, admin media management, and integrated chat system with E2E encrypted private messaging.",
