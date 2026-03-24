@@ -13,7 +13,7 @@ namespace Jellyfin_Latestmedia
     {
         public override string Name => "Latest Media & Management";
 
-        public override Guid Id => Guid.Parse("A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D"); // Example GUID, should be consistent
+        public override Guid Id => Guid.Parse("a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d"); // Example GUID, should be consistent
 
         public override string Description => "Adds Latest Media, Media Management, and Chat to the Jellyfin header.";
 
