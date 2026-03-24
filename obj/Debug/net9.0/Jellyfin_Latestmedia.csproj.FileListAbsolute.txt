@@ -1,0 +1,15 @@
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.csproj.AssemblyReference.cache
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.GeneratedMSBuildEditorConfig.editorconfig
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.AssemblyInfoInputs.cache
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.AssemblyInfo.cs
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.csproj.CoreCompileInputs.cache
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.sourcelink.json
+D:\Anti Gravity\Jellyfin Media and Chat functions\bin\Debug\net9.0\Jellyfin_Latestmedia.deps.json
+D:\Anti Gravity\Jellyfin Media and Chat functions\bin\Debug\net9.0\Jellyfin_Latestmedia.dll
+D:\Anti Gravity\Jellyfin Media and Chat functions\bin\Debug\net9.0\Jellyfin_Latestmedia.pdb
+D:\Anti Gravity\Jellyfin Media and Chat functions\bin\Debug\net9.0\Jellyfin_Latestmedia.xml
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.dll
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\refint\Jellyfin_Latestmedia.dll
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.xml
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\Jellyfin_Latestmedia.pdb
+D:\Anti Gravity\Jellyfin Media and Chat functions\obj\Debug\net9.0\ref\Jellyfin_Latestmedia.dll
