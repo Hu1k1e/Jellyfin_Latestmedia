@@ -13,8 +13,13 @@ const ICO={
 
 const S={url:'',tok:'',uid:'',code:'',admin:false,cfg:{},ok:false,timer:null};
 
+// Close panels automatically on SPA navigation
+window.addEventListener('hashchange', () => {
+  if(typeof closeDD === 'function') closeDD(document.getElementById('lm-btn-latest'));
+  if(typeof closeChat === 'function') closeChat();
+});
+
 /* ── Styles ── */
-const st=document.createElement('style');
 st.innerHTML=`
 /* IMPORTANT: wrapper must NOT use opacity for hover — that cascades to children */
 .lmW{display:inline-flex;align-items:center;justify-content:center;position:relative;
@@ -245,6 +250,7 @@ let ddOpen=false;
 function openDD(e,wrap){
   if(ddOpen){closeDD(wrap);return}
   const dd=document.createElement('div');dd.className='lmPanel lmDD on';dd.id='lmDD';
+  dd.addEventListener('click', ev => ev.stopPropagation()); // prevent bubbling to button wrapper
   dd.innerHTML=`<div class="lmTabs"><div class="lmTab on" data-t="r">Recently Added</div><div class="lmTab" data-t="l">Leaving Soon</div></div><div id="lmDDb"><div class="lmEmpty">Loading…</div></div>`;
   wrap.appendChild(dd);ddOpen=true;
   dd.querySelectorAll('.lmTab').forEach(t=>t.addEventListener('click',ev=>{ev.stopPropagation();dd.querySelectorAll('.lmTab').forEach(x=>x.classList.remove('on'));t.classList.add('on');loadTab(t.dataset.t)}));
@@ -326,6 +332,7 @@ let chatTab='pub',dmTarget=null;
 function openChat(wrap){
   if(document.getElementById('lmChat')){closeChat();return}
   const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat';
+  p.addEventListener('click', e => e.stopPropagation()); // prevent bubbling to button wrapper
   p.innerHTML=`
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>

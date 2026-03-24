@@ -106,55 +106,51 @@ namespace Jellyfin_Latestmedia.Api
             return Ok(result);
         }
 
-        // Accept days as string to avoid automatic model-binding 400 on parse failure
+        // Match K3ntas route and type binding to prevent 400 errors
         [HttpPost("Items/{itemId}/ScheduleDelete")]
-        public async Task<ActionResult> ScheduleDelete(string itemId, [FromQuery] string? days)
+        public async Task<ActionResult> ScheduleDelete([FromRoute] System.ComponentModel.DataAnnotations.RequiredAttribute required, [FromRoute] Guid itemId, [FromQuery] int? days = null)
         {
             if (!IsAdmin()) return Forbid();
 
-            if (!int.TryParse(days, out var daysInt) || daysInt <= 0 || daysInt > 365)
-                return BadRequest($"Invalid days value: '{days}'. Must be a positive integer up to 365.");
-
-            if (string.IsNullOrWhiteSpace(itemId))
-                return BadRequest("itemId is required.");
-
-            // Normalise to N format (no hyphens) for consistent storage
-            string normalizedId = itemId.Replace("-", "").ToLowerInvariant();
+            var actualDelayDays = days ?? 7;
+            if (actualDelayDays < 1 || actualDelayDays > 365)
+                return BadRequest("Invalid days value. Must be a positive integer up to 365.");
 
             var uid = GetRequestUserId();
             var user = _userManager.GetUserById(uid);
             var name = user?.Username ?? "Admin";
+
+            string normalizedId = itemId.ToString("N");
 
             var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
             deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
             deletions.Add(new ScheduledDeletion
             {
                 ItemId = normalizedId,
-                ScheduledTime = DateTime.UtcNow.AddDays(daysInt),
+                ScheduledTime = DateTime.UtcNow.AddDays(actualDelayDays),
                 ScheduledByUserId = uid,
                 ScheduledByName = name
             });
 
             await _repository.WriteListAsync("scheduled_deletions", deletions);
-            return Ok();
+            return Ok(new { success = true });
         }
 
         [HttpDelete("Items/{itemId}/CancelDelete")]
-        public async Task<ActionResult> CancelDelete(string itemId)
+        public async Task<ActionResult> CancelDelete([FromRoute] System.ComponentModel.DataAnnotations.RequiredAttribute required, [FromRoute] Guid itemId)
         {
             if (!IsAdmin()) return Forbid();
 
-            string normalizedId = itemId.Replace("-", "").ToLowerInvariant();
+            string normalizedId = itemId.ToString("N");
             var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
-            int before = deletions.Count;
-            deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
+            var count = deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
 
-            if (deletions.Count < before)
-            {
+            if (count > 0)
                 await _repository.WriteListAsync("scheduled_deletions", deletions);
-                return Ok();
-            }
-            return NotFound("Item not scheduled for deletion.");
+
+            return Ok(new { success = true });
         }
+
+
     }
 }
