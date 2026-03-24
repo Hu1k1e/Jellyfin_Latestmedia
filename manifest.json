@@ -1,6 +1,6 @@
 [
   {
-    "guid": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    "guid": "f94d6caf-2a62-4dd7-9f64-684ce8efff43",
     "name": "Latest Media & Management",
     "description": "Adds Latest Media, Media Management, and Chat to the Jellyfin header. Includes End-to-End encrypted DMs and admin scheduled deletions.",
     "overview": "Comprehensive plugin providing recently added UI, admin media management, and integrated chat system with E2E encrypted private messaging.",
@@ -8,28 +8,28 @@
     "category": "General",
     "versions": [
       {
-        "version": "1.0.4.0",
-        "changelog": "Release 1.0.4.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
+        "version": "1.0.5.0",
+        "changelog": "Release 1.0.5.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
         "targetAbi": "10.11.6.0",
-        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.4/jellyfin_latestmedia_v1.0.4.zip",
-        "checksum": "ee968ed84bac2ddc4b74303714e59d5b",
-        "timestamp": "2026-03-24T18:52:20Z"
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.5/jellyfin_latestmedia_v1.0.5.zip",
+        "checksum": "",
+        "timestamp": "2026-03-25T00:30:00Z"
       },
       {
-        "version": "1.0.4.0",
-        "changelog": "Release 1.0.4.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
+        "version": "1.0.5.0",
+        "changelog": "Release 1.0.5.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
         "targetAbi": "10.11.5.0",
-        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.4/jellyfin_latestmedia_v1.0.4.zip",
-        "checksum": "ee968ed84bac2ddc4b74303714e59d5b",
-        "timestamp": "2026-03-24T18:52:20Z"
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.5/jellyfin_latestmedia_v1.0.5.zip",
+        "checksum": "",
+        "timestamp": "2026-03-25T00:30:00Z"
       },
       {
-        "version": "1.0.4.0",
-        "changelog": "Release 1.0.4.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
+        "version": "1.0.5.0",
+        "changelog": "Release 1.0.5.0. Compatible with Jellyfin 10.11.5 and 10.11.6.",
         "targetAbi": "10.11.0.0",
-        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.4/jellyfin_latestmedia_v1.0.4.zip",
-        "checksum": "ee968ed84bac2ddc4b74303714e59d5b",
-        "timestamp": "2026-03-24T18:52:20Z"
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.5/jellyfin_latestmedia_v1.0.5.zip",
+        "checksum": "",
+        "timestamp": "2026-03-25T00:30:00Z"
       }
     ]
   }
