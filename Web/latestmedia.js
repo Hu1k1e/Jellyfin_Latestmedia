@@ -51,6 +51,13 @@ st.innerHTML=`
   box-shadow:0 12px 42px rgba(0,0,0,0.6);
 }
 
+/* Player OSD chat button */
+.lmPlayerChatBtn{display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;cursor:pointer;color:#fff;opacity:.75;transition:opacity .2s}
+.lmPlayerChatBtn:hover{opacity:1}
+.lmPlayerChatBtn svg{width:20px;height:20px}
+.lmChat.lmChatPlayer{position:fixed;bottom:80px;right:20px;z-index:999999}
+
 /* Dropdown */
 .lmDD{position:absolute;top:calc(100% + 6px);right:0;width:330px;max-height:70vh;
   overflow-y:auto;z-index:9999;display:none;
@@ -328,12 +335,13 @@ function loadMM(ov){
 }
 
 /* ── Chat ── */
-let chatTab='pub',dmTarget=null;
+let chatTab='pub',dmTarget=null,chatWrap=null;
 
-function openChat(wrap){
+function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
-  const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat';
-  p.addEventListener('click', e => e.stopPropagation()); // prevent bubbling to button wrapper
+  chatWrap=wrap;
+  const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat'+(isPlayer?' lmChatPlayer':'');
+  p.addEventListener('click', e => e.stopPropagation());
   p.innerHTML=`
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>
@@ -350,7 +358,7 @@ function openChat(wrap){
   <input class="lmInp" id="lmInp" placeholder="Type a message…" maxlength="500" autocomplete="off"/>
   <button class="lmSnd"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>`;
-  wrap.appendChild(p);
+  if(isPlayer){document.body.appendChild(p)}else{wrap.appendChild(p)}
 
   p.querySelector('.lmCCl').onclick=()=>closeChat();
   p.querySelectorAll('.lmCTab').forEach(t=>t.addEventListener('click',ev=>{
@@ -370,7 +378,8 @@ function openChat(wrap){
 
 function closeChat(){
   const p=document.getElementById('lmChat');
-  if(p){ removeOverlay(p); p.remove(); }
+  if(chatWrap){ removeOverlay(chatWrap); chatWrap=null; }
+  if(p){ p.remove(); }
   if(S.timer){clearInterval(S.timer);S.timer=null}
 }
 
@@ -546,8 +555,24 @@ async function tryInject(){
   }catch(ex){console.debug('[LM] deferred:',ex.message)}finally{ij=false}
 }
 
-const obs=new MutationObserver(()=>{if(!document.getElementById('lm-btn-latest'))S.ok=false;tryInject()});
+/* ── Player OSD Chat Button ── */
+function tryInjectPlayerChat(){
+  if(S.cfg?.EnableChat===false)return;
+  const osd=document.querySelector('.osdControls .buttons-right,.videoOsdBottom .buttons-right,[class*="osdControls"] [class*="buttons-right"]');
+  if(!osd||document.getElementById('lm-player-chat'))return;
+  const btn=document.createElement('button');
+  btn.id='lm-player-chat';btn.className='lmPlayerChatBtn paper-icon-button-light';
+  btn.title='Chat';btn.innerHTML=ICO.chat;
+  btn.addEventListener('click',e=>{e.stopPropagation();openChat(btn,true)});
+  osd.insertBefore(btn,osd.firstChild);
+}
+
+const obs=new MutationObserver(()=>{
+  if(!document.getElementById('lm-btn-latest'))S.ok=false;
+  tryInject();
+  tryInjectPlayerChat();
+});
 obs.observe(document.body,{childList:true,subtree:true});
-setInterval(()=>{if(!document.getElementById('lm-btn-latest'))S.ok=false;tryInject()},3000);
+setInterval(()=>{if(!document.getElementById('lm-btn-latest'))S.ok=false;tryInject();tryInjectPlayerChat()},3000);
 tryInject();
 })();
