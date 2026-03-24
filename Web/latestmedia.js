@@ -256,7 +256,7 @@ function openDD(e,wrap){
   wrap.appendChild(dd);ddOpen=true;
   dd.querySelectorAll('.lmTab').forEach(t=>t.addEventListener('click',ev=>{ev.stopPropagation();dd.querySelectorAll('.lmTab').forEach(x=>x.classList.remove('on'));t.classList.add('on');loadTab(t.dataset.t)}));
   loadTab('r');
-  outsideClose(dd,()=>closeDD(wrap));
+  outsideClose(wrap, ()=>closeDD(wrap));
 }
 function closeDD(wrap){
   const d=document.getElementById('lmDD');
@@ -363,7 +363,7 @@ function openChat(wrap){
   p.querySelector('#lmEmBtn').onclick=e=>{e.stopPropagation();toggleEmoji(p,inp)};
 
   refreshOnline();renderChat();
-  outsideClose(p,closeChat);
+  outsideClose(wrap, closeChat);
 
   S.timer=setInterval(()=>{refreshOnline();refreshBadge();if(chatTab==='pub'&&!dmTarget)renderChat()},9000);
 }
@@ -394,6 +394,11 @@ function refreshBadge(){
 }
 
 function renderChat(){
+  const panel=document.getElementById('lmChat');
+  if(panel){
+    const tit=panel.querySelector('.lmCTit');
+    if(tit) tit.textContent = (chatTab==='dm' && dmTarget) ? `Chat: ${dmTarget.name}` : 'Chat';
+  }
   const msgs=document.getElementById('lmMsgs');
   const ia=document.getElementById('lmIA');
   if(!msgs)return;
