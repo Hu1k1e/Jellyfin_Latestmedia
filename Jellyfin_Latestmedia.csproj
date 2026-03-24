@@ -2,20 +2,35 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <RootNamespace>Jellyfin_Latestmedia</RootNamespace>
+    <AssemblyName>Jellyfin_Latestmedia</AssemblyName>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>CS1591</NoWarn>
+    <Version>1.0.3.0</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Jellyfin.Model" Version="10.11.0-unstable.*" />
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.0-unstable.*" />
+    <!-- Reference Jellyfin 10.11.6 stable packages — ExcludeAssets runtime so they are not bundled -->
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.6">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="10.11.6">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
   </ItemGroup>
 
+  <!-- Embed all web assets and config page HTML as resources inside the DLL -->
   <ItemGroup>
-    <EmbeddedResource Include="Web\latestmedia.js" />
+    <None Remove="Configuration\configPage.html" />
     <EmbeddedResource Include="Configuration\configPage.html" />
+
+    <None Remove="Web\latestmedia.js" />
+    <EmbeddedResource Include="Web\latestmedia.js" />
   </ItemGroup>
 
 </Project>
