@@ -381,6 +381,7 @@ function closeChat(){
   if(chatWrap){ removeOverlay(chatWrap); chatWrap=null; }
   if(p){ p.remove(); }
   if(S.timer){clearInterval(S.timer);S.timer=null}
+  chatTab='pub';dmTarget=null;
 }
 
 function toggleEmoji(panel,inp){
