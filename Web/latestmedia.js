@@ -299,7 +299,7 @@ function renderL(b,items){
 /* ── Media Management ── */
 function openMgmt(){
   const ov=document.createElement('div');ov.className='lmOv';
-  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
+  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div style="padding:0 14px 8px"><input id="lmMMSearch" class="lmInp" placeholder="Search movies & shows…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.lmMCl').onclick=()=>ov.remove();
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
@@ -309,28 +309,44 @@ function loadMM(ov){
   const b=document.getElementById('lmMM');if(!b)return;
   api('MediaMgmt/Items').then(items=>{
     if(!items||!items.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No items.</div>';return}
-    let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Year</th><th>MB</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
-    items.forEach(i=>{
-      const mb=i.Size?(i.Size/1048576).toFixed(1):'—';
-      const sched=i.Status&&i.Status!=='Active';
-      h+=`<tr><td>${esc(i.Title||'—')}</td><td>${i.Year||'—'}</td><td>${mb}</td><td>${esc(i.Status||'Active')}</td><td>${sched
-        ?`<button class="lmBtn dn lmCD" data-id="${i.Id}">Cancel</button>`
-        :`<select class="lmSel lmSD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`
-      }</td></tr>`;
-    });
-    b.innerHTML=h+'</tbody></table>';
-    b.querySelectorAll('.lmSD').forEach(s=>s.onchange=async()=>{
-      if(!s.value)return;
-      const ok=await cfm(`Schedule <b>${esc(s.dataset.t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
-      if(!ok){s.value='';return}
-      try{await api(`MediaMgmt/Items/${s.dataset.id}/ScheduleDelete?days=${s.value}`,{method:'POST'});loadMM(ov)}
-      catch(ex){alert('Error '+ex.message);s.value=''}
-    });
-    b.querySelectorAll('.lmCD').forEach(btn=>btn.onclick=async()=>{
-      if(!await cfm('Cancel scheduled deletion?'))return;
-      try{await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});loadMM(ov)}
-      catch(ex){alert('Error '+ex.message)}
-    });
+    
+    function renderTable(filtered){
+      let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Year</th><th>MB</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+      if(!filtered.length){h+='<tr><td colspan="5" style="text-align:center;opacity:.5;padding:18px">No matches found.</td></tr>'}
+      filtered.forEach(i=>{
+        const mb=i.Size?(i.Size/1048576).toFixed(1):'—';
+        const sched=i.Status&&i.Status!=='Active';
+        h+=`<tr><td>${esc(i.Title||'—')}</td><td>${i.Year||'—'}</td><td>${mb}</td><td>${esc(i.Status||'Active')}</td><td>${sched
+          ?`<button class="lmBtn dn lmCD" data-id="${i.Id}">Cancel</button>`
+          :`<select class="lmSel lmSD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`
+        }</td></tr>`;
+      });
+      b.innerHTML=h+'</tbody></table>';
+      b.querySelectorAll('.lmSD').forEach(s=>s.onchange=async()=>{
+        if(!s.value)return;
+        const ok=await cfm(`Schedule <b>${esc(s.dataset.t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
+        if(!ok){s.value='';return}
+        try{await api(`MediaMgmt/Items/${s.dataset.id}/ScheduleDelete?days=${s.value}`,{method:'POST'});loadMM(ov)}
+        catch(ex){alert('Error '+ex.message);s.value=''}
+      });
+      b.querySelectorAll('.lmCD').forEach(btn=>btn.onclick=async()=>{
+        if(!await cfm('Cancel scheduled deletion?'))return;
+        try{await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});loadMM(ov)}
+        catch(ex){alert('Error '+ex.message)}
+      });
+    }
+    
+    renderTable(items);
+    
+    const si=document.getElementById('lmMMSearch');
+    if(si){
+      si.value='';
+      si.oninput=()=>{
+        const q=si.value.trim().toLowerCase();
+        if(!q){renderTable(items);return}
+        renderTable(items.filter(i=>(i.Title||'').toLowerCase().includes(q)));
+      };
+    }
   }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
 }
 
