@@ -11,7 +11,7 @@ const ICO={
   chat:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`
 };
 
-const S={url:'',tok:'',uid:'',code:'',admin:false,cfg:{},ok:false,timer:null};
+const S={url:'',tok:'',uid:'',dev:'',code:'',admin:false,cfg:{},ok:false,timer:null};
 
 // Close panels automatically on SPA navigation
 window.addEventListener('hashchange', () => {
@@ -201,7 +201,7 @@ function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 function api(ep,opts={}){
   const base=S.url||location.origin;
-  const t=`MediaBrowser Client="Jellyfin Web", Device="Plugin", DeviceId="LMPl1", Version="1.0.0", Token="${S.tok}"`;
+  const t=`MediaBrowser Client="Jellyfin Web", Device="Plugin", DeviceId="${S.dev||'LMPl1'}", Version="1.0.0", Token="${S.tok}"`;
   const headers = { 'Authorization': t, 'X-Emby-Authorization': t, ...(opts.headers||{}) };
   if (opts.body) headers['Content-Type'] = 'application/json';
   
@@ -337,7 +337,7 @@ function openChat(wrap){
   p.innerHTML=`
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>
-  <span class="lmOnl" id="lmOnl"><span class="lmOnlDot"></span> — online</span>
+  <span class="lmOnl" id="lmOnl"><span class="lmOnlDot"></span> 0 online</span>
   <button class="lmCCl">&times;</button>
 </div>
 <div class="lmCTabs">
@@ -517,8 +517,12 @@ async function tryInject(){
   if(!hr||document.getElementById('lm-btn-latest'))return;
   ij=true;
   try{
-    S.url=((typeof ApiClient.serverAddress==='function'?ApiClient.serverAddress():null)||location.origin).replace(/\/$/,'');
-    S.tok=ApiClient.accessToken();
+    const ac=window.ApiClient;
+    if(!ac||!ac.accessToken()||!ac.getCurrentUserId())return;
+    S.tok=ac.accessToken();
+    S.uid=ac.getCurrentUserId();
+    S.dev=typeof ac.deviceId==='function'?ac.deviceId():(ac._deviceId||'LMPl1');
+    S.url=((typeof ac.serverAddress==='function'?ac.serverAddress():null)||location.origin).replace(/\/$/,'');
     const me=await api('Users/Me');
     S.uid=me.Id;S.admin=me.Policy?.IsAdministrator||false;
     let cfg={};try{cfg=await api(`Plugins/${PID}/Configuration`)}catch(e){}
