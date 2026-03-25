@@ -222,7 +222,6 @@ st.innerHTML=`
   background:rgba(8,8,8,.97);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
-.lmCopyBtn:hover{background:${GD}}
 `;
 document.head.appendChild(st);
 
@@ -543,6 +542,8 @@ const CHAT_CACHE={pub:null,dms:{},convs:null};
 
 function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
+  chatTab='pub';dmTarget=null;lastMsgHash='';currentChatContext='';
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
   chatWrap=wrap;
   const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat'+(isPlayer?' lmChatPlayer':'');
   p.addEventListener('click', e => {
