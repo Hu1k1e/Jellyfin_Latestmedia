@@ -165,9 +165,10 @@ st.innerHTML=`
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
 .lmCHdr{display:flex;align-items:center;padding:9px 12px 7px;
   border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.lmCTit{font-size:.84em;font-weight:700;flex:1}
-.lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:3px;margin-right:6px}
+.lmCTit{font-size:.84em;font-weight:700}
+.lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:4px;margin-left:8px;flex:1}
 .lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G}}
+.lmCMin:hover{opacity:1}
 .lmCCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55}
 .lmCCl:hover{opacity:1}
 .lmCTabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
@@ -185,6 +186,14 @@ st.innerHTML=`
 .lmBbl.they{align-self:flex-start;background:rgba(255,255,255,.1);border-bottom-left-radius:3px}
 .lmBbl.bc{align-self:center;background:rgba(180,90,0,.75);color:#fff;border-radius:8px;max-width:96%;font-size:.8em;text-align:center}
 .lmBbn{font-size:.7em;opacity:.6;margin-bottom:2px}
+
+/* Minimized Chat State */
+.lmChat.lmChat-min{width:260px!important;height:120px!important;resize:none}
+.lmChat-min .lmCTabs, .lmChat-min .lmBack, .lmChat-min .lmDMTop, .lmChat-min .lmMsgMenu, .lmChat-min .lmCodeBtn{display:none!important}
+.lmChat-min .lmMsgs > div{display:none!important}
+.lmChat-min .lmMsgs > div:last-child{display:flex!important;margin:auto 0 0}
+.lmChat-min .lmIA{padding:5px 6px}
+.lmChat-min .lmInp{padding:4px 10px;font-size:.78em}
 .lmIA{display:flex;align-items:center;gap:5px;padding:7px 8px;
   border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;position:relative}
 .lmInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
@@ -554,9 +563,10 @@ function openChat(wrap,isPlayer){
     p.querySelectorAll('.lmMsgMenu').forEach(x => x.style.display='none');
   });
   p.innerHTML=`
-<div class="lmCHdr">
-  <span class="lmCTit">Chat</span>
+<div class="lmCHdr" id="lmCHdr" style="cursor:move;user-select:none">
+  <span class="lmCTit" id="lmCTitMain">Chat</span>
   <span class="lmOnl" id="lmOnl"><span class="lmOnlDot"></span> 0 online</span>
+  <button class="lmCMin" id="lmCMin" style="display:none;background:none;border:none;color:inherit;cursor:pointer;opacity:.55;font-weight:bold;margin-right:8px" title="Minimize">_</button>
   <button class="lmCCl">&times;</button>
 </div>
 <div class="lmCTabs">
@@ -572,6 +582,44 @@ function openChat(wrap,isPlayer){
   if(isPlayer){document.body.appendChild(p)}else{wrap.appendChild(p)}
 
   p.querySelector('.lmCCl').onclick=()=>closeChat();
+  
+  const minBtn = p.querySelector('#lmCMin');
+  let isMin = false;
+  minBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    isMin = !isMin;
+    if (isMin) {
+      p.classList.add('lmChat-min');
+      minBtn.innerHTML = '□';
+      minBtn.title = 'Maximize';
+    } else {
+      p.classList.remove('lmChat-min');
+      minBtn.innerHTML = '_';
+      minBtn.title = 'Minimize';
+      // Snap back to default
+      p.style.top = ''; p.style.left = ''; p.style.right = ''; p.style.bottom = '';
+    }
+  };
+
+  let isDrag = false, dX = 0, dY = 0;
+  const hdr = p.querySelector('#lmCHdr');
+  const mm = e => {
+    if (!isDrag) return;
+    p.style.left = (e.clientX - dX) + 'px';
+    p.style.top = (e.clientY - dY) + 'px';
+  };
+  const mu = () => { if(isDrag){ isDrag = false; document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); } };
+  hdr.addEventListener('mousedown', e => {
+    if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+    isDrag = true;
+    const rect = p.getBoundingClientRect();
+    dX = e.clientX - rect.left;
+    dY = e.clientY - rect.top;
+    p.style.right = 'auto'; p.style.bottom = 'auto';
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+
   p.querySelectorAll('.lmCTab').forEach(t=>t.addEventListener('click',ev=>{
     p.querySelectorAll('.lmCTab').forEach(x=>x.classList.remove('on'));
     t.classList.add('on');chatTab=t.dataset.tab;dmTarget=null;renderChat();
@@ -648,8 +696,10 @@ function preserveCache(oldArr, newArr) {
 function renderChat(){
   const panel=document.getElementById('lmChat');
   if(panel){
-    const tit=panel.querySelector('.lmCTit');
+    const tit=panel.querySelector('#lmCTitMain');
     if(tit) tit.textContent = (chatTab==='dm' && dmTarget) ? `Chat: ${dmTarget.name}` : 'Chat';
+    const minBtn = panel.querySelector('#lmCMin');
+    if(minBtn) minBtn.style.display = (chatTab === 'dm' && dmTarget) ? 'block' : 'none';
   }
   const msgs=document.getElementById('lmMsgs');
   const ia=document.getElementById('lmIA');
