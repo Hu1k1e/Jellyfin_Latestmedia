@@ -854,6 +854,13 @@ const obs=new MutationObserver(()=>{
   tryInjectPlayerChat();
 });
 obs.observe(document.body,{childList:true,subtree:true});
-setInterval(()=>{if(!document.getElementById('lm-btn-latest'))S.ok=false;tryInject();tryInjectPlayerChat()},3000);
+setInterval(()=>{
+  if(!document.getElementById('lm-btn-latest'))S.ok=false;
+  tryInject();
+  tryInjectPlayerChat();
+},3000);
+setInterval(()=>{
+  if(S.ok && !document.getElementById('lmChat')) refreshBadge();
+}, 4000);
 tryInject();
 })();
