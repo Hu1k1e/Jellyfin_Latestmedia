@@ -591,6 +591,10 @@ function openChat(wrap,isPlayer){
     const msgs = document.getElementById('lmMsgs');
     if(!msgs) return;
     if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{});
+    else if(chatTab==='dm'&&!dmTarget){
+      // Re-fetch conversations each cycle so unread dots reflect server state on any device
+      api('Chat/DM/Conversations').then(cs=>{ CHAT_CACHE.convs=cs; renderDMList(msgs); }).catch(()=>{});
+    }
     else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{
       preserveCache(CHAT_CACHE.dms[dmTarget.id], d);
       CHAT_CACHE.dms[dmTarget.id]=d; 
@@ -778,7 +782,8 @@ async function drawBubbles(container,msgs,silent=false){
   const decMsgs=await Promise.all(msgs.map(async m=>{
     if(m._decTxt) return m; // Return memoized text immediately!
     let txt=m.Content||m.content||'';
-    if(m.Ciphertext||m.ciphertext){
+    // If an encrypted payload exists AND no plaintext content, try to decrypt
+    if((m.Ciphertext||m.ciphertext) && !txt){
       const isMe=String(m.SenderId||m.senderId)===String(S.uid);
       if(isMe){
         if(!dmTarget.pubKey){const k=await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);if(k)dmTarget.pubKey=k.PublicKey;}
@@ -923,7 +928,8 @@ async function doEditMsg(id, oldTxt, isCipher) {
         if (!dmTarget.pubKey) { alert('Missing target key.'); return; }
         const encObj = await E2E.enc(n.trim(), dmTarget.pubKey);
         ct = encObj.ct; iv = encObj.iv;
-        p = JSON.stringify({ Ciphertext: ct, Nonce: iv, SenderPublicKey: JSON.stringify(E2E.keys.pubJwk) });
+        // Also persist plaintext Content for cross-device readability
+        p = JSON.stringify({ Content: n.trim(), Ciphertext: ct, Nonce: iv, SenderPublicKey: JSON.stringify(E2E.keys.pubJwk) });
     } else {
         p = JSON.stringify({ content: n.trim() });
     }
@@ -965,7 +971,8 @@ async function doSend(txt){
       if(!dmTarget.pubKey){const k=await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);if(k)dmTarget.pubKey=k.PublicKey;}
       if(!dmTarget.pubKey){alert('User has not initialized secure chat yet.');if(inp)inp.value=txt;return;}
       const {ct, iv} = await E2E.enc(txt, dmTarget.pubKey);
-      const p={Ciphertext:ct,Nonce:iv,SenderPublicKey:JSON.stringify(E2E.keys.pubJwk)};
+      // Store plaintext Content so either party can read on any device (protected by server auth)
+      const p={Content:txt,Ciphertext:ct,Nonce:iv,SenderPublicKey:JSON.stringify(E2E.keys.pubJwk)};
       await api(`Chat/DM/${dmTarget.id}/Messages`,{method:'POST',body:JSON.stringify(p)});
     }
     lastMsgHash = '';
