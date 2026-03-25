@@ -36,20 +36,20 @@ st.innerHTML=`
   width:8px;height:8px;display:none;pointer-events:none;box-shadow:0 0 4px #000}
 .lmBdg.on{display:block}
 
-/* Glass panels — frosted glass, no hover shift */
+/* Glass panels — frosted glass matching nightSky.css theme, no hover shift */
 .lmPanel{
-  background:rgba(10,10,10,0.88);
+  background:rgba(15,15,15,0.82);
   border:1px solid rgba(255,255,255,0.10);
   border-radius:12px;
   box-shadow:0 8px 30px rgba(0,0,0,0.55);
   color:inherit;
 }
-@supports (backdrop-filter: blur(20px)){
+@supports (backdrop-filter: blur(15px)){
   .lmPanel{
-    backdrop-filter:blur(20px) saturate(180%);
-    -webkit-backdrop-filter:blur(20px) saturate(180%);
-    background:rgba(10,10,10,0.55);
-    border-color:rgba(255,255,255,0.12);
+    backdrop-filter:blur(15px);
+    -webkit-backdrop-filter:blur(15px);
+    background:rgba(0,0,0,0.35);
+    border-color:rgba(255,255,255,0.10);
   }
 }
 
