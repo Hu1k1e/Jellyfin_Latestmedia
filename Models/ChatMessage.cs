@@ -9,5 +9,6 @@ namespace Jellyfin_Latestmedia.Models
         public string SenderName { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public bool IsEdited { get; set; } = false;
     }
 }

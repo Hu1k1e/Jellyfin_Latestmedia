@@ -19,6 +19,10 @@ window.addEventListener('hashchange', () => {
   if(typeof closeChat === 'function') closeChat();
 });
 
+document.addEventListener('click', () => {
+  document.querySelectorAll('.lmMsgMenu').forEach(x => x.style.display='none');
+});
+
 /* ── Styles ── */
 const st = document.createElement('style');
 st.innerHTML=`
@@ -143,6 +147,16 @@ st.innerHTML=`
   padding:22px 26px;max-width:350px;width:90%;text-align:center}
 .lmCfb p{margin:0 0 16px;font-size:.9em;line-height:1.5}
 .lmCfa{display:flex;gap:10px;justify-content:center}
+
+/* Message Options */
+.lmMsgOpt{position:relative;flex-shrink:0;margin-bottom:3px}
+.lmDotsBtn{background:none;border:none;color:inherit;opacity:.4;cursor:pointer;padding:0 3px;font-size:1.1em}
+.lmDotsBtn:hover{opacity:.9}
+.lmMsgMenu{position:absolute;bottom:100%;right:0;background:rgba(20,20,20,.95);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.15);border-radius:6px;overflow:hidden;
+  display:none;font-size:.8em;min-width:80px;z-index:9;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.lmMsgMenu div{padding:6px 12px;cursor:pointer;transition:background .15s}
+.lmMsgMenu div:hover{background:rgba(255,255,255,.08)}
 
 /* Chat panel */
 .lmChat{position:absolute;top:calc(100% + 6px);right:0;width:330px;height:460px;
@@ -614,21 +628,74 @@ function setPubRead() { localStorage.setItem('lm_last_pub_read', new Date().toIS
 function drawBubbles(container,msgs){
   if(!Array.isArray(msgs)||!msgs.length){container.innerHTML='<div class="lmEmpty">No messages yet.</div>';if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}return}
   container.innerHTML='';
+  const now = Date.now();
   msgs.forEach(m=>{
     const isMe=String(m.SenderId||m.senderId)===String(S.uid);
     const bc=m.IsBroadcast||m.isBroadcast;
     const cls=bc?'bc':isMe?'me':'they';
     const name=m.SenderName||m.senderName||(isMe?'You':'User');
     const txt=m.Content||m.content||(m.Ciphertext?'🔒 Encrypted':'');
-    const el=document.createElement('div');el.className=`lmBbl ${cls}`;
-    el.innerHTML=`<div class="lmBbn">${esc(name)}</div>${esc(txt)}`;
-    container.appendChild(el);
+    const isEdited = m.IsEdited||m.isEdited;
+    
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'flex';
+    wrapper.style.alignItems = 'flex-end';
+    wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
+    wrapper.style.gap = '6px';
+    wrapper.style.maxWidth = '100%';
+
+    const bDiv = document.createElement('div');
+    bDiv.className = `lmBbl ${cls}`;
+    bDiv.innerHTML = `<div class="lmBbn">${esc(name)}</div><span class="lmTxt">${esc(txt)}</span>${isEdited?'<span style="font-size:.7em;opacity:.6;margin-left:5px">(edited)</span>':''}`;
+
+    if (isMe && !bc) {
+      const msgTime = new Date(m.Timestamp || m.timestamp).getTime();
+      if ((now - msgTime) <= 10800000) { // 3 hours
+        const opt = document.createElement('div');
+        opt.className = 'lmMsgOpt';
+        opt.innerHTML = `<button class="lmDotsBtn">⋮</button><div class="lmMsgMenu"><div class="lme">Edit</div><div class="lmd" style="color:#e53935">Delete</div></div>`;
+        const menu = opt.querySelector('.lmMsgMenu');
+        opt.querySelector('.lmDotsBtn').onclick = (e) => {
+           e.stopPropagation();
+           document.querySelectorAll('.lmMsgMenu').forEach(x=> { if(x!==menu) x.style.display='none' });
+           menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+        };
+        opt.querySelector('.lme').onclick = () => doEditMsg(m.Id||m.id, txt, m.Ciphertext||m.ciphertext);
+        opt.querySelector('.lmd').onclick = () => doDelMsg(m.Id||m.id);
+        wrapper.appendChild(opt);
+      }
+      wrapper.appendChild(bDiv);
+    } else {
+      wrapper.appendChild(bDiv);
+    }
+    container.appendChild(wrapper);
   });
   container.scrollTop=container.scrollHeight;
   if(chatTab==='pub' && !dmTarget) {
     setPubRead();
     refreshBadge(); // Clear the badge immediately when viewing
   }
+}
+
+async function doEditMsg(id, oldTxt, oldCipher) {
+  if(oldCipher && !oldTxt) { alert('Encrypted messages cannot be edited yet.'); return; }
+  const n = prompt('Edit your message:', oldTxt);
+  if(n === null || n.trim() === oldTxt.trim() || n.trim() === '') return;
+  try {
+    const p = JSON.stringify({ content: n.trim() });
+    if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'PUT', body:p});
+    else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'PUT', body:p});
+    renderChat();
+  } catch(e) { alert('Edit failed: '+e.message); }
+}
+
+async function doDelMsg(id) {
+  if(!await cfm('Delete this message?')) return;
+  try {
+    if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'DELETE'});
+    else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'DELETE'});
+    renderChat();
+  } catch(e) { alert('Delete failed: '+e.message); }
 }
 
 async function doSend(txt){
