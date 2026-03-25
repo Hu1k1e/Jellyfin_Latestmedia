@@ -352,6 +352,8 @@ namespace Jellyfin_Latestmedia.Api
 
             msg.Content = request.Content;
             msg.Ciphertext = request.Ciphertext;
+            if (!string.IsNullOrEmpty(request.Nonce)) msg.Nonce = request.Nonce;
+            if (!string.IsNullOrEmpty(request.SenderPublicKey)) msg.SenderPublicKey = request.SenderPublicKey;
             msg.IsEdited = true;
             
             await _repository.WriteListAsync(filename, messages);
