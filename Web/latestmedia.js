@@ -587,16 +587,21 @@ function openChat(wrap,isPlayer){
     refreshOnline();refreshBadge();
     const msgs = document.getElementById('lmMsgs');
     if(!msgs) return;
-    if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{});
+    const ctx = currentChatContext;
+    if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>{if(currentChatContext!==ctx)return;CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{});
     else if(chatTab==='dm'&&!dmTarget){
       // Re-fetch conversations each cycle so unread dots reflect server state on any device
-      api('Chat/DM/Conversations').then(cs=>{ CHAT_CACHE.convs=cs; renderDMList(msgs); }).catch(()=>{});
+      api('Chat/DM/Conversations').then(cs=>{if(currentChatContext!==ctx)return; CHAT_CACHE.convs=cs; renderDMList(msgs); }).catch(()=>{});
     }
-    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{
-      preserveCache(CHAT_CACHE.dms[dmTarget.id], d);
-      CHAT_CACHE.dms[dmTarget.id]=d; 
-      drawBubbles(msgs,d,true);
-    }).catch(()=>{});
+    else if(chatTab==='dm'&&dmTarget) {
+      const tid = dmTarget.id;
+      api(`Chat/DM/${tid}/Messages`).then(d=>{
+        if(currentChatContext!==ctx)return;
+        preserveCache(CHAT_CACHE.dms[tid], d);
+        CHAT_CACHE.dms[tid]=d; 
+        drawBubbles(msgs,d,true);
+      }).catch(()=>{});
+    }
   },2500);
 }
 
@@ -671,7 +676,7 @@ function renderChat(){
   if(chatTab==='pub'){
     if(ia)ia.style.display='flex';
     if(CHAT_CACHE.pub) drawBubbles(msgs, CHAT_CACHE.pub, true);
-    api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    api('Chat/Messages').then(d=>{if(currentChatContext!==newCtx)return;CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{if(currentChatContext===newCtx)msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
 
   }else if(chatTab==='dm'&&!dmTarget){
     if(ia)ia.style.display='none';
@@ -682,11 +687,13 @@ function renderChat(){
     const bk=doc('div','lmBack','lmBack','← Back');bk.onclick=()=>{dmTarget=null;renderChat()};
     msgs.parentElement.insertBefore(bk,msgs);
     if(CHAT_CACHE.dms[dmTarget.id]) drawBubbles(msgs, CHAT_CACHE.dms[dmTarget.id], true);
-    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{
-      preserveCache(CHAT_CACHE.dms[dmTarget.id], d);
-      CHAT_CACHE.dms[dmTarget.id]=d; 
+    const tid = dmTarget.id;
+    api(`Chat/DM/${tid}/Messages`).then(d=>{
+      if(currentChatContext!==newCtx)return;
+      preserveCache(CHAT_CACHE.dms[tid], d);
+      CHAT_CACHE.dms[tid]=d; 
       drawBubbles(msgs,d,true);
-    }).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    }).catch(()=>{if(currentChatContext===newCtx)msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
   }
 }
 
@@ -722,7 +729,7 @@ function renderDMList(container){
 
   function drawList(cs) {
     if(!cs||!cs.length){container.innerHTML='<div class="lmEmpty" style="padding-top:6px">No conversations yet.</div>';return}
-    if(dmTarget) return; // abort if user clicked a conversation while loading
+    if(currentChatContext!=='dm_null') return; // strictly abort if user navigated away
     container.innerHTML='<div class="lmChatsHdr">Chats</div>' + cs.map(c=>{
       const n=c.UnreadCount||c.unreadCount||0;
       return`<div class="lmDMRow" data-id="${c.UserId||c.userId}" data-n="${esc(c.UserName||c.userName||'User')}">${esc(c.UserName||c.userName||'User')}${n>0?`<span class="lmDMBdg">${n}</span>`:''}</div>`;
@@ -733,7 +740,7 @@ function renderDMList(container){
   if(CHAT_CACHE.convs) drawList(CHAT_CACHE.convs);
   else container.innerHTML='<div class="lmEmpty" style="padding-top:6px">Loading…</div>';
 
-  api('Chat/DM/Conversations').then(cs=>{ CHAT_CACHE.convs=cs; drawList(cs); }).catch(()=>{if(!CHAT_CACHE.convs)container.innerHTML='<div class="lmEmpty">Could not load conversations.</div>'});
+  api('Chat/DM/Conversations').then(cs=>{if(currentChatContext!=='dm_null')return; CHAT_CACHE.convs=cs; drawList(cs); }).catch(()=>{if(currentChatContext!=='dm_null')return; if(!CHAT_CACHE.convs)container.innerHTML='<div class="lmEmpty">Could not load conversations.</div>'});
 }
 
 function toggleCodePop(panel){
