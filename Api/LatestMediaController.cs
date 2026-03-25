@@ -65,6 +65,22 @@ namespace Jellyfin_Latestmedia.Api
                     type = "Anime";
                 }
                 
+                string seriesName = null;
+                string seasonName = null;
+                if (type == "Episode" && item.ParentId != Guid.Empty)
+                {
+                    var season = _libraryManager.GetItemById(item.ParentId);
+                    if (season != null)
+                    {
+                        seasonName = season.Name;
+                        if (season.ParentId != Guid.Empty)
+                        {
+                            var series = _libraryManager.GetItemById(season.ParentId);
+                            if (series != null) seriesName = series.Name;
+                        }
+                    }
+                }
+                
                 result.Add(new LatestMediaItem
                 {
                     Id = item.Id.ToString("N"),
@@ -72,7 +88,10 @@ namespace Jellyfin_Latestmedia.Api
                     Type = type,
                     ProductionYear = item.ProductionYear,
                     DateAdded = item.DateCreated,
-                    PosterUrl = $"/Items/{item.Id}/Images/Primary"
+                    PosterUrl = $"/Items/{item.Id}/Images/Primary",
+                    SeriesName = seriesName,
+                    SeasonName = seasonName,
+                    Genres = item.Genres?.ToArray()
                 });
             }
 
@@ -129,7 +148,8 @@ namespace Jellyfin_Latestmedia.Api
                             Type = type,
                             PosterUrl = $"/Items/{parsedGuid}/Images/Primary",
                             SeriesName = seriesName,
-                            SeasonName = seasonName
+                            SeasonName = seasonName,
+                            Genres = item.Genres?.ToArray()
                         });
                     }
                 }

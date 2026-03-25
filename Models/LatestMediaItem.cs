@@ -10,5 +10,8 @@ namespace Jellyfin_Latestmedia.Models
         public int? ProductionYear { get; set; }
         public string PosterUrl { get; set; } = string.Empty;
         public DateTime DateAdded { get; set; }
+        public string? SeriesName { get; set; }
+        public string? SeasonName { get; set; }
+        public string[]? Genres { get; set; }
     }
 }

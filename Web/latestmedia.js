@@ -305,14 +305,19 @@ function renderR(b,items){
     const y=i.ProductionYear?` (${i.ProductionYear})`:'';
     const d=i.DateAdded?Math.floor((Date.now()-new Date(i.DateAdded))/86400000):null;
     const age=d===null?'':d===0?'Today':`${d}d ago`;
-    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${esc(i.Title||i.Name||'?')}${y}</div><div class="lmSub"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span>${age?`<span>${age}</span>`:''}</div></div></a>`;
+    const mainTitle = esc(i.SeriesName || i.Title || i.Name || '?');
+    const ctx = i.SeriesName ? `<div style="font-size:.75em;opacity:.7;margin-top:1px">${i.SeasonName ? esc(i.SeasonName) + ' \u2022 ' : ''}${esc(i.Title || i.Name)}</div>` : '';
+    const genres = (i.Genres && i.Genres.length) ? `<div style="font-size:.68em;opacity:.5;margin-top:2px">${esc(i.Genres.slice(0,3).join(' \u2022 '))}</div>` : '';
+    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}${y}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span>${age?`<span>${age}</span>`:''}</div></div></a>`;
   }).join('');
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
 function renderL(b,items){
   b.innerHTML=items.map(i=>{
-    const ctx=(i.SeriesName||i.seasonName)?`<div style="font-size:.72em;opacity:.5;margin-top:1px">${esc(i.SeriesName||'')}${i.SeasonName?' \u2022 '+esc(i.SeasonName):''}</div>`:'';
-    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${esc(i.Title||i.Name||'?')}</div>${ctx}<div class="lmSub"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 ${i.DaysRemaining??'?'}d left</span></div></div></a>`;
+    const mainTitle = esc(i.SeriesName || i.Title || i.Name || '?');
+    const ctx = i.SeriesName ? `<div style="font-size:.75em;opacity:.7;margin-top:1px">${i.SeasonName ? esc(i.SeasonName) + ' \u2022 ' : ''}${esc(i.Title || i.Name)}</div>` : '';
+    const genres = (i.Genres && i.Genres.length) ? `<div style="font-size:.68em;opacity:.5;margin-top:2px">${esc(i.Genres.slice(0,3).join(' \u2022 '))}</div>` : '';
+    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 ${i.DaysRemaining??'?'}d left</span></div></div></a>`;
   }).join('');
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
