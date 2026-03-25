@@ -508,7 +508,10 @@ function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
   chatWrap=wrap;
   const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat'+(isPlayer?' lmChatPlayer':'');
-  p.addEventListener('click', e => e.stopPropagation());
+  p.addEventListener('click', e => {
+    e.stopPropagation();
+    p.querySelectorAll('.lmMsgMenu').forEach(x => x.style.display='none');
+  });
   p.innerHTML=`
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>
