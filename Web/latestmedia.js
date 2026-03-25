@@ -696,7 +696,10 @@ function renderDMList(container){
 
   if(!document.getElementById('lmDMTopBar')){
     const topBar = document.createElement('div'); topBar.id = 'lmDMTopBar'; topBar.className = 'lmDMTop';
-    topBar.innerHTML = `<div class="lmDMInp"><input id="lmDCI" placeholder="Enter 6 character code to chat" maxlength="6" autocomplete="off"/></div><button id="lmCodeBtn" class="lmCodeBtn">My Chat Code</button>`;
+    topBar.innerHTML = `<div class="lmDMInp" style="display:flex;flex-direction:column;gap:4px">
+<input id="lmDCI" placeholder="Enter 6 character code" maxlength="6" autocomplete="off"/>
+<span style="font-size:0.75em;opacity:0.65;padding-left:10px">Ask user to share code</span>
+</div><button id="lmCodeBtn" class="lmCodeBtn">My Chat Code</button>`;
     
     const ci=topBar.querySelector('#lmDCI');
     ci.onkeyup=e=>{
@@ -706,7 +709,7 @@ function renderDMList(container){
       ci.disabled=true;
       api(`Chat/DM/Users/ByCode/${code}`)
         .then(u=>{ci.value='';ci.disabled=false;dmTarget={id:u.Id,name:u.Name};renderChat()})
-        .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6 character code to chat';ci.style.borderColor=''},3000)});
+        .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6 character code';ci.style.borderColor=''},3000)});
     };
     
     topBar.querySelector('#lmCodeBtn').onclick=()=>toggleCodePop(panel);
