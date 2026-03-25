@@ -454,6 +454,7 @@ function loadMM(ov){
 /* ── Chat ── */
 const E2E={
   keys:null,
+  sharedKeys:{},
   async init(){
     let privJwk=localStorage.getItem('lm_priv');
     let pubJwk=localStorage.getItem('lm_pub');
@@ -474,9 +475,12 @@ const E2E={
     api('Chat/Keys',{method:'POST',body:JSON.stringify({PublicKey:JSON.stringify(pubJwk)})}).catch(()=>{});
   },
   async getShared(theirPubJwkStr){
+    if(this.sharedKeys[theirPubJwkStr]) return this.sharedKeys[theirPubJwkStr];
     const theirJwk=JSON.parse(theirPubJwkStr);
     const theirPub=await crypto.subtle.importKey('jwk',theirJwk,{name:'ECDH',namedCurve:'P-256'},true,[]);
-    return crypto.subtle.deriveKey({name:'ECDH',public:theirPub},this.keys.priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    const derived = await crypto.subtle.deriveKey({name:'ECDH',public:theirPub},this.keys.priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    this.sharedKeys[theirPubJwkStr] = derived;
+    return derived;
   },
   async enc(txt,targetJwkStr){
     const key=await this.getShared(targetJwkStr);
@@ -543,7 +547,11 @@ function openChat(wrap,isPlayer){
     const msgs = document.getElementById('lmMsgs');
     if(!msgs) return;
     if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{});
-    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{});
+    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{
+      preserveCache(CHAT_CACHE.dms[dmTarget.id], d);
+      CHAT_CACHE.dms[dmTarget.id]=d; 
+      drawBubbles(msgs,d,true);
+    }).catch(()=>{});
   },2500);
 }
 
@@ -582,6 +590,13 @@ function refreshBadge(){
   });
 }
 
+function preserveCache(oldArr, newArr) {
+  if(!oldArr || !newArr) return;
+  const mem = {};
+  oldArr.forEach(m => mem[m.Id||m.id] = m._decTxt);
+  newArr.forEach(m => { if(mem[m.Id||m.id]) m._decTxt = mem[m.Id||m.id]; });
+}
+
 function renderChat(){
   const panel=document.getElementById('lmChat');
   if(panel){
@@ -617,7 +632,11 @@ function renderChat(){
     const bk=doc('div','lmBack','lmBack','← Back');bk.onclick=()=>{dmTarget=null;renderChat()};
     msgs.parentElement.insertBefore(bk,msgs);
     if(CHAT_CACHE.dms[dmTarget.id]) drawBubbles(msgs, CHAT_CACHE.dms[dmTarget.id], true);
-    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{
+      preserveCache(CHAT_CACHE.dms[dmTarget.id], d);
+      CHAT_CACHE.dms[dmTarget.id]=d; 
+      drawBubbles(msgs,d,true);
+    }).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
   }
 }
 
