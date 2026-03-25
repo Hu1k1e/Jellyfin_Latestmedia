@@ -163,8 +163,8 @@ st.innerHTML=`
   display:flex;flex-direction:column;z-index:9999;overflow:hidden;
   transform-origin:top right;animation:lmPop .2s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
-.lmCHdr{display:flex;align-items:center;padding:9px 12px 7px;gap:6px;
-  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;min-height:38px}
+.lmCHdr{display:flex;align-items:center;padding:5px 12px 4px;gap:6px;
+  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
 .lmCTit{font-size:.84em;font-weight:700;white-space:nowrap}
 .lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:4px;flex:1;white-space:nowrap}
 .lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G};flex-shrink:0}
@@ -218,10 +218,10 @@ st.innerHTML=`
 .lmCodeBtn{margin:0;background:#fff;border:1px solid rgba(255,255,255,.85);border-radius:18px;padding:6px 12px;font-size:.83em;cursor:pointer;font-family:inherit;color:#111;white-space:nowrap;transition:opacity .15s}
 .lmCodeBtn:hover{opacity:.85}
 .lmChatsHdr{padding:8px 12px 4px;font-size:.7em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.05em}
-.lmCodePop{position:fixed;top:80px;z-index:99999;width:240px;
+.lmCodePop{position:fixed;top:80px;z-index:99999;width:210px;
   background:rgba(8,8,8,.97);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
-  padding:16px 18px 14px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
+  padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
 .lmCopyBtn:hover{background:${GD}}
 `;
 document.head.appendChild(st);
@@ -739,24 +739,49 @@ function toggleCodePop(panel){
   const ex=document.getElementById('lmCodePop');if(ex){ex.remove();return}
   const cp=document.createElement('div');cp.id='lmCodePop';cp.className='lmCodePop';
 
+  // Position on the RIGHT side of the chat panel instead of the left
+  const pr=panel.getBoundingClientRect();
+  cp.style.position='fixed';
+  cp.style.top=pr.top+'px';
+  cp.style.left=Math.min(window.innerWidth - 220, pr.right + 4) + 'px';
+
+  // Close X button
+  const closeBtn=document.createElement('button');
+  closeBtn.innerHTML='&times;';
+  closeBtn.style.cssText='position:absolute;top:6px;right:8px;background:none;border:none;color:inherit;font-size:1.15rem;cursor:pointer;opacity:.55;line-height:1;padding:0';
+  closeBtn.onclick=e=>{e.stopPropagation();cp.remove();};
+  cp.appendChild(closeBtn);
+
+  const inner=document.createElement('div');
+  inner.style.position='relative';
+  cp.appendChild(inner);
+
   function showCode(code){
-    cp.innerHTML=`<h4>Your Chat Code</h4><small>Share this 6-character code so others can send you direct messages. Each code is unique to your account and never changes.</small><div class="lmCodeVal">${code}</div><button class="lmCopyBtn">Copy Code</button>`;
-    cp.querySelector('.lmCopyBtn').onclick=()=>{
+    inner.innerHTML=`<h4 style="margin:0 18px 4px 0;font-size:.78em;color:${G}">Your Chat Code</h4><small style="display:block;opacity:.45;font-size:.7em;margin-bottom:8px;line-height:1.35">Share this code to receive direct messages.</small><div style="font-size:1.4em;font-weight:700;letter-spacing:.15em;color:${G};text-align:center;margin:6px 0">${code}</div><button class="lmCopyBtn lmCodeBtn" style="width:100%;margin-top:4px;display:block">Copy Code</button>`;
+    inner.querySelector('.lmCopyBtn').onclick=()=>{
       navigator.clipboard?.writeText(code);
-      cp.querySelector('.lmCopyBtn').textContent='Copied! ✓';
-      setTimeout(()=>{if(cp.isConnected)cp.querySelector('.lmCopyBtn').textContent='Copy Code'},2000);
+      inner.querySelector('.lmCopyBtn').textContent='Copied! ✓';
+      setTimeout(()=>{if(inner.isConnected)inner.querySelector('.lmCopyBtn').textContent='Copy Code'},2000);
     };
   }
 
   if(S.code){showCode(S.code)}
   else{
-    cp.innerHTML='<div class="lmEmpty">Loading code…</div>';
-    api('Chat/MyCode').then(r=>{S.code=r.Code;showCode(r.Code)}).catch(()=>{cp.innerHTML='<div class="lmEmpty">Could not load code.</div>'});
+    inner.innerHTML='<div style="opacity:.5;font-size:.85em;padding:8px 0">Loading code…</div>';
+    api('Chat/MyCode').then(r=>{S.code=r.Code;showCode(r.Code)}).catch(()=>{inner.innerHTML='<div style="opacity:.5">Could not load code.</div>';});
   }
 
-  // Insert after code button
-  const btn=document.getElementById('lmCodeBtn');
-  if(btn)btn.after(cp);else panel.querySelector('.lmMsgs').before(cp);
+  document.body.appendChild(cp);
+
+  // Close on outside click
+  setTimeout(()=>{
+    document.addEventListener('click', function outsideClose(e){
+      if(!cp.contains(e.target)&&e.target.id!=='lmCodeBtn'){
+        cp.remove();
+        document.removeEventListener('click',outsideClose);
+      }
+    });
+  },10);
 }
 
 function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new Date(0).toISOString(); }
