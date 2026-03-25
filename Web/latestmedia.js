@@ -163,12 +163,12 @@ st.innerHTML=`
   display:flex;flex-direction:column;z-index:9999;overflow:hidden;
   transform-origin:top right;animation:lmPop .2s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
-.lmCHdr{display:flex;align-items:center;padding:9px 12px 7px;
-  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.lmCTit{font-size:.84em;font-weight:700;flex:1}
-.lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:3px;margin-right:6px}
-.lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G}}
-.lmCCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55}
+.lmCHdr{display:flex;align-items:center;padding:9px 12px 7px;gap:6px;
+  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;min-height:38px}
+.lmCTit{font-size:.84em;font-weight:700;white-space:nowrap}
+.lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:4px;flex:1;white-space:nowrap}
+.lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G};flex-shrink:0}
+.lmCCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0}
 .lmCCl:hover{opacity:1}
 .lmCTabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
 .lmCTab{flex:1;padding:7px 6px;text-align:center;cursor:pointer;
@@ -215,17 +215,13 @@ st.innerHTML=`
 .lmBack{display:flex;align-items:center;gap:5px;padding:7px 11px;font-size:.78em;
   cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);color:${G};flex-shrink:0}
 .lmBack:hover{opacity:.8}
-.lmCodeBtn{margin:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:6px 12px;font-size:.83em;cursor:pointer;font-family:inherit;color:inherit;white-space:nowrap;transition:background .15s}
-.lmCodeBtn:hover{background:rgba(255,255,255,.11)}
+.lmCodeBtn{margin:0;background:#fff;border:1px solid rgba(255,255,255,.85);border-radius:18px;padding:6px 12px;font-size:.83em;cursor:pointer;font-family:inherit;color:#111;white-space:nowrap;transition:opacity .15s}
+.lmCodeBtn:hover{opacity:.85}
 .lmChatsHdr{padding:8px 12px 4px;font-size:.7em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.05em}
-.lmCodePop{margin:4px 10px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;
-  box-shadow:0 8px 24px rgba(0,0,0,.5)}
-.lmCodePop h4{margin:0 0 5px;font-size:.82em;color:${G}}
-.lmCodePop small{display:block;opacity:.45;font-size:.73em;margin-bottom:10px;line-height:1.4}
-.lmCodeVal{font-size:1.6em;font-weight:700;letter-spacing:.18em;color:${G};text-align:center;margin:6px 0}
-.lmCopyBtn{width:100%;background:${G};color:#fff;border:none;border-radius:6px;
-  padding:7px;font-size:.82em;cursor:pointer;font-family:inherit;margin-top:4px}
+.lmCodePop{position:fixed;top:80px;z-index:99999;width:240px;
+  background:rgba(8,8,8,.97);backdrop-filter:blur(22px);
+  border:1px solid rgba(255,255,255,.14);border-radius:12px;
+  padding:16px 18px 14px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
 .lmCopyBtn:hover{background:${GD}}
 `;
 document.head.appendChild(st);
@@ -697,6 +693,8 @@ function doc(tag,id,cls,html){const e=document.createElement(tag);e.id=id;e.clas
 
 function renderDMList(container){
   const panel=document.getElementById('lmChat');if(!panel)return;
+  // Guard: don't rebuild the list if dmTarget was just set
+  if(dmTarget) return;
 
   if(!document.getElementById('lmDMTopBar')){
     const topBar = document.createElement('div'); topBar.id = 'lmDMTopBar'; topBar.className = 'lmDMTop'; topBar.style.paddingBottom = '22px';
@@ -723,6 +721,7 @@ function renderDMList(container){
 
   function drawList(cs) {
     if(!cs||!cs.length){container.innerHTML='<div class="lmEmpty" style="padding-top:6px">No conversations yet.</div>';return}
+    if(dmTarget) return; // abort if user clicked a conversation while loading
     container.innerHTML='<div class="lmChatsHdr">Chats</div>' + cs.map(c=>{
       const n=c.UnreadCount||c.unreadCount||0;
       return`<div class="lmDMRow" data-id="${c.UserId||c.userId}" data-n="${esc(c.UserName||c.userName||'User')}">${esc(c.UserName||c.userName||'User')}${n>0?`<span class="lmDMBdg">${n}</span>`:''}</div>`;
