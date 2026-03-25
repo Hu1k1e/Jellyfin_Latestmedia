@@ -37,7 +37,7 @@ st.innerHTML=`
 .lmBdg.on{display:block}
 
 .lmPanel{
-  background:rgba(18,18,18,0.85)!important;
+  background:rgba(20,20,20,0.92)!important;
   border:1px solid rgba(255,255,255,0.18)!important;
   border-radius:12px;
   box-shadow:0 16px 55px rgba(0,0,0,0.62)!important;
@@ -45,9 +45,9 @@ st.innerHTML=`
 }
 @supports (backdrop-filter: blur(1px)){
   .lmPanel{
-    backdrop-filter:blur(22px) rotate(0) saturate(140%)!important;
-    -webkit-backdrop-filter:blur(22px) rotate(0) saturate(140%)!important;
-    background:linear-gradient(180deg, rgba(18,18,18,0.72), rgba(18,18,18,0.45))!important;
+    backdrop-filter:blur(22px) saturate(140%)!important;
+    -webkit-backdrop-filter:blur(22px) saturate(140%)!important;
+    background:linear-gradient(180deg, rgba(18,18,18,0.78), rgba(18,18,18,0.55))!important;
   }
 }
 
@@ -69,7 +69,7 @@ st.innerHTML=`
 /* Tabs */
 .lmTabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.07);
   position:sticky;top:0;z-index:1;
-  background:transparent}
+  background:rgba(255,255,255,0.025)}
 .lmTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
   font-size:.77em;font-weight:600;color:rgba(255,255,255,0.4);
   border-bottom:2px solid transparent;transition:all .2s}
@@ -96,7 +96,7 @@ st.innerHTML=`
 .lmMod{width:92%;max-width:980px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
 .lmMHdr{display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);
-  background:transparent;flex-shrink:0}
+  background:rgba(255,255,255,.025);flex-shrink:0}
 .lmMHdr h2{margin:0;font-size:1rem;font-weight:600}
 .lmMCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.3rem;opacity:.55}
 .lmMCl:hover{opacity:1}
@@ -129,7 +129,7 @@ st.innerHTML=`
 .lmArr{display:inline-block;transition:transform .2s;margin-right:5px;font-size:.7em}
 .lmArr.open{transform:rotate(90deg)}
 .lmMTabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
-  background:transparent}
+  background:rgba(255,255,255,.02)}
 .lmMTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
   font-size:.8em;font-weight:600;color:rgba(255,255,255,.4);
   border-bottom:2px solid transparent;transition:all .2s}
@@ -161,7 +161,8 @@ st.innerHTML=`
   transform-origin:top right;animation:lmPop .2s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
 .lmCHdr{display:flex;align-items:center;padding:5px 12px 4px;gap:6px;
-  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
+  background:rgba(255,255,255,0.02)}
 .lmCTit{font-size:.84em;font-weight:700;white-space:nowrap}
 .lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:4px;flex:1;white-space:nowrap}
 .lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G};flex-shrink:0}
