@@ -593,8 +593,12 @@ function refreshBadge(){
 function preserveCache(oldArr, newArr) {
   if(!oldArr || !newArr) return;
   const mem = {};
-  oldArr.forEach(m => mem[m.Id||m.id] = m._decTxt);
-  newArr.forEach(m => { if(mem[m.Id||m.id]) m._decTxt = mem[m.Id||m.id]; });
+  oldArr.forEach(m => mem[m.Id||m.id] = { t: m._decTxt, c: m.Ciphertext||m.ciphertext||m.Content||m.content });
+  newArr.forEach(m => { 
+    let id = m.Id||m.id;
+    let c = m.Ciphertext||m.ciphertext||m.Content||m.content;
+    if(mem[id] && mem[id].c === c) m._decTxt = mem[id].t; 
+  });
 }
 
 function renderChat(){
@@ -789,21 +793,27 @@ async function doEditMsg(id, oldTxt, isCipher) {
   const n = prompt('Edit your message:', oldTxt);
   if(n === null || n.trim() === oldTxt.trim() || n.trim() === '') return;
   try {
-    let p;
+    let p, ct='', iv='';
     if (chatTab === 'dm' && isCipher) {
         if (!dmTarget.pubKey) {
             const k = await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);
             if(k) dmTarget.pubKey = k.PublicKey;
         }
         if (!dmTarget.pubKey) { alert('Missing target key.'); return; }
-        const {ct, iv} = await E2E.enc(n.trim(), dmTarget.pubKey);
+        const encObj = await E2E.enc(n.trim(), dmTarget.pubKey);
+        ct = encObj.ct; iv = encObj.iv;
         p = JSON.stringify({ Ciphertext: ct, Nonce: iv, SenderPublicKey: JSON.stringify(E2E.keys.pubJwk) });
     } else {
         p = JSON.stringify({ content: n.trim() });
     }
     
-    if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'PUT', body:p});
-    else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'PUT', body:p});
+    if(chatTab === 'pub') {
+        await api(`Chat/Messages/${id}`, {method:'PUT', body:p});
+        if(CHAT_CACHE.pub) CHAT_CACHE.pub.forEach(x => { if((x.Id||x.id)===id){ x.Content=n.trim(); x.IsEdited=true; x.isEdited=true; x._decTxt=n.trim(); }});
+    } else {
+        await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'PUT', body:p});
+        if(CHAT_CACHE.dms[dmTarget.id]) CHAT_CACHE.dms[dmTarget.id].forEach(x => { if((x.Id||x.id)===id){ x.Ciphertext=ct; x.ciphertext=ct; x.Nonce=iv; x.nonce=iv; x.IsEdited=true; x.isEdited=true; x._decTxt=n.trim(); }});
+    }
     lastMsgHash = ''; // force redraw
     renderChat();
   } catch(e) { alert('Edit failed: '+e.message); }
@@ -812,8 +822,13 @@ async function doEditMsg(id, oldTxt, isCipher) {
 async function doDelMsg(id) {
   if(!await cfm('Delete this message?')) return;
   try {
-    if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'DELETE'});
-    else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'DELETE'});
+    if(chatTab === 'pub') {
+        await api(`Chat/Messages/${id}`, {method:'DELETE'});
+        if(CHAT_CACHE.pub) CHAT_CACHE.pub = CHAT_CACHE.pub.filter(x => (x.Id||x.id)!==id);
+    } else {
+        await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'DELETE'});
+        if(CHAT_CACHE.dms[dmTarget.id]) CHAT_CACHE.dms[dmTarget.id] = CHAT_CACHE.dms[dmTarget.id].filter(x => (x.Id||x.id)!==id);
+    }
     lastMsgHash = '';
     renderChat();
   } catch(e) { alert('Delete failed: '+e.message); }
