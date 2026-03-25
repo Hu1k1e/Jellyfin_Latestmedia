@@ -152,7 +152,7 @@ st.innerHTML=`
 .lmMsgOpt{position:relative;flex-shrink:0;margin-bottom:3px}
 .lmDotsBtn{background:none;border:none;color:inherit;opacity:.4;cursor:pointer;padding:0 3px;font-size:1.1em}
 .lmDotsBtn:hover{opacity:.9}
-.lmMsgMenu{position:absolute;bottom:100%;right:0;background:rgba(20,20,20,.95);backdrop-filter:blur(10px);
+.lmMsgMenu{position:absolute;bottom:100%;left:0;background:rgba(20,20,20,.95);backdrop-filter:blur(10px);
   border:1px solid rgba(255,255,255,.15);border-radius:6px;overflow:hidden;
   display:none;font-size:.8em;min-width:80px;z-index:9;box-shadow:0 4px 12px rgba(0,0,0,.5)}
 .lmMsgMenu div{padding:6px 12px;cursor:pointer;transition:background .15s}
@@ -775,11 +775,11 @@ async function drawBubbles(container,msgs,silent=false){
     const uId = m.SenderId || m.senderId;
     const sAddr = window.ApiClient.serverAddress();
     const pfpUrl = `${sAddr}/Users/${uId}/Images/Primary?fillWidth=64&fillHeight=64&quality=96`;
-    const fbHTML = `<div style="width:32px;height:32px;border-radius:50%;background:#444;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:bold;">${esc(name[0]?name[0].toUpperCase():'?')}</div>`;
+    const fbHTML = `<div style="width:26px;height:26px;border-radius:50%;background:#444;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:bold;">${esc(name[0]?name[0].toUpperCase():'?')}</div>`;
     
     const pDiv = document.createElement('div');
     pDiv.style.display = 'flex';
-    pDiv.innerHTML = `<img src="${pfpUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=decodeURIComponent('${encodeURIComponent(fbHTML)}')" />`;
+    pDiv.innerHTML = `<img src="${pfpUrl}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=decodeURIComponent('${encodeURIComponent(fbHTML)}')" />`;
 
     const bDiv=document.createElement('div');
     bDiv.className=`lmBbl ${cls}`;
@@ -832,6 +832,7 @@ async function cfm(q){
       </div>
     </div>`;
     p.appendChild(b);
+    b.addEventListener('mousedown', e => { if(e.target === b) { b.remove(); resolve(false); } });
     b.querySelector('#lmcY').onclick=()=>{b.remove();resolve(true)};
     b.querySelector('#lmcN').onclick=()=>{b.remove();resolve(false)};
   });
@@ -854,6 +855,7 @@ async function prp(title, initial) {
       </div>
     </div>`;
     p.appendChild(b);
+    b.addEventListener('mousedown', e => { if(e.target === b) { b.remove(); resolve(null); } });
     const inp = b.querySelector('#lmcI');
     inp.value = initial;
     inp.focus();
