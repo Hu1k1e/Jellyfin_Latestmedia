@@ -36,22 +36,20 @@ st.innerHTML=`
   width:8px;height:8px;display:none;pointer-events:none;box-shadow:0 0 4px #000}
 .lmBdg.on{display:block}
 
-/* Glass panels — translucent by default, opaque on hover/focus
-   Colors are neutral dark (no blue tint) */
+/* Glass panels — consistent frosted glass, no hover opacity shift */
 .lmPanel{
-  background:rgba(12,12,12,0.52);
-  backdrop-filter:blur(22px) saturate(1.6);
-  -webkit-backdrop-filter:blur(22px) saturate(1.6);
+  background:rgba(0,0,0,0.35);
   border:1px solid rgba(255,255,255,0.09);
   border-radius:12px;
   box-shadow:0 8px 30px rgba(0,0,0,0.35);
-  transition:background .3s, border-color .3s, box-shadow .3s;
   color:inherit;
 }
-.lmPanel:hover,.lmPanel:focus-within{
-  background:rgba(12,12,12,0.91);
-  border-color:rgba(255,255,255,0.15);
-  box-shadow:0 12px 42px rgba(0,0,0,0.6);
+@supports (backdrop-filter: blur(15px)){
+  .lmPanel{
+    backdrop-filter:blur(15px);
+    -webkit-backdrop-filter:blur(15px);
+    background:rgba(0,0,0,0.35);
+  }
 }
 
 /* Player OSD chat button */
