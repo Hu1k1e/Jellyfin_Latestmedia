@@ -204,12 +204,10 @@ st.innerHTML=`
 .lmEmpick span{cursor:pointer;font-size:1.25em;border-radius:4px;padding:2px;
   transition:background .1s;line-height:1.3}
 .lmEmpick span:hover{background:rgba(255,255,255,.12)}
-.lmDMInp{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
-.lmDMInp input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
-  border-radius:18px;color:inherit;padding:6px 13px;font-size:.83em;outline:none;
-  font-family:inherit;box-sizing:border-box;text-transform:uppercase}
+.lmDMTop{display:flex;align-items:center;padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.07);gap:8px;flex-shrink:0}
+.lmDMInp{flex:1}
+.lmDMInp input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:6px 13px;font-size:.83em;outline:none;font-family:inherit;box-sizing:border-box}
 .lmDMInp input:focus{border-color:${G}}
-.lmDMInp small{display:block;font-size:.69em;opacity:.4;margin-top:4px;text-align:center}
 .lmDMRow{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;
   font-size:.84em;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
 .lmDMRow:hover{background:rgba(255,255,255,.06)}
@@ -217,12 +215,9 @@ st.innerHTML=`
 .lmBack{display:flex;align-items:center;gap:5px;padding:7px 11px;font-size:.78em;
   cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);color:${G};flex-shrink:0}
 .lmBack:hover{opacity:.8}
-.lmCodeBtn{margin:8px 10px;background:rgba(255,255,255,.07);
-  border:1px solid rgba(255,255,255,.12);border-radius:7px;
-  padding:6px 12px;font-size:.77em;cursor:pointer;
-  display:flex;align-items:center;gap:6px;width:calc(100% - 20px);
-  box-sizing:border-box;font-family:inherit;color:inherit;text-align:left}
+.lmCodeBtn{margin:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:6px 12px;font-size:.83em;cursor:pointer;font-family:inherit;color:inherit;white-space:nowrap;transition:background .15s}
 .lmCodeBtn:hover{background:rgba(255,255,255,.11)}
+.lmChatsHdr{padding:8px 12px 4px;font-size:.7em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.05em}
 .lmCodePop{margin:4px 10px;background:rgba(10,10,10,.95);backdrop-filter:blur(20px);
   border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px 16px;
   box-shadow:0 8px 24px rgba(0,0,0,.5)}
@@ -248,7 +243,7 @@ function api(ep,opts={}){
     .then(r=>{if(!r.ok)throw new Error(r.status+'');return r.text().then(t=>t?JSON.parse(t):{})});
 }
 
-function cfm(msg){
+function modCfm(msg){
   return new Promise(res=>{
     const el=document.createElement('div');el.className='lmCf';
     el.innerHTML=`<div class="lmPanel lmCfb"><p>${msg}</p><div class="lmCfa"><button class="lmBtn pg">Proceed</button><button class="lmBtn gh">Cancel</button></div></div>`;
@@ -309,9 +304,15 @@ function loadTab(t){
   const b=document.getElementById('lmDDb');if(!b)return;b.innerHTML='<div class="lmEmpty">Loading…</div>';
   api(t==='r'?'LatestMedia/Items':'LatestMedia/LeavingSoon')
     .then(its=>{
+      const activeTab = document.querySelector('#lmDD .lmTab.on');
+      if (activeTab && activeTab.dataset.t !== t) return;
       if(!its||!its.length){b.innerHTML=`<div class="lmEmpty">${t==='r'?'Nothing recently added.':'Nothing leaving soon.'}</div>`;return}
       if(t==='r')renderR(b,its);else renderL(b,its);
-    }).catch(ex=>{b.innerHTML=`<div class="lmEmpty">Error: ${esc(ex.message)}</div>`});
+    }).catch(ex=>{
+      const activeTab = document.querySelector('#lmDD .lmTab.on');
+      if (activeTab && activeTab.dataset.t !== t) return;
+      b.innerHTML=`<div class="lmEmpty">Error: ${esc(ex.message)}</div>`
+    });
 }
 
 function renderR(b,items){
@@ -340,7 +341,7 @@ function renderL(b,items){
 let mmTab='movies';
 function openMgmt(){
   const ov=document.createElement('div');ov.className='lmOv';
-  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMTabs"><div class="lmMTab on" data-mt="movies">Movies</div><div class="lmMTab" data-mt="series">Series</div></div><div class="lmMMSrch"><input id="lmMMSearch" class="lmInp" placeholder="Search…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
+  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMTabs"><div class="lmMTab on" data-mt="movies">Movies</div><div class="lmMTab" data-mt="series">Series</div><div class="lmMTab" data-mt="scheduled">Scheduled</div></div><div class="lmMMSrch"><input id="lmMMSearch" class="lmInp" placeholder="Search…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.lmMCl').onclick=()=>ov.remove();
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
@@ -358,22 +359,44 @@ function bindActions(b,ov){
     s.onchange=async()=>{
       if(!s.value)return;
       const id=s.dataset.id,t=s.dataset.t||'this item';
-      const ok=await cfm(`Schedule <b>${esc(t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
+      const ok=await modCfm(`Schedule <b>${esc(t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
       if(!ok){s.value='';return}
-      try{await api(`MediaMgmt/Items/${id}/ScheduleDelete?days=${s.value}`,{method:'POST'});loadMM(ov)}
+      try{
+        await api(`MediaMgmt/Items/${id}/ScheduleDelete?days=${s.value}`,{method:'POST'});
+        const tr = s.closest('tr');
+        if (tr) {
+          tr.children[tr.children.length - 2].textContent = `Deleting in ${s.value}d`;
+          tr.children[tr.children.length - 1].innerHTML = `<button class="lmBtn dn lmCD" data-id="${id}" data-t="${esc(t)}">Cancel</button>`;
+          bindActions(tr, ov);
+        } else { loadMM(ov); }
+      }
       catch(ex){alert('Error: '+ex.message);s.value=''}
     };
   });
-  b.querySelectorAll('.lmCD').forEach(btn=>btn.onclick=async()=>{
-    if(!await cfm('Cancel scheduled deletion?'))return;
-    try{await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});loadMM(ov)}
-    catch(ex){alert('Error: '+ex.message)}
+  b.querySelectorAll('.lmCD').forEach(btn=>{
+    btn.onclick=async()=>{
+      if(!await modCfm('Cancel scheduled deletion?'))return;
+      try{
+        await api(`MediaMgmt/Items/${btn.dataset.id}/CancelDelete`,{method:'DELETE'});
+        if (mmTab === 'scheduled') { loadMM(ov); }
+        else {
+          const tr = btn.closest('tr');
+          if (tr) {
+            const t = btn.dataset.t || 'this item';
+            tr.children[tr.children.length - 2].textContent = 'Active';
+            tr.children[tr.children.length - 1].innerHTML = `<select class="lmSel lmSD" data-id="${btn.dataset.id}" data-t="${esc(t)}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+            bindActions(tr, ov);
+          } else { loadMM(ov); }
+        }
+      }
+      catch(ex){alert('Error: '+ex.message)}
+    };
   });
 }
 
 function actionCell(id,title,status){
   const sched=status&&status!=='Active';
-  return sched?`<button class="lmBtn dn lmCD" data-id="${id}">Cancel</button>`
+  return sched?`<button class="lmBtn dn lmCD" data-id="${id}" data-t="${esc(title)}">Cancel</button>`
     :`<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
 }
 
@@ -401,7 +424,7 @@ function loadMM(ov){
         renderMovies(q?items.filter(i=>(i.Title||'').toLowerCase().includes(q)):items);
       };
     }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
-  } else {
+  } else if (mmTab === 'series') {
     api('MediaMgmt/Series').then(series=>{
       if(!series||!series.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No series found.</div>';return}
       function renderSeries(filtered){
@@ -446,6 +469,24 @@ function loadMM(ov){
       if(si) si.oninput=()=>{
         const q=si.value.trim().toLowerCase();
         renderSeries(q?series.filter(s=>(s.Title||'').toLowerCase().includes(q)):series);
+      };
+    }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
+  } else if (mmTab === 'scheduled') {
+    api('MediaMgmt/Scheduled').then(items => {
+      if(!items||!items.length){b.innerHTML='<div class="lmEmpty" style="padding:28px">No scheduled deletions found.</div>';return}
+      function renderScheduled(filtered){
+        let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Type</th><th>Scheduled By</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
+        if(!filtered.length){h+='<tr><td colspan="5" style="text-align:center;opacity:.5;padding:18px">No matches.</td></tr>'}
+        filtered.forEach(i=>{
+          h+=`<tr><td>${esc(i.Title||'\u2014')}</td><td>${esc(i.Type||'\u2014')}</td><td>${esc(i.ScheduledByName||'Unknown')}</td><td>Deleting in ${i.DaysRemaining.toFixed(0)}d</td><td><button class="lmBtn dn lmCD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}">Cancel</button></td></tr>`;
+        });
+        b.innerHTML=h+'</tbody></table>';
+        bindActions(b,ov);
+      }
+      renderScheduled(items);
+      if(si) si.oninput=()=>{
+        const q=si.value.trim().toLowerCase();
+        renderScheduled(q?items.filter(i=>(i.Title||'').toLowerCase().includes(q)):items);
       };
     }).catch(ex=>{b.innerHTML=`<div class="lmEmpty" style="padding:28px">Error: ${esc(ex.message)}</div>`});
   }
@@ -616,6 +657,7 @@ function renderChat(){
   document.getElementById('lmCodePop')?.remove();
   document.getElementById('lmCodeBtn')?.remove();
   document.getElementById('lmDMInpBar')?.remove();
+  document.getElementById('lmDMTopBar')?.remove();
   document.getElementById('lmBack')?.remove();
 
   const newCtx = chatTab + '_' + (dmTarget ? dmTarget.id : 'null');
@@ -652,18 +694,11 @@ function doc(tag,id,cls,html){const e=document.createElement(tag);e.id=id;e.clas
 function renderDMList(container){
   const panel=document.getElementById('lmChat');if(!panel)return;
 
-  if(!document.getElementById('lmCodeBtn')){
-    const cb=document.createElement('button');cb.id='lmCodeBtn';cb.className='lmCodeBtn';
-    cb.innerHTML='My Chat Code';
-    cb.onclick=()=>toggleCodePop(panel);
-    container.before(cb);
-  }
-
-  if(!document.getElementById('lmDMInpBar')){
-    const dib=document.createElement('div');dib.id='lmDMInpBar';dib.className='lmDMInp';
-    dib.innerHTML=`<input id="lmDCI" placeholder="Enter 6-char code & press Enter…" maxlength="6" autocomplete="off"/><small>Ask the other person for their code</small>`;
-    container.before(dib);
-    const ci=dib.querySelector('#lmDCI');
+  if(!document.getElementById('lmDMTopBar')){
+    const topBar = document.createElement('div'); topBar.id = 'lmDMTopBar'; topBar.className = 'lmDMTop';
+    topBar.innerHTML = `<div class="lmDMInp"><input id="lmDCI" placeholder="Enter 6 character code to chat" maxlength="6" autocomplete="off"/></div><button id="lmCodeBtn" class="lmCodeBtn">My Chat Code</button>`;
+    
+    const ci=topBar.querySelector('#lmDCI');
     ci.onkeyup=e=>{
       if(e.key!=='Enter')return;
       const code=ci.value.trim().toUpperCase();
@@ -671,13 +706,17 @@ function renderDMList(container){
       ci.disabled=true;
       api(`Chat/DM/Users/ByCode/${code}`)
         .then(u=>{ci.value='';ci.disabled=false;dmTarget={id:u.Id,name:u.Name};renderChat()})
-        .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6-char code & press Enter…';ci.style.borderColor=''},3000)});
+        .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6 character code to chat';ci.style.borderColor=''},3000)});
     };
+    
+    topBar.querySelector('#lmCodeBtn').onclick=()=>toggleCodePop(panel);
+
+    container.before(topBar);
   }
 
   function drawList(cs) {
     if(!cs||!cs.length){container.innerHTML='<div class="lmEmpty" style="padding-top:6px">No conversations yet.</div>';return}
-    container.innerHTML=cs.map(c=>{
+    container.innerHTML='<div class="lmChatsHdr">Chats</div>' + cs.map(c=>{
       const n=c.UnreadCount||c.unreadCount||0;
       return`<div class="lmDMRow" data-id="${c.UserId||c.userId}" data-n="${esc(c.UserName||c.userName||'User')}">${esc(c.UserName||c.userName||'User')}${n>0?`<span class="lmDMBdg">${n}</span>`:''}</div>`;
     }).join('');

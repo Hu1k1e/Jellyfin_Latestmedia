@@ -120,6 +120,36 @@ namespace Jellyfin_Latestmedia.Api
             return Ok(result);
         }
 
+        [HttpGet("Scheduled")]
+        public async Task<ActionResult<object>> GetScheduledItems()
+        {
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
+
+            var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
+            var result = new List<object>();
+
+            foreach (var sched in scheduledDeletions)
+            {
+                if (Guid.TryParse(sched.ItemId, out var guid))
+                {
+                    var item = _libraryManager.GetItemById(guid);
+                    if (item != null)
+                    {
+                        result.Add(new
+                        {
+                            Id = sched.ItemId,
+                            Title = item.Name,
+                            Type = item.GetType().Name,
+                            ScheduledByName = sched.ScheduledByName,
+                            DaysRemaining = Math.Max(0, (sched.ScheduledTime - DateTime.UtcNow).TotalDays)
+                        });
+                    }
+                }
+            }
+
+            return Ok(result.OrderBy(r => ((dynamic)r).DaysRemaining));
+        }
+
         [HttpGet("Series")]
         public async Task<ActionResult<object>> GetSeriesHierarchy()
         {
