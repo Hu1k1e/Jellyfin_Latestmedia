@@ -28,10 +28,9 @@ st.innerHTML=`
 .lmW>svg{transition:opacity .2s}.lmW:hover>svg{opacity:.65}
 
 /* Badge */
-.lmBdg{position:absolute;top:2px;right:2px;background:${G};color:#fff;border-radius:50%;
-  min-width:16px;height:16px;font-size:10px;font-weight:700;display:none;
-  align-items:center;justify-content:center;padding:0 3px;pointer-events:none}
-.lmBdg.on{display:flex}
+.lmBdg{position:absolute;top:2px;right:2px;background:${G};border-radius:50%;
+  width:8px;height:8px;display:none;pointer-events:none;box-shadow:0 0 4px #000}
+.lmBdg.on{display:block}
 
 /* Glass panels — translucent by default, opaque on hover/focus
    Colors are neutral dark (no blue tint) */
@@ -52,7 +51,7 @@ st.innerHTML=`
 }
 
 /* Player OSD chat button */
-.lmPlayerChatBtn{display:inline-flex;align-items:center;justify-content:center;
+.lmPlayerChatBtn{display:inline-flex;align-items:center;justify-content:center;position:relative;
   width:36px;height:36px;cursor:pointer;color:#fff;opacity:.75;transition:opacity .2s}
 .lmPlayerChatBtn:hover{opacity:1}
 .lmPlayerChatBtn svg{width:20px;height:20px}
@@ -496,10 +495,18 @@ function refreshOnline(){
   api('Chat/Online').then(r=>{const e=document.getElementById('lmOnl');if(e)e.innerHTML=`<span class="lmOnlDot"></span> ${r.Count} online`}).catch(()=>{});
 }
 function refreshBadge(){
-  api('Chat/DM/Conversations').then(cs=>{
-    const n=(cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
-    const b=document.getElementById('lmChatBdg');if(b){b.textContent=n;b.classList.toggle('on',n>0);}
-  }).catch(()=>{});
+  Promise.all([
+    api('Chat/DM/Conversations').catch(()=>[]),
+    api(`Chat/Messages?since=${encodeURIComponent(getPubRead())}`).catch(()=>[])
+  ]).then(([cs, pub]) => {
+    const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
+    const pubUnread = (pub||[]).length;
+    const hasUnread = dmUnread > 0 || pubUnread > 0;
+    const b=document.getElementById('lmChatBdg');
+    if(b){ b.textContent=''; b.classList.toggle('on', hasUnread); }
+    const pb=document.getElementById('lmPlayerChatBdg');
+    if(pb){ pb.textContent=''; pb.classList.toggle('on', hasUnread); }
+  });
 }
 
 function renderChat(){
@@ -596,8 +603,11 @@ function toggleCodePop(panel){
   if(btn)btn.after(cp);else panel.querySelector('.lmMsgs').before(cp);
 }
 
+function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new Date(0).toISOString(); }
+function setPubRead() { localStorage.setItem('lm_last_pub_read', new Date().toISOString()); }
+
 function drawBubbles(container,msgs){
-  if(!Array.isArray(msgs)||!msgs.length){container.innerHTML='<div class="lmEmpty">No messages yet.</div>';return}
+  if(!Array.isArray(msgs)||!msgs.length){container.innerHTML='<div class="lmEmpty">No messages yet.</div>';if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}return}
   container.innerHTML='';
   msgs.forEach(m=>{
     const isMe=String(m.SenderId||m.senderId)===String(S.uid);
@@ -610,6 +620,10 @@ function drawBubbles(container,msgs){
     container.appendChild(el);
   });
   container.scrollTop=container.scrollHeight;
+  if(chatTab==='pub' && !dmTarget) {
+    setPubRead();
+    refreshBadge(); // Clear the badge immediately when viewing
+  }
 }
 
 async function doSend(txt){
@@ -667,7 +681,8 @@ function tryInjectPlayerChat(){
   if(!osd||document.getElementById('lm-player-chat'))return;
   const btn=document.createElement('button');
   btn.id='lm-player-chat';btn.className='lmPlayerChatBtn paper-icon-button-light';
-  btn.title='Chat';btn.innerHTML=ICO.chat;
+  btn.title='Chat';
+  btn.innerHTML=ICO.chat + '<span id="lmPlayerChatBdg" class="lmBdg"></span>';
   btn.addEventListener('click',e=>{e.stopPropagation();openChat(btn,true)});
   osd.insertBefore(btn,osd.firstChild);
 }
