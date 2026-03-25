@@ -641,6 +641,11 @@ async function tryInject(){
     S.uid=me.Id;S.admin=me.Policy?.IsAdministrator||false;
     let cfg={};try{cfg=await api(`Plugins/${PID}/Configuration`)}catch(e){}
     S.cfg=cfg;
+
+    let mobSt=document.getElementById('lm-mob-st');
+    if(!mobSt){mobSt=document.createElement('style');mobSt.id='lm-mob-st';document.head.appendChild(mobSt);}
+    mobSt.innerHTML=cfg.ShowOnMobile?'':'@media (max-width: 767px) { .lmW, .lmPlayerChatBtn { display: none !important; } }';
+
     const f=document.createDocumentFragment();
     if(cfg.EnableLatestMediaButton!==false)f.appendChild(mkBtn('lm-btn-latest',ICO.latest,openDD));
     if(S.admin&&cfg.EnableMediaManagement!==false)f.appendChild(mkBtn('lm-btn-manage',ICO.manage,()=>openMgmt()));

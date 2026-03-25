@@ -33,6 +33,14 @@
                         <div class="fieldDescription checkboxFieldDescription">Enables the public chat and E2E encrypted DMs.</div>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input type="checkbox" is="emby-checkbox" id="ShowOnMobile" />
+                            <span>Show Header Icons on Mobile</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Controls whether the plugin icons appear on small screens (mobile).</div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="PublicChatRetentionHours">Public Chat Retention (Hours):</label>
                         <input type="number" id="PublicChatRetentionHours" name="PublicChatRetentionHours" is="emby-input" step="1" min="1" />
@@ -66,6 +74,7 @@
                         document.getElementById('EnableLatestMediaButton').checked = !!config.EnableLatestMediaButton;
                         document.getElementById('EnableMediaManagement').checked = !!config.EnableMediaManagement;
                         document.getElementById('EnableChat').checked = !!config.EnableChat;
+                        document.getElementById('ShowOnMobile').checked = !!config.ShowOnMobile;
                         document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
                         document.getElementById('DmRetentionDays').value = config.DmRetentionDays || 7;
                         document.getElementById('LatestMediaCount').value = config.LatestMediaCount || 50;
@@ -82,6 +91,7 @@
                         config.EnableLatestMediaButton = document.getElementById('EnableLatestMediaButton').checked;
                         config.EnableMediaManagement = document.getElementById('EnableMediaManagement').checked;
                         config.EnableChat = document.getElementById('EnableChat').checked;
+                        config.ShowOnMobile = document.getElementById('ShowOnMobile').checked;
                         config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
                         config.DmRetentionDays = parseInt(document.getElementById('DmRetentionDays').value) || 7;
                         config.LatestMediaCount = parseInt(document.getElementById('LatestMediaCount').value) || 50;
