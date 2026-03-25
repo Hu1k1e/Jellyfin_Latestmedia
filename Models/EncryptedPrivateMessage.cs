@@ -16,5 +16,6 @@ namespace Jellyfin_Latestmedia.Models
         public string SenderPublicKey { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public bool IsRead { get; set; } = false;
+        public bool IsEdited { get; set; } = false;
     }
 }

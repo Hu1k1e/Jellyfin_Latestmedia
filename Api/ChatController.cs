@@ -149,6 +149,27 @@ namespace Jellyfin_Latestmedia.Api
             return Ok();
         }
 
+        [HttpPut("Messages/{id}")]
+        public async Task<ActionResult> EditPublicMessage(string id, [FromBody] ChatMessage request)
+        {
+            if (Plugin.Instance?.Configuration.EnableChat == false) return BadRequest("Chat is disabled");
+            if (string.IsNullOrWhiteSpace(request.Content)) return BadRequest("Message cannot be empty");
+
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            var messages = await _repository.ReadListAsync<ChatMessage>("chat_public");
+            var msg = messages.FirstOrDefault(m => m.Id == id);
+            
+            if (msg == null) return NotFound();
+            if (msg.SenderId != userId) return Forbid();
+            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot edit messages older than 3 hours.");
+
+            msg.Content = request.Content;
+            msg.IsEdited = true;
+            
+            await _repository.WriteListAsync("chat_public", messages);
+            return Ok();
+        }
+
         [HttpDelete("Messages/{id}")]
         public async Task<ActionResult> DeletePublicMessage(string id)
         {
@@ -162,6 +183,11 @@ namespace Jellyfin_Latestmedia.Api
             if (msg.SenderId != userId)
             {
                 return Forbid();
+            }
+
+            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3)
+            {
+                return BadRequest("Cannot delete messages older than 3 hours.");
             }
 
             messages.Remove(msg);
@@ -306,6 +332,32 @@ namespace Jellyfin_Latestmedia.Api
             return Ok();
         }
 
+        [HttpPut("DM/Messages/{id}")]
+        public async Task<ActionResult> EditDm(string id, [FromQuery] Guid targetUserId, [FromBody] EncryptedPrivateMessage request)
+        {
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            
+            bool hasPlainContent = !string.IsNullOrWhiteSpace(request.Content);
+            bool hasEncrypted = !string.IsNullOrWhiteSpace(request.Ciphertext);
+
+            if (!hasPlainContent && !hasEncrypted) return BadRequest("Message must have content.");
+
+            var filename = _repository.GetChatDmFileName(userId, targetUserId);
+            var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
+            var msg = messages.FirstOrDefault(m => m.Id == id);
+            
+            if (msg == null) return NotFound();
+            if (msg.SenderId != userId) return Forbid("Cannot edit someone else's message");
+            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot edit messages older than 3 hours.");
+
+            msg.Content = request.Content;
+            msg.Ciphertext = request.Ciphertext;
+            msg.IsEdited = true;
+            
+            await _repository.WriteListAsync(filename, messages);
+            return Ok();
+        }
+
         [HttpDelete("DM/Messages/{id}")]
         public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid targetUserId)
         {
@@ -320,6 +372,11 @@ namespace Jellyfin_Latestmedia.Api
             if (msg.SenderId != userId)
             {
                 return Forbid("Cannot delete someone else's message");
+            }
+
+            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3)
+            {
+                return BadRequest("Cannot delete messages older than 3 hours.");
             }
 
             messages.Remove(msg);
