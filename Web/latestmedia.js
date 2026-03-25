@@ -217,11 +217,28 @@ st.innerHTML=`
   background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
+/* Fullscreen Notifications */
+.lmNStack{position:fixed;bottom:20px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.lmNToast{background:rgba(18,18,18,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 16px;color:inherit;width:300px;box-shadow:0 8px 25px rgba(0,0,0,0.4);pointer-events:auto;animation:lmNIn .2s ease-out}
+@keyframes lmNIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+.lmNOut{animation:lmNOut .2s ease-in forwards}
+@keyframes lmNOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+.lmNClose{position:absolute;top:8px;right:8px;background:none;border:none;color:inherit;font-size:1.2em;opacity:.4;cursor:pointer}
+.lmNClose:hover{opacity:.8}
+.lmNName{font-weight:700;font-size:.9em;margin-bottom:4px}
+.lmNBbl{font-size:.85em;line-height:1.4;word-break:break-word;margin-bottom:8px}
+.lmNReply{display:flex;gap:5px;align-items:center}
+.lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:6px 10px;font-size:.75em;outline:none;font-family:inherit}
+.lmNInp:focus{border-color:${G}}
+.lmNSnd{background:${G};color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lmNSnd:hover{background:${GD}}
+.lmMuteBtn{background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0;cursor:pointer}
+.lmMuteBtn:hover{opacity:1}
 `;
 document.head.appendChild(st);
 
 /* ── Helpers ── */
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return typeof s==='string'?s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'):String(s||'')}
 
 function api(ep,opts={}){
   const base=S.url||location.origin;
@@ -534,15 +551,21 @@ const E2E={
   }
 };
 
+const CHAT_CACHE={pub:null,dms:{},convs:null};
+let lastPubHash='',lastDmConvHash='',lastSelDmHash='';
 let chatTab='pub',dmTarget=null,chatWrap=null;
 let lastMsgHash='';
 let currentChatContext='';
-const CHAT_CACHE={pub:null,dms:{},convs:null};
+
+let fsMuted = localStorage.getItem('lm_fs_muted') === 'true';
+let fsSeenIds = new Set();
+let fsPollTimer = null;
 
 function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
   chatTab='pub';dmTarget=null;lastMsgHash='';currentChatContext='';
   if(S.timer){clearInterval(S.timer);S.timer=null;}
+  if(fsPollTimer){clearInterval(fsPollTimer);fsPollTimer=null;}
   chatWrap=wrap;
   const p=document.createElement('div');p.id='lmChat';p.className='lmPanel lmChat'+(isPlayer?' lmChatPlayer':'');
   p.addEventListener('click', e => {
@@ -558,6 +581,9 @@ function openChat(wrap,isPlayer){
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>
   <span class="lmOnl" id="lmOnl"><span class="lmOnlDot"></span> 0 online</span>
+  <button class="lmMuteBtn" id="lmFsMute">
+    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M16.5 12A4.5 4.5 0 0014 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0021 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a8.99 8.99 0 003.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+  </button>
   <button class="lmCCl">&times;</button>
 </div>
 <div class="lmCTabs">
@@ -577,6 +603,21 @@ function openChat(wrap,isPlayer){
     p.querySelectorAll('.lmCTab').forEach(x=>x.classList.remove('on'));
     t.classList.add('on');chatTab=t.dataset.tab;dmTarget=null;renderChat();
   }));
+  const muteBtn = p.querySelector('#lmFsMute');
+  const updateMuteIcon = () => {
+    muteBtn.title = fsMuted ? 'Unmute video notifications' : 'Mute video notifications';
+    muteBtn.style.opacity = fsMuted ? '1' : '0.55';
+    muteBtn.style.color = fsMuted ? '#e53935' : 'inherit';
+  };
+  updateMuteIcon();
+  muteBtn.onclick = (e) => {
+    e.stopPropagation();
+    fsMuted = !fsMuted;
+    localStorage.setItem('lm_fs_muted', fsMuted);
+    updateMuteIcon();
+    if (fsMuted) { const stack = document.getElementById('lmNStack'); if (stack) stack.innerHTML = ''; }
+  };
+
   const inp=p.querySelector('#lmInp');
   p.querySelector('.lmSnd').onclick=()=>doSend(inp.value);
   inp.addEventListener('keyup',e=>{if(e.key==='Enter')doSend(inp.value)});
@@ -642,6 +683,86 @@ function refreshBadge(){
     const pb=document.getElementById('lmPlayerChatBdg');
     if(pb){ pb.textContent=''; pb.classList.toggle('on', hasUnread); }
   });
+}
+
+/* ── Fullscreen Notifications ── */
+function isVideoPlaying() {
+  return window.location.href.indexOf('/video') !== -1 || !!document.querySelector('.videoPlayerContainer,.videoOsdBottom,[class*="videoPlayer"]');
+}
+function getOrCreateStack() {
+  let stack = document.getElementById('lmNStack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'lmNStack';
+    stack.className = 'lmNStack';
+    document.body.appendChild(stack);
+  }
+  return stack;
+}
+function dismissToast(toast) {
+  if (!toast || !toast.isConnected) return;
+  toast.classList.add('lmNOut');
+  toast.addEventListener('animationend', () => toast.remove(), { once: true });
+  setTimeout(() => { if (toast.isConnected) toast.remove(); }, 300);
+}
+function showFsNotification(msg) {
+  const stack = getOrCreateStack();
+  const id = msg.Id || msg.id;
+  const name = msg.SenderName || msg.senderName || 'User';
+  const txt = msg.Content || msg.content || '';
+
+  const toast = document.createElement('div');
+  toast.className = 'lmNToast';
+  toast.dataset.msgId = id;
+  toast.innerHTML = `
+    <button class="lmNClose">&times;</button>
+    <div class="lmNName">${esc(name)}</div>
+    <div class="lmNBbl">${esc(txt)}</div>
+    <div class="lmNReply">
+      <input class="lmNInp" placeholder="Reply..." maxlength="500" autocomplete="off"/>
+      <button class="lmNSnd" title="Send">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>`;
+
+  toast.querySelector('.lmNClose').onclick = (e) => { e.stopPropagation(); dismissToast(toast); };
+
+  const inp = toast.querySelector('.lmNInp');
+  const sendReply = () => {
+    const val = inp.value.trim();
+    if (!val) return;
+    inp.value = '';
+    api('Chat/Messages', { method: 'POST', body: JSON.stringify({ content: val }) })
+      .then(() => dismissToast(toast)).catch(() => { inp.value = val; });
+  };
+  toast.querySelector('.lmNSnd').onclick = sendReply;
+  inp.onkeyup = (e) => { if (e.key === 'Enter') sendReply(); };
+
+  let autoTimer = null;
+  const startAutoDismiss = () => { clearTimeout(autoTimer); autoTimer = setTimeout(() => dismissToast(toast), 5000); };
+  inp.onfocus = () => clearTimeout(autoTimer);
+  inp.onblur = () => startAutoDismiss();
+
+  stack.appendChild(toast);
+  startAutoDismiss();
+}
+function pollFsNotifications() {
+  if (fsMuted || !isVideoPlaying()) return;
+  if (document.getElementById('lmChat')) return; // panels open
+  api('Chat/Messages').then(msgs => {
+    if (!Array.isArray(msgs)) return;
+    const now = Date.now();
+    const newMsgs = msgs.filter(m => {
+      const id = m.Id || m.id;
+      const senderId = String(m.SenderId || m.senderId);
+      const ts = new Date(m.Timestamp || m.timestamp).getTime();
+      const bc = m.IsBroadcast || m.isBroadcast;
+      return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id) && (now - ts) < 30000;
+    });
+    msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
+    if (fsSeenIds.size > 200) { const arr = Array.from(fsSeenIds).slice(-100); fsSeenIds = new Set(arr); }
+    newMsgs.forEach(m => showFsNotification(m));
+  }).catch(() => {});
 }
 
 function preserveCache(oldArr, newArr) {
@@ -1065,12 +1186,24 @@ function tryInjectPlayerChat(){
   btn.innerHTML=ICO.chat + '<span id="lmPlayerChatBdg" class="lmBdg"></span>';
   btn.addEventListener('click',e=>{e.stopPropagation();openChat(btn,true)});
   osd.insertBefore(btn,osd.firstChild);
+
+  if (!fsPollTimer) {
+    fsPollTimer = setInterval(pollFsNotifications, 3000);
+  }
 }
 
 const obs=new MutationObserver(()=>{
   if(!document.getElementById('lm-btn-latest'))S.ok=false;
   tryInject();
   tryInjectPlayerChat();
+
+  if (!document.querySelector('.videoPlayerContainer,.videoOsdBottom,[class*="videoPlayer"]') && fsPollTimer) {
+    clearInterval(fsPollTimer);
+    fsPollTimer = null;
+    const stack = document.getElementById('lmNStack');
+    if (stack) stack.remove();
+    fsSeenIds.clear();
+  }
 });
 obs.observe(document.body,{childList:true,subtree:true});
 setInterval(()=>{
