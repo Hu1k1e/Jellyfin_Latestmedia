@@ -695,11 +695,11 @@ function renderDMList(container){
   const panel=document.getElementById('lmChat');if(!panel)return;
 
   if(!document.getElementById('lmDMTopBar')){
-    const topBar = document.createElement('div'); topBar.id = 'lmDMTopBar'; topBar.className = 'lmDMTop';
-    topBar.innerHTML = `<div class="lmDMInp" style="display:flex;flex-direction:column;gap:4px">
+    const topBar = document.createElement('div'); topBar.id = 'lmDMTopBar'; topBar.className = 'lmDMTop'; topBar.style.paddingBottom = '22px';
+    topBar.innerHTML = `<div class="lmDMInp" style="position:relative">
 <input id="lmDCI" placeholder="Enter 6 character code" maxlength="6" autocomplete="off"/>
-<span style="font-size:0.75em;opacity:0.65;padding-left:10px">Ask user to share code</span>
-</div><button id="lmCodeBtn" class="lmCodeBtn">My Chat Code</button>`;
+<span style="position:absolute;top:calc(100% + 4px);left:10px;font-size:0.75em;opacity:0.65;white-space:nowrap">Ask user to share code</span>
+</div><button id="lmCodeBtn" class="lmCodeBtn" style="margin-top:-2px">My Chat Code</button>`;
     
     const ci=topBar.querySelector('#lmDCI');
     ci.onkeyup=e=>{
