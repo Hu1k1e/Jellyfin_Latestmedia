@@ -333,58 +333,98 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpPut("DM/Messages/{id}")]
-        public async Task<ActionResult> EditDm(string id, [FromQuery] Guid targetUserId, [FromBody] EncryptedPrivateMessage request)
+        public async Task<ActionResult> EditDm(string id, [FromQuery] Guid? targetUserId, [FromBody] EncryptedPrivateMessage request)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
-            
             bool hasPlainContent = !string.IsNullOrWhiteSpace(request.Content);
             bool hasEncrypted = !string.IsNullOrWhiteSpace(request.Ciphertext);
-
             if (!hasPlainContent && !hasEncrypted) return BadRequest("Message must have content.");
 
-            var filename = _repository.GetChatDmFileName(userId, targetUserId);
-            var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
-            var msg = messages.FirstOrDefault(m => m.Id == id);
-            
-            if (msg == null) return NotFound();
-            if (msg.SenderId != userId) return Forbid("Cannot edit someone else's message");
-            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot edit messages older than 3 hours.");
+            // Standard resolution
+            if (targetUserId.HasValue && targetUserId.Value != Guid.Empty)
+            {
+                var filename = _repository.GetChatDmFileName(userId, targetUserId.Value);
+                var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
+                var msg = messages.FirstOrDefault(m => m.Id == id);
+                if (msg != null)
+                {
+                    if (msg.SenderId != userId) return Forbid("Cannot edit someone else's message");
+                    if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot edit older than 3 hours.");
+                    msg.Content = request.Content; msg.Ciphertext = request.Ciphertext;
+                    if (!string.IsNullOrEmpty(request.Nonce)) msg.Nonce = request.Nonce;
+                    if (!string.IsNullOrEmpty(request.SenderPublicKey)) msg.SenderPublicKey = request.SenderPublicKey;
+                    msg.IsEdited = true;
+                    await _repository.WriteListAsync(filename, messages);
+                    return Ok();
+                }
+            }
 
-            msg.Content = request.Content;
-            msg.Ciphertext = request.Ciphertext;
-            if (!string.IsNullOrEmpty(request.Nonce)) msg.Nonce = request.Nonce;
-            if (!string.IsNullOrEmpty(request.SenderPublicKey)) msg.SenderPublicKey = request.SenderPublicKey;
-            msg.IsEdited = true;
-            
-            await _repository.WriteListAsync(filename, messages);
-            return Ok();
+            // Fallback global traversal
+            var files = System.IO.Directory.GetFiles(_repository.DataDirectory, "chat_dm_*.json");
+            var uStr = userId.ToString("N");
+            foreach (var f in files)
+            {
+                var fname = System.IO.Path.GetFileNameWithoutExtension(f);
+                if (fname.Contains(uStr))
+                {
+                    var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(fname);
+                    var msg = messages.FirstOrDefault(m => m.Id == id);
+                    if (msg != null)
+                    {
+                        if (msg.SenderId != userId) return Forbid("Cannot edit someone else's message");
+                        if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot edit older than 3 hours.");
+                        msg.Content = request.Content; msg.Ciphertext = request.Ciphertext;
+                        if (!string.IsNullOrEmpty(request.Nonce)) msg.Nonce = request.Nonce;
+                        if (!string.IsNullOrEmpty(request.SenderPublicKey)) msg.SenderPublicKey = request.SenderPublicKey;
+                        msg.IsEdited = true;
+                        await _repository.WriteListAsync(fname, messages);
+                        return Ok();
+                    }
+                }
+            }
+            return NotFound();
         }
 
         [HttpDelete("DM/Messages/{id}")]
-        public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid targetUserId)
+        public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid? targetUserId)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
-            var filename = _repository.GetChatDmFileName(userId, targetUserId);
             
-            var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
-            var msg = messages.FirstOrDefault(m => m.Id == id);
-            
-            if (msg == null) return NotFound();
-
-            if (msg.SenderId != userId)
+            if (targetUserId.HasValue && targetUserId.Value != Guid.Empty)
             {
-                return Forbid("Cannot delete someone else's message");
+                var filename = _repository.GetChatDmFileName(userId, targetUserId.Value);
+                var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(filename);
+                var msg = messages.FirstOrDefault(m => m.Id == id);
+                if (msg != null)
+                {
+                    if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
+                    if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                    messages.Remove(msg);
+                    await _repository.WriteListAsync(filename, messages);
+                    return Ok();
+                }
             }
 
-            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3)
+            var files = System.IO.Directory.GetFiles(_repository.DataDirectory, "chat_dm_*.json");
+            var uStr = userId.ToString("N");
+            foreach (var f in files)
             {
-                return BadRequest("Cannot delete messages older than 3 hours.");
+                var fname = System.IO.Path.GetFileNameWithoutExtension(f);
+                if (fname.Contains(uStr))
+                {
+                    var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(fname);
+                    var msg = messages.FirstOrDefault(m => m.Id == id);
+                    if (msg != null)
+                    {
+                        if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
+                        if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                        messages.Remove(msg);
+                        await _repository.WriteListAsync(fname, messages);
+                        return Ok();
+                    }
+                }
             }
-
-            messages.Remove(msg);
-            await _repository.WriteListAsync(filename, messages);
-            
-            return Ok();
+            return NotFound();
         }
 
         // --- KEY EXCHANGE ---

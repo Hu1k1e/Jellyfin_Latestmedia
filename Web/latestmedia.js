@@ -789,8 +789,55 @@ async function drawBubbles(container,msgs,silent=false){
   if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}
 }
 
+async function cfm(q){
+  return new Promise(resolve => {
+    const p = document.getElementById('lmChat');
+    if(!p) return resolve(confirm(q));
+    const b = document.createElement('div');
+    b.className = 'lmCfmWrap';
+    b.style.position='absolute';b.style.top='0';b.style.left='0';b.style.right='0';b.style.bottom='0';
+    b.style.background='rgba(0,0,0,0.7)';b.style.display='flex';b.style.alignItems='center';b.style.justifyContent='center';b.style.zIndex='10';b.style.borderRadius='8px';
+    b.innerHTML=`<div style="background:#1e1e1e;padding:15px;border-radius:8px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5)">
+      <div style="margin-bottom:15px">${esc(q)}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="lmcY" style="background:#e53935;border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer">Delete</button>
+        <button id="lmcN" style="background:#444;border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+    p.appendChild(b);
+    b.querySelector('#lmcY').onclick=()=>{b.remove();resolve(true)};
+    b.querySelector('#lmcN').onclick=()=>{b.remove();resolve(false)};
+  });
+}
+
+async function prp(title, initial) {
+  return new Promise(resolve => {
+    const p = document.getElementById('lmChat');
+    if(!p) { const val = prompt(title, initial); return resolve(val === null ? null : val); }
+    const b = document.createElement('div');
+    b.className = 'lmCfmWrap';
+    b.style.position='absolute';b.style.top='0';b.style.left='0';b.style.right='0';b.style.bottom='0';
+    b.style.background='rgba(0,0,0,0.7)';b.style.display='flex';b.style.alignItems='center';b.style.justifyContent='center';b.style.zIndex='10';b.style.borderRadius='8px';
+    b.innerHTML=`<div style="background:#1e1e1e;padding:15px;border-radius:8px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);width:90%;max-width:300px">
+      <div style="margin-bottom:10px">${esc(title)}</div>
+      <input id="lmcI" style="width:100%;margin-bottom:15px;background:#333;color:#fff;border:1px solid #555;padding:6px;border-radius:4px;box-sizing:border-box" autocomplete="off" />
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="lmcY" style="background:#00a4dc;border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer">Save</button>
+        <button id="lmcN" style="background:#444;border:none;color:#fff;padding:6px 12px;border-radius:4px;cursor:pointer">Cancel</button>
+      </div>
+    </div>`;
+    p.appendChild(b);
+    const inp = b.querySelector('#lmcI');
+    inp.value = initial;
+    inp.focus();
+    b.querySelector('#lmcY').onclick=()=>{b.remove();resolve(inp.value)};
+    b.querySelector('#lmcN').onclick=()=>{b.remove();resolve(null)};
+    inp.onkeyup=e=>{if(e.key==='Enter'){b.remove();resolve(inp.value)} else if(e.key==='Escape'){b.remove();resolve(null)}};
+  });
+}
+
 async function doEditMsg(id, oldTxt, isCipher) {
-  const n = prompt('Edit your message:', oldTxt);
+  const n = await prp('Edit your message:', oldTxt);
   if(n === null || n.trim() === oldTxt.trim() || n.trim() === '') return;
   try {
     let p, ct='', iv='';
