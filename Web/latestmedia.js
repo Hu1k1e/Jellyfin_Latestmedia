@@ -763,25 +763,52 @@ async function drawBubbles(container,msgs,silent=false){
     wrapper.style.alignSelf=isMe?'flex-end':'flex-start';
     wrapper.style.gap='6px';wrapper.style.maxWidth='100%';
 
+    const msgTimeObj = new Date(m.Timestamp||m.timestamp);
+    const timeStr = msgTimeObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const tDiv = document.createElement('div');
+    tDiv.style.fontSize = '0.7em';
+    tDiv.style.color = '#888';
+    tDiv.style.whiteSpace = 'nowrap';
+    tDiv.style.marginBottom = '5px';
+    tDiv.innerText = timeStr;
+
+    const uId = m.SenderId || m.senderId;
+    const sAddr = window.ApiClient.serverAddress();
+    const pfpUrl = `${sAddr}/Users/${uId}/Images/Primary?fillWidth=64&fillHeight=64&quality=96`;
+    const fbHTML = `<div style="width:32px;height:32px;border-radius:50%;background:#444;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:bold;">${esc(name[0]?name[0].toUpperCase():'?')}</div>`;
+    
+    const pDiv = document.createElement('div');
+    pDiv.style.display = 'flex';
+    pDiv.innerHTML = `<img src="${pfpUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=decodeURIComponent('${encodeURIComponent(fbHTML)}')" />`;
+
     const bDiv=document.createElement('div');
     bDiv.className=`lmBbl ${cls}`;
     bDiv.innerHTML=`<div class="lmBbn">${esc(name)}</div><span class="lmTxt">${esc(txt)}</span>${isEdited?'<span style="font-size:.7em;opacity:.6;margin-left:5px">(edited)</span>':''}`;
 
+    let opt = null;
     if(isMe&&!bc){
-      const msgTime=new Date(m.Timestamp||m.timestamp).getTime();
+      const msgTime=msgTimeObj.getTime();
       if((now-msgTime)<=10800000){
-        const opt=document.createElement('div');opt.className='lmMsgOpt';
+        opt=document.createElement('div');opt.className='lmMsgOpt';
         opt.innerHTML=`<button class="lmDotsBtn">⋮</button><div class="lmMsgMenu"><div class="lme">Edit</div><div class="lmd" style="color:#e53935">Delete</div></div>`;
         const menu=opt.querySelector('.lmMsgMenu');
         opt.querySelector('.lmDotsBtn').onclick=e=>{e.stopPropagation();document.querySelectorAll('.lmMsgMenu').forEach(x=>{if(x!==menu)x.style.display='none'});menu.style.display=menu.style.display==='block'?'none':'block'};
         opt.querySelector('.lme').onclick=()=>doEditMsg(m.Id||m.id,txt,m.Ciphertext||m.ciphertext);
         opt.querySelector('.lmd').onclick=()=>doDelMsg(m.Id||m.id);
-        wrapper.appendChild(opt);
       }
-      wrapper.appendChild(bDiv);
-    }else{
-      wrapper.appendChild(bDiv);
     }
+
+    if(isMe) {
+      wrapper.appendChild(tDiv);
+      if(opt) wrapper.appendChild(opt);
+      wrapper.appendChild(bDiv);
+      wrapper.appendChild(pDiv);
+    } else {
+      wrapper.appendChild(pDiv);
+      wrapper.appendChild(bDiv);
+      wrapper.appendChild(tDiv);
+    }
+    
     container.appendChild(wrapper);
   });
   
