@@ -29,7 +29,7 @@ st.innerHTML=`
 /* IMPORTANT: wrapper must NOT use opacity for hover — that cascades to children */
 .lmW{display:inline-flex;align-items:center;justify-content:center;position:relative;
   width:40px;height:40px;cursor:pointer;color:inherit;flex-shrink:0}
-.lmW>svg{transition:opacity .2s}.lmW:hover>svg{opacity:.65}
+.lmW>svg{transition:color .2s, opacity .2s}.lmW:hover>svg{color:${G};opacity:1}
 
 /* Badge */
 .lmBdg{position:absolute;top:2px;right:2px;background:${G};border-radius:50%;
@@ -56,8 +56,8 @@ st.innerHTML=`
 
 /* Player OSD chat button */
 .lmPlayerChatBtn{display:inline-flex;align-items:center;justify-content:center;position:relative;
-  width:36px;height:36px;cursor:pointer;color:#fff;opacity:.75;transition:opacity .2s}
-.lmPlayerChatBtn:hover{opacity:1}
+  width:36px;height:36px;cursor:pointer;color:#fff;opacity:.75;transition:color .2s, opacity .2s}
+.lmPlayerChatBtn:hover{opacity:1;color:${G}}
 .lmPlayerChatBtn svg{width:20px;height:20px}
 .lmChat.lmChatPlayer{position:fixed;bottom:80px;right:20px;z-index:999999}
 
@@ -105,7 +105,7 @@ st.innerHTML=`
 .lmMCl:hover{opacity:1}
 .lmMBdy{overflow-y:auto;flex:1}
 .lmTbl{width:100%;border-collapse:collapse;font-size:.86em}
-.lmTbl th{padding:9px 12px;text-align:left;background:rgba(0,0,0,.25);font-weight:600;position:sticky;top:0}
+.lmTbl th{padding:9px 12px;text-align:left;background:rgba(15,15,15,0.96);backdrop-filter:blur(8px);font-weight:600;position:sticky;top:0;z-index:2;box-shadow:0 1px 0 rgba(255,255,255,0.05)}
 .lmTbl td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
 .lmTbl tr:hover td{background:rgba(255,255,255,.025)}
 .lmSel{appearance:none;-webkit-appearance:none;
