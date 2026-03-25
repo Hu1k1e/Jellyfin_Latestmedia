@@ -37,17 +37,17 @@ st.innerHTML=`
 .lmBdg.on{display:block}
 
 .lmPanel{
-  background:rgba(15,15,15,0.82);
-  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(18,18,18,0.85)!important;
+  border:1px solid rgba(255,255,255,0.18)!important;
   border-radius:12px;
-  box-shadow:0 16px 55px rgba(0,0,0,0.62);
+  box-shadow:0 16px 55px rgba(0,0,0,0.62)!important;
   color:inherit;
 }
-@supports (backdrop-filter: blur(16px)){
+@supports (backdrop-filter: blur(1px)){
   .lmPanel{
-    backdrop-filter:blur(16px);
-    -webkit-backdrop-filter:blur(16px);
-    background:linear-gradient(180deg, rgba(18,18,18,0.55), rgba(18,18,18,0.28));
+    backdrop-filter:blur(22px) rotate(0) saturate(140%)!important;
+    -webkit-backdrop-filter:blur(22px) rotate(0) saturate(140%)!important;
+    background:linear-gradient(180deg, rgba(18,18,18,0.72), rgba(18,18,18,0.45))!important;
   }
 }
 
@@ -69,7 +69,7 @@ st.innerHTML=`
 /* Tabs */
 .lmTabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.07);
   position:sticky;top:0;z-index:1;
-  background:rgba(12,12,12,0.75);backdrop-filter:blur(20px)}
+  background:transparent}
 .lmTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
   font-size:.77em;font-weight:600;color:rgba(255,255,255,0.4);
   border-bottom:2px solid transparent;transition:all .2s}
@@ -96,7 +96,7 @@ st.innerHTML=`
 .lmMod{width:92%;max-width:980px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
 .lmMHdr{display:flex;align-items:center;justify-content:space-between;
   padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.025);flex-shrink:0}
+  background:transparent;flex-shrink:0}
 .lmMHdr h2{margin:0;font-size:1rem;font-weight:600}
 .lmMCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.3rem;opacity:.55}
 .lmMCl:hover{opacity:1}
@@ -129,7 +129,7 @@ st.innerHTML=`
 .lmArr{display:inline-block;transition:transform .2s;margin-right:5px;font-size:.7em}
 .lmArr.open{transform:rotate(90deg)}
 .lmMTabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
-  background:rgba(255,255,255,.02)}
+  background:transparent}
 .lmMTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
   font-size:.8em;font-weight:600;color:rgba(255,255,255,.4);
   border-bottom:2px solid transparent;transition:all .2s}
@@ -149,9 +149,9 @@ st.innerHTML=`
 .lmMsgOpt{position:relative;flex-shrink:0;margin-bottom:3px}
 .lmDotsBtn{background:none;border:none;color:inherit;opacity:.4;cursor:pointer;padding:0 3px;font-size:1.1em}
 .lmDotsBtn:hover{opacity:.9}
-.lmMsgMenu{position:absolute;bottom:100%;left:0;background:rgba(20,20,20,.95);backdrop-filter:blur(10px);
+.lmMsgMenu{position:absolute;bottom:100%;left:0;background:rgba(20,20,20,.95);backdrop-filter:blur(20px);
   border:1px solid rgba(255,255,255,.15);border-radius:6px;overflow:hidden;
-  display:none;font-size:.8em;min-width:80px;z-index:9;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+  display:none;font-size:.8em;min-width:80px;z-index:9;box-shadow:0 1px 12px rgba(0,0,0,.5)}
 .lmMsgMenu div{padding:6px 12px;cursor:pointer;transition:background .15s}
 .lmMsgMenu div:hover{background:rgba(255,255,255,.08)}
 
@@ -194,8 +194,8 @@ st.innerHTML=`
   opacity:.55;flex-shrink:0;padding:0}
 .lmEmBtn:hover{opacity:.9}
 .lmEmpick{position:absolute;bottom:100%;left:0;right:0;
-  background:rgba(10,10,10,.96);backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.1);border-radius:10px 10px 0 0;
+  background:rgba(10,10,10,.85);backdrop-filter:blur(22px);
+  border:1px solid rgba(255,255,255,.12);border-radius:10px 10px 0 0;
   padding:8px;display:flex;flex-wrap:wrap;gap:2px;
   max-height:160px;overflow-y:auto;z-index:9;scrollbar-width:thin}
 .lmEmpick span{cursor:pointer;font-size:1.25em;border-radius:4px;padding:2px;
@@ -216,7 +216,7 @@ st.innerHTML=`
 .lmCodeBtn:hover{opacity:.85}
 .lmChatsHdr{padding:8px 12px 4px;font-size:.7em;text-transform:uppercase;font-weight:700;color:rgba(255,255,255,.45);letter-spacing:.05em}
 .lmCodePop{position:fixed;top:80px;z-index:99999;width:210px;
-  background:rgba(8,8,8,.97);backdrop-filter:blur(22px);
+  background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
 `;
