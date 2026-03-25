@@ -497,6 +497,7 @@ const E2E={
 
 let chatTab='pub',dmTarget=null,chatWrap=null;
 let lastMsgHash='';
+let currentChatContext='';
 const CHAT_CACHE={pub:null,dms:{},convs:null};
 
 function openChat(wrap,isPlayer){
@@ -594,13 +595,18 @@ function renderChat(){
   document.getElementById('lmCodeBtn')?.remove();
   document.getElementById('lmDMInpBar')?.remove();
   document.getElementById('lmBack')?.remove();
-  lastMsgHash='';
+
+  const newCtx = chatTab + '_' + (dmTarget ? dmTarget.id : 'null');
+  if (currentChatContext !== newCtx) {
+     msgs.innerHTML = '<div class="lmEmpty" style="opacity:0.5">Loading...</div>';
+     lastMsgHash = '';
+  }
+  currentChatContext = newCtx;
 
   if(chatTab==='pub'){
     if(ia)ia.style.display='flex';
     if(CHAT_CACHE.pub) drawBubbles(msgs, CHAT_CACHE.pub, true);
-    else msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
-    api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{if(!CHAT_CACHE.pub)msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
 
   }else if(chatTab==='dm'&&!dmTarget){
     if(ia)ia.style.display='none';
@@ -611,8 +617,7 @@ function renderChat(){
     const bk=doc('div','lmBack','lmBack','← Back');bk.onclick=()=>{dmTarget=null;renderChat()};
     msgs.parentElement.insertBefore(bk,msgs);
     if(CHAT_CACHE.dms[dmTarget.id]) drawBubbles(msgs, CHAT_CACHE.dms[dmTarget.id], true);
-    else msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
-    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{if(!CHAT_CACHE.dms[dmTarget.id])msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
   }
 }
 
@@ -703,6 +708,7 @@ async function drawBubbles(container,msgs,silent=false){
   const now = Date.now();
 
   const decMsgs=await Promise.all(msgs.map(async m=>{
+    if(m._decTxt) return m; // Return memoized text immediately!
     let txt=m.Content||m.content||'';
     if(m.Ciphertext||m.ciphertext){
       const isMe=String(m.SenderId||m.senderId)===String(S.uid);
@@ -716,7 +722,8 @@ async function drawBubbles(container,msgs,silent=false){
         else txt='🔒 Missing sender key';
       }
     }
-    return {...m,_decTxt:txt};
+    m._decTxt = txt; // Memoize for future O(1) performance
+    return m;
   }));
 
   container.innerHTML='';
