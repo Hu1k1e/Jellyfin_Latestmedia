@@ -497,6 +497,7 @@ const E2E={
 
 let chatTab='pub',dmTarget=null,chatWrap=null;
 let lastMsgHash='';
+const CHAT_CACHE={pub:null,dms:{},convs:null};
 
 function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
@@ -540,8 +541,8 @@ function openChat(wrap,isPlayer){
     refreshOnline();refreshBadge();
     const msgs = document.getElementById('lmMsgs');
     if(!msgs) return;
-    if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>drawBubbles(msgs,d,true)).catch(()=>{});
-    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>drawBubbles(msgs,d,true)).catch(()=>{});
+    if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{});
+    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{});
   },2500);
 }
 
@@ -597,8 +598,9 @@ function renderChat(){
 
   if(chatTab==='pub'){
     if(ia)ia.style.display='flex';
-    msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
-    api('Chat/Messages').then(d=>drawBubbles(msgs,d)).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    if(CHAT_CACHE.pub) drawBubbles(msgs, CHAT_CACHE.pub, true);
+    else msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
+    api('Chat/Messages').then(d=>{CHAT_CACHE.pub=d; drawBubbles(msgs,d,true)}).catch(()=>{if(!CHAT_CACHE.pub)msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
 
   }else if(chatTab==='dm'&&!dmTarget){
     if(ia)ia.style.display='none';
@@ -608,8 +610,9 @@ function renderChat(){
     if(ia)ia.style.display='flex';
     const bk=doc('div','lmBack','lmBack','← Back');bk.onclick=()=>{dmTarget=null;renderChat()};
     msgs.parentElement.insertBefore(bk,msgs);
-    msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
-    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>drawBubbles(msgs,d)).catch(()=>{msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
+    if(CHAT_CACHE.dms[dmTarget.id]) drawBubbles(msgs, CHAT_CACHE.dms[dmTarget.id], true);
+    else msgs.innerHTML='<div class="lmEmpty">Loading…</div>';
+    api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>{CHAT_CACHE.dms[dmTarget.id]=d; drawBubbles(msgs,d,true)}).catch(()=>{if(!CHAT_CACHE.dms[dmTarget.id])msgs.innerHTML='<div class="lmEmpty">Error loading.</div>'});
   }
 }
 
@@ -618,37 +621,42 @@ function doc(tag,id,cls,html){const e=document.createElement(tag);e.id=id;e.clas
 function renderDMList(container){
   const panel=document.getElementById('lmChat');if(!panel)return;
 
-  // Code button
-  const cb=document.createElement('button');cb.id='lmCodeBtn';cb.className='lmCodeBtn';
-  cb.innerHTML='My Chat Code';
-  cb.onclick=()=>toggleCodePop(panel);
-  container.before(cb);
+  if(!document.getElementById('lmCodeBtn')){
+    const cb=document.createElement('button');cb.id='lmCodeBtn';cb.className='lmCodeBtn';
+    cb.innerHTML='My Chat Code';
+    cb.onclick=()=>toggleCodePop(panel);
+    container.before(cb);
+  }
 
-  // DM search
-  const dib=document.createElement('div');dib.id='lmDMInpBar';dib.className='lmDMInp';
-  dib.innerHTML=`<input id="lmDCI" placeholder="Enter 6-char code & press Enter…" maxlength="6" autocomplete="off"/><small>Ask the other person for their code</small>`;
-  container.before(dib);
+  if(!document.getElementById('lmDMInpBar')){
+    const dib=document.createElement('div');dib.id='lmDMInpBar';dib.className='lmDMInp';
+    dib.innerHTML=`<input id="lmDCI" placeholder="Enter 6-char code & press Enter…" maxlength="6" autocomplete="off"/><small>Ask the other person for their code</small>`;
+    container.before(dib);
+    const ci=dib.querySelector('#lmDCI');
+    ci.onkeyup=e=>{
+      if(e.key!=='Enter')return;
+      const code=ci.value.trim().toUpperCase();
+      if(code.length!==6){ci.style.borderColor='#c62828';return}
+      ci.disabled=true;
+      api(`Chat/DM/Users/ByCode/${code}`)
+        .then(u=>{ci.value='';ci.disabled=false;dmTarget={id:u.Id,name:u.Name};renderChat()})
+        .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6-char code & press Enter…';ci.style.borderColor=''},3000)});
+    };
+  }
 
-  const ci=dib.querySelector('#lmDCI');
-  ci.onkeyup=e=>{
-    if(e.key!=='Enter')return;
-    const code=ci.value.trim().toUpperCase();
-    if(code.length!==6){ci.style.borderColor='#c62828';return}
-    ci.disabled=true;
-    api(`Chat/DM/Users/ByCode/${code}`)
-      .then(u=>{ci.value='';ci.disabled=false;dmTarget={id:u.Id,name:u.Name};renderChat()})
-      .catch(ex=>{ci.style.borderColor='#c62828';ci.disabled=false;ci.placeholder=ex.message.includes('404')?'Not found':'Error';setTimeout(()=>{ci.placeholder='Enter 6-char code & press Enter…';ci.style.borderColor=''},3000)});
-  };
-
-  container.innerHTML='<div class="lmEmpty" style="padding-top:6px">Loading…</div>';
-  api('Chat/DM/Conversations').then(cs=>{
+  function drawList(cs) {
     if(!cs||!cs.length){container.innerHTML='<div class="lmEmpty" style="padding-top:6px">No conversations yet.</div>';return}
     container.innerHTML=cs.map(c=>{
       const n=c.UnreadCount||c.unreadCount||0;
       return`<div class="lmDMRow" data-id="${c.UserId||c.userId}" data-n="${esc(c.UserName||c.userName||'User')}">${esc(c.UserName||c.userName||'User')}${n>0?`<span class="lmDMBdg">${n}</span>`:''}</div>`;
     }).join('');
     container.querySelectorAll('.lmDMRow').forEach(r=>r.addEventListener('click',()=>{dmTarget={id:r.dataset.id,name:r.dataset.n};renderChat()}));
-  }).catch(()=>{container.innerHTML='<div class="lmEmpty">Could not load conversations.</div>'});
+  }
+
+  if(CHAT_CACHE.convs) drawList(CHAT_CACHE.convs);
+  else container.innerHTML='<div class="lmEmpty" style="padding-top:6px">Loading…</div>';
+
+  api('Chat/DM/Conversations').then(cs=>{ CHAT_CACHE.convs=cs; drawList(cs); }).catch(()=>{if(!CHAT_CACHE.convs)container.innerHTML='<div class="lmEmpty">Could not load conversations.</div>'});
 }
 
 function toggleCodePop(panel){
@@ -679,10 +687,16 @@ function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new D
 function setPubRead() { localStorage.setItem('lm_last_pub_read', new Date().toISOString()); }
 
 async function drawBubbles(container,msgs,silent=false){
-  if(!Array.isArray(msgs)||!msgs.length){container.innerHTML='<div class="lmEmpty">No messages yet.</div>';if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}return}
+  if(!Array.isArray(msgs)||!msgs.length){
+    if(lastMsgHash==='empty')return;
+    lastMsgHash='empty';
+    container.innerHTML='<div class="lmEmpty">No messages yet.</div>';
+    if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}
+    return;
+  }
   
   const hash = msgs.map(m=>m.Id||m.id+(m.IsEdited||m.isEdited?'e':'')).join(',');
-  if(silent && hash===lastMsgHash) return;
+  if(hash===lastMsgHash) return;
   lastMsgHash=hash;
 
   const isAtBot = !silent || (container.scrollHeight - container.scrollTop <= container.clientHeight + 40);
