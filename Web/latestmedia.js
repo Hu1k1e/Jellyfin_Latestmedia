@@ -206,7 +206,7 @@ st.innerHTML=`
 .lmEmpick span:hover{background:rgba(255,255,255,.12)}
 .lmDMTop{display:flex;align-items:center;padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.07);gap:8px;flex-shrink:0}
 .lmDMInp{flex:1}
-.lmDMInp input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:6px 13px;font-size:.83em;outline:none;font-family:inherit;box-sizing:border-box}
+.lmDMInp input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:6px 10px;font-size:.73em;outline:none;font-family:inherit;box-sizing:border-box}
 .lmDMInp input:focus{border-color:${G}}
 .lmDMRow{display:flex;align-items:center;gap:9px;padding:9px 12px;cursor:pointer;
   font-size:.84em;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
