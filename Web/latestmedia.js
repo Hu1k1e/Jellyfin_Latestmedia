@@ -37,18 +37,13 @@ st.innerHTML=`
 .lmBdg.on{display:block}
 
 .lmPanel{
-  background:rgba(20,20,20,0.92)!important;
-  border:1px solid rgba(255,255,255,0.18)!important;
+  background:rgba(18,18,18,0.55)!important;
+  backdrop-filter:blur(16px) saturate(130%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(130%)!important;
+  border:1px solid rgba(255,255,255,0.12)!important;
   border-radius:12px;
   box-shadow:0 16px 55px rgba(0,0,0,0.62)!important;
   color:inherit;
-}
-@supports (backdrop-filter: blur(1px)){
-  .lmPanel{
-    backdrop-filter:blur(22px) saturate(140%)!important;
-    -webkit-backdrop-filter:blur(22px) saturate(140%)!important;
-    background:linear-gradient(180deg, rgba(18,18,18,0.78), rgba(18,18,18,0.55))!important;
-  }
 }
 
 /* Player OSD chat button */
@@ -59,8 +54,8 @@ st.innerHTML=`
 .lmChat.lmChatPlayer{position:fixed;bottom:80px;right:20px;z-index:999999}
 
 /* Dropdown */
-.lmDD{position:absolute;top:calc(100% + 6px);right:0;width:330px;max-height:70vh;
-  overflow-y:auto;z-index:9999;display:none;
+.lmDD{position:fixed;width:330px;max-height:70vh;
+  overflow-y:auto;z-index:999999;display:none;
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.12) transparent}
 .lmDD.on{display:block}
 .lmDD::-webkit-scrollbar{width:4px}
@@ -156,8 +151,8 @@ st.innerHTML=`
 .lmMsgMenu div:hover{background:rgba(255,255,255,.08)}
 
 /* Chat panel */
-.lmChat{position:absolute;top:calc(100% + 6px);right:0;width:330px;height:460px;
-  display:flex;flex-direction:column;z-index:9999;overflow:hidden;
+.lmChat{position:fixed;width:330px;height:460px;
+  display:flex;flex-direction:column;z-index:999999;overflow:hidden;
   transform-origin:top right;animation:lmPop .2s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
 .lmCHdr{display:flex;align-items:center;padding:5px 12px 4px;gap:6px;
@@ -254,40 +249,44 @@ function mkBtn(id,icon,cb){
 }
 
 // ── Outside-click: robust composedPath check ───────────────────────────────
-function outsideClose(exclude, cb){
+function outsideClose(excludes, cb){
   setTimeout(()=>{
     function h(e){
-      if(exclude && e.composedPath && !e.composedPath().includes(exclude)){
-        cb();
-      }
+      if(!e.composedPath)return;
+      const path=e.composedPath();
+      if(!excludes.some(el=>path.includes(el))) cb();
     }
-    exclude._outsideHandler = h;
+    excludes.forEach(el=>{if(el)el._outsideHandler=h});
     document.addEventListener('mousedown', h);
   }, 10);
 }
-
-function removeOverlay(exclude){
-  if(exclude && exclude._outsideHandler){
-    document.removeEventListener('mousedown', exclude._outsideHandler);
-    exclude._outsideHandler = null;
-  }
+function removeOverlay(excludes){
+  excludes.forEach(el=>{
+    if(el&&el._outsideHandler){
+      document.removeEventListener('mousedown', el._outsideHandler);
+      el._outsideHandler=null;
+    }
+  });
 }
 
 /* ── Latest Media Dropdown ── */
 let ddOpen=false;
 function openDD(e,wrap){
   if(ddOpen){closeDD(wrap);return}
+  const rect=wrap.getBoundingClientRect();
   const dd=document.createElement('div');dd.className='lmPanel lmDD on';dd.id='lmDD';
-  dd.addEventListener('click', ev => ev.stopPropagation()); // prevent bubbling to button wrapper
+  dd.style.top=(rect.bottom+6)+'px';
+  dd.style.right=(window.innerWidth-rect.right)+'px';
+  dd.addEventListener('click', ev => ev.stopPropagation());
   dd.innerHTML=`<div class="lmTabs"><div class="lmTab on" data-t="r">Recently Added</div><div class="lmTab" data-t="l">Leaving Soon</div></div><div id="lmDDb"><div class="lmEmpty">Loading…</div></div>`;
-  wrap.appendChild(dd);ddOpen=true;
+  document.body.appendChild(dd);ddOpen=true;
   dd.querySelectorAll('.lmTab').forEach(t=>t.addEventListener('click',ev=>{ev.stopPropagation();dd.querySelectorAll('.lmTab').forEach(x=>x.classList.remove('on'));t.classList.add('on');loadTab(t.dataset.t)}));
   loadTab('r');
-  outsideClose(wrap, ()=>closeDD(wrap));
+  outsideClose([wrap, dd], ()=>closeDD(wrap));
 }
 function closeDD(wrap){
   const d=document.getElementById('lmDD');
-  if(d){ removeOverlay(d); d.remove(); }
+  if(d){ removeOverlay([wrap, d]); d.remove(); }
   ddOpen=false;
 }
 
@@ -548,6 +547,11 @@ function openChat(wrap,isPlayer){
     e.stopPropagation();
     p.querySelectorAll('.lmMsgMenu').forEach(x => x.style.display='none');
   });
+  if(!isPlayer && wrap){
+    const rect=wrap.getBoundingClientRect();
+    p.style.top=(rect.bottom+6)+'px';
+    p.style.right=(window.innerWidth-rect.right)+'px';
+  }
   p.innerHTML=`
 <div class="lmCHdr">
   <span class="lmCTit">Chat</span>
@@ -564,7 +568,7 @@ function openChat(wrap,isPlayer){
   <input class="lmInp" id="lmInp" placeholder="Type a message…" maxlength="500" autocomplete="off"/>
   <button class="lmSnd"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
 </div>`;
-  if(isPlayer){document.body.appendChild(p)}else{wrap.appendChild(p)}
+  document.body.appendChild(p);
 
   p.querySelector('.lmCCl').onclick=()=>closeChat();
   p.querySelectorAll('.lmCTab').forEach(t=>t.addEventListener('click',ev=>{
@@ -577,7 +581,7 @@ function openChat(wrap,isPlayer){
   p.querySelector('#lmEmBtn').onclick=e=>{e.stopPropagation();toggleEmoji(p,inp)};
 
   refreshOnline();lastMsgHash='';renderChat();
-  outsideClose(wrap, closeChat);
+  outsideClose([wrap, p], closeChat);
 
   E2E.init().catch(()=>{});
 
@@ -605,8 +609,8 @@ function openChat(wrap,isPlayer){
 
 function closeChat(){
   const p=document.getElementById('lmChat');
-  if(chatWrap){ removeOverlay(chatWrap); chatWrap=null; }
-  if(p){ p.remove(); }
+  if(p){ removeOverlay([chatWrap, p]); p.remove(); }
+  chatWrap=null;
   if(S.timer){clearInterval(S.timer);S.timer=null}
   chatTab='pub';dmTarget=null;
 }
