@@ -64,9 +64,9 @@ st.innerHTML=`
 /* Tabs */
 .lmTabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.1);
   position:sticky;top:0;z-index:10;
-  background:rgba(15,15,15,0.82)!important;
-  backdrop-filter:blur(35px) saturate(150%)!important;
-  -webkit-backdrop-filter:blur(35px) saturate(150%)!important}
+  background:rgba(18,18,18,0.45)!important;
+  backdrop-filter:blur(45px) saturate(160%)!important;
+  -webkit-backdrop-filter:blur(45px) saturate(160%)!important}
 .lmTab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;
   font-size:.77em;font-weight:600;color:rgba(255,255,255,0.4);
   border-bottom:2px solid transparent;transition:all .2s}
@@ -92,11 +92,8 @@ st.innerHTML=`
   z-index:99997;display:flex;align-items:center;justify-content:center}
 .lmMod{width:92%;max-width:980px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
 .lmMHdr{display:flex;align-items:center;justify-content:space-between;
-  padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.1);
-  background:rgba(15,15,15,0.82)!important;
-  backdrop-filter:blur(35px) saturate(150%)!important;
-  -webkit-backdrop-filter:blur(35px) saturate(150%)!important;
-  flex-shrink:0}
+  padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.025);flex-shrink:0}
 .lmMHdr h2{margin:0;font-size:1rem;font-weight:600}
 .lmMCl{cursor:pointer;background:none;border:none;color:inherit;font-size:1.3rem;opacity:.55}
 .lmMCl:hover{opacity:1}
@@ -161,10 +158,8 @@ st.innerHTML=`
   transform-origin:top right;animation:lmPop .2s cubic-bezier(.34,1.56,.64,1)}
 @keyframes lmPop{from{opacity:0;transform:scale(.87)}to{opacity:1;transform:scale(1)}}
 .lmCHdr{display:flex;align-items:center;padding:5px 12px 4px;gap:6px;
-  border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0;
-  background:rgba(15,15,15,0.82)!important;
-  backdrop-filter:blur(35px) saturate(150%)!important;
-  -webkit-backdrop-filter:blur(35px) saturate(150%)!important}
+  border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0;
+  background:rgba(255,255,255,0.02)}
 .lmCTit{font-size:.84em;font-weight:700;white-space:nowrap}
 .lmOnl{font-size:.71em;color:${G};font-weight:600;display:flex;align-items:center;gap:4px;flex:1;white-space:nowrap}
 .lmOnlDot{width:6px;height:6px;border-radius:50%;background:${G};flex-shrink:0}
