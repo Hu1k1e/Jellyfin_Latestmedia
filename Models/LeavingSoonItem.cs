@@ -12,5 +12,6 @@ namespace Jellyfin_Latestmedia.Models
         public string Type { get; set; } = string.Empty;
         public string? SeriesName { get; set; }
         public string? SeasonName { get; set; }
+        public string[]? Genres { get; set; }
     }
 }
