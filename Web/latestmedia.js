@@ -452,7 +452,51 @@ function loadMM(ov){
 }
 
 /* ── Chat ── */
+const E2E={
+  keys:null,
+  async init(){
+    let privJwk=localStorage.getItem('lm_priv');
+    let pubJwk=localStorage.getItem('lm_pub');
+    if(!privJwk||!pubJwk){
+      const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
+      privJwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
+      pubJwk=await crypto.subtle.exportKey('jwk',kp.publicKey);
+      localStorage.setItem('lm_priv',JSON.stringify(privJwk));
+      localStorage.setItem('lm_pub',JSON.stringify(pubJwk));
+    }else{
+      privJwk=JSON.parse(privJwk);pubJwk=JSON.parse(pubJwk);
+    }
+    this.keys={
+      priv:await crypto.subtle.importKey('jwk',privJwk,{name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']),
+      pub:await crypto.subtle.importKey('jwk',pubJwk,{name:'ECDH',namedCurve:'P-256'},true,[]),
+      pubJwk:pubJwk
+    };
+    api('Chat/Keys',{method:'POST',body:JSON.stringify({PublicKey:JSON.stringify(pubJwk)})}).catch(()=>{});
+  },
+  async getShared(theirPubJwkStr){
+    const theirJwk=JSON.parse(theirPubJwkStr);
+    const theirPub=await crypto.subtle.importKey('jwk',theirJwk,{name:'ECDH',namedCurve:'P-256'},true,[]);
+    return crypto.subtle.deriveKey({name:'ECDH',public:theirPub},this.keys.priv,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  },
+  async enc(txt,targetJwkStr){
+    const key=await this.getShared(targetJwkStr);
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const enc=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(txt));
+    return{ct:btoa(String.fromCharCode(...new Uint8Array(enc))),iv:btoa(String.fromCharCode(...iv))};
+  },
+  async dec(ct64,iv64,senderJwkStr){
+    try{
+      const key=await this.getShared(senderJwkStr);
+      const ct=Uint8Array.from(atob(ct64),c=>c.charCodeAt(0));
+      const iv=Uint8Array.from(atob(iv64),c=>c.charCodeAt(0));
+      const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+      return new TextDecoder().decode(dec);
+    }catch(e){return'🔒 Decryption failed';}
+  }
+};
+
 let chatTab='pub',dmTarget=null,chatWrap=null;
+let lastMsgHash='';
 
 function openChat(wrap,isPlayer){
   if(document.getElementById('lmChat')){closeChat();return}
@@ -487,10 +531,18 @@ function openChat(wrap,isPlayer){
   inp.addEventListener('keyup',e=>{if(e.key==='Enter')doSend(inp.value)});
   p.querySelector('#lmEmBtn').onclick=e=>{e.stopPropagation();toggleEmoji(p,inp)};
 
-  refreshOnline();renderChat();
+  refreshOnline();lastMsgHash='';renderChat();
   outsideClose(wrap, closeChat);
 
-  S.timer=setInterval(()=>{refreshOnline();refreshBadge();if(chatTab==='pub'&&!dmTarget)renderChat()},9000);
+  E2E.init().catch(()=>{});
+
+  S.timer=setInterval(()=>{
+    refreshOnline();refreshBadge();
+    const msgs = document.getElementById('lmMsgs');
+    if(!msgs) return;
+    if(chatTab==='pub'&&!dmTarget) api('Chat/Messages').then(d=>drawBubbles(msgs,d,true)).catch(()=>{});
+    else if(chatTab==='dm'&&dmTarget) api(`Chat/DM/${dmTarget.id}/Messages`).then(d=>drawBubbles(msgs,d,true)).catch(()=>{});
+  },2500);
 }
 
 function closeChat(){
@@ -541,6 +593,7 @@ function renderChat(){
   document.getElementById('lmCodeBtn')?.remove();
   document.getElementById('lmDMInpBar')?.remove();
   document.getElementById('lmBack')?.remove();
+  lastMsgHash='';
 
   if(chatTab==='pub'){
     if(ia)ia.style.display='flex';
@@ -625,66 +678,93 @@ function toggleCodePop(panel){
 function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new Date(0).toISOString(); }
 function setPubRead() { localStorage.setItem('lm_last_pub_read', new Date().toISOString()); }
 
-function drawBubbles(container,msgs){
+async function drawBubbles(container,msgs,silent=false){
   if(!Array.isArray(msgs)||!msgs.length){container.innerHTML='<div class="lmEmpty">No messages yet.</div>';if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}return}
-  container.innerHTML='';
+  
+  const hash = msgs.map(m=>m.Id||m.id+(m.IsEdited||m.isEdited?'e':'')).join(',');
+  if(silent && hash===lastMsgHash) return;
+  lastMsgHash=hash;
+
+  const isAtBot = !silent || (container.scrollHeight - container.scrollTop <= container.clientHeight + 40);
   const now = Date.now();
-  msgs.forEach(m=>{
+
+  const decMsgs=await Promise.all(msgs.map(async m=>{
+    let txt=m.Content||m.content||'';
+    if(m.Ciphertext||m.ciphertext){
+      const isMe=String(m.SenderId||m.senderId)===String(S.uid);
+      if(isMe){
+        if(!dmTarget.pubKey){const k=await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);if(k)dmTarget.pubKey=k.PublicKey;}
+        if(dmTarget.pubKey)txt=await E2E.dec(m.Ciphertext||m.ciphertext,m.Nonce||m.nonce,dmTarget.pubKey);
+        else txt='🔒 Cannot decrypt own msg (no target key)';
+      }else{
+        const sKey=m.SenderPublicKey||m.senderPublicKey;
+        if(sKey)txt=await E2E.dec(m.Ciphertext||m.ciphertext,m.Nonce||m.nonce,sKey);
+        else txt='🔒 Missing sender key';
+      }
+    }
+    return {...m,_decTxt:txt};
+  }));
+
+  container.innerHTML='';
+  decMsgs.forEach(m=>{
     const isMe=String(m.SenderId||m.senderId)===String(S.uid);
     const bc=m.IsBroadcast||m.isBroadcast;
     const cls=bc?'bc':isMe?'me':'they';
     const name=m.SenderName||m.senderName||(isMe?'You':'User');
-    const txt=m.Content||m.content||(m.Ciphertext?'🔒 Encrypted':'');
-    const isEdited = m.IsEdited||m.isEdited;
+    const txt=m._decTxt;
+    const isEdited=m.IsEdited||m.isEdited;
     
-    const wrapper = document.createElement('div');
-    wrapper.style.display = 'flex';
-    wrapper.style.alignItems = 'flex-end';
-    wrapper.style.alignSelf = isMe ? 'flex-end' : 'flex-start';
-    wrapper.style.gap = '6px';
-    wrapper.style.maxWidth = '100%';
+    const wrapper=document.createElement('div');
+    wrapper.style.display='flex';wrapper.style.alignItems='flex-end';
+    wrapper.style.alignSelf=isMe?'flex-end':'flex-start';
+    wrapper.style.gap='6px';wrapper.style.maxWidth='100%';
 
-    const bDiv = document.createElement('div');
-    bDiv.className = `lmBbl ${cls}`;
-    bDiv.innerHTML = `<div class="lmBbn">${esc(name)}</div><span class="lmTxt">${esc(txt)}</span>${isEdited?'<span style="font-size:.7em;opacity:.6;margin-left:5px">(edited)</span>':''}`;
+    const bDiv=document.createElement('div');
+    bDiv.className=`lmBbl ${cls}`;
+    bDiv.innerHTML=`<div class="lmBbn">${esc(name)}</div><span class="lmTxt">${esc(txt)}</span>${isEdited?'<span style="font-size:.7em;opacity:.6;margin-left:5px">(edited)</span>':''}`;
 
-    if (isMe && !bc) {
-      const msgTime = new Date(m.Timestamp || m.timestamp).getTime();
-      if ((now - msgTime) <= 10800000) { // 3 hours
-        const opt = document.createElement('div');
-        opt.className = 'lmMsgOpt';
-        opt.innerHTML = `<button class="lmDotsBtn">⋮</button><div class="lmMsgMenu"><div class="lme">Edit</div><div class="lmd" style="color:#e53935">Delete</div></div>`;
-        const menu = opt.querySelector('.lmMsgMenu');
-        opt.querySelector('.lmDotsBtn').onclick = (e) => {
-           e.stopPropagation();
-           document.querySelectorAll('.lmMsgMenu').forEach(x=> { if(x!==menu) x.style.display='none' });
-           menu.style.display = menu.style.display==='block' ? 'none' : 'block';
-        };
-        opt.querySelector('.lme').onclick = () => doEditMsg(m.Id||m.id, txt, m.Ciphertext||m.ciphertext);
-        opt.querySelector('.lmd').onclick = () => doDelMsg(m.Id||m.id);
+    if(isMe&&!bc){
+      const msgTime=new Date(m.Timestamp||m.timestamp).getTime();
+      if((now-msgTime)<=10800000){
+        const opt=document.createElement('div');opt.className='lmMsgOpt';
+        opt.innerHTML=`<button class="lmDotsBtn">⋮</button><div class="lmMsgMenu"><div class="lme">Edit</div><div class="lmd" style="color:#e53935">Delete</div></div>`;
+        const menu=opt.querySelector('.lmMsgMenu');
+        opt.querySelector('.lmDotsBtn').onclick=e=>{e.stopPropagation();document.querySelectorAll('.lmMsgMenu').forEach(x=>{if(x!==menu)x.style.display='none'});menu.style.display=menu.style.display==='block'?'none':'block'};
+        opt.querySelector('.lme').onclick=()=>doEditMsg(m.Id||m.id,txt,m.Ciphertext||m.ciphertext);
+        opt.querySelector('.lmd').onclick=()=>doDelMsg(m.Id||m.id);
         wrapper.appendChild(opt);
       }
       wrapper.appendChild(bDiv);
-    } else {
+    }else{
       wrapper.appendChild(bDiv);
     }
     container.appendChild(wrapper);
   });
-  container.scrollTop=container.scrollHeight;
-  if(chatTab==='pub' && !dmTarget) {
-    setPubRead();
-    refreshBadge(); // Clear the badge immediately when viewing
-  }
+  
+  if(isAtBot) container.scrollTop=container.scrollHeight;
+  if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}
 }
 
-async function doEditMsg(id, oldTxt, oldCipher) {
-  if(oldCipher && !oldTxt) { alert('Encrypted messages cannot be edited yet.'); return; }
+async function doEditMsg(id, oldTxt, isCipher) {
   const n = prompt('Edit your message:', oldTxt);
   if(n === null || n.trim() === oldTxt.trim() || n.trim() === '') return;
   try {
-    const p = JSON.stringify({ content: n.trim() });
+    let p;
+    if (chatTab === 'dm' && isCipher) {
+        if (!dmTarget.pubKey) {
+            const k = await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);
+            if(k) dmTarget.pubKey = k.PublicKey;
+        }
+        if (!dmTarget.pubKey) { alert('Missing target key.'); return; }
+        const {ct, iv} = await E2E.enc(n.trim(), dmTarget.pubKey);
+        p = JSON.stringify({ Ciphertext: ct, Nonce: iv, SenderPublicKey: JSON.stringify(E2E.keys.pubJwk) });
+    } else {
+        p = JSON.stringify({ content: n.trim() });
+    }
+    
     if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'PUT', body:p});
     else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'PUT', body:p});
+    lastMsgHash = ''; // force redraw
     renderChat();
   } catch(e) { alert('Edit failed: '+e.message); }
 }
@@ -694,6 +774,7 @@ async function doDelMsg(id) {
   try {
     if(chatTab === 'pub') await api(`Chat/Messages/${id}`, {method:'DELETE'});
     else await api(`Chat/DM/Messages/${id}?targetUserId=${dmTarget.id}`, {method:'DELETE'});
+    lastMsgHash = '';
     renderChat();
   } catch(e) { alert('Delete failed: '+e.message); }
 }
@@ -702,8 +783,16 @@ async function doSend(txt){
   if(!txt||!txt.trim())return;
   const inp=document.getElementById('lmInp');if(inp)inp.value='';
   try{
-    if(chatTab==='pub')await api('Chat/Messages',{method:'POST',body:JSON.stringify({content:txt})});
-    else if(dmTarget)await api(`Chat/DM/${dmTarget.id}/Messages`,{method:'POST',body:JSON.stringify({content:txt})});
+    if(chatTab==='pub'){
+      await api('Chat/Messages',{method:'POST',body:JSON.stringify({content:txt})});
+    }else if(dmTarget){
+      if(!dmTarget.pubKey){const k=await api(`Chat/Keys/${dmTarget.id}`).catch(()=>null);if(k)dmTarget.pubKey=k.PublicKey;}
+      if(!dmTarget.pubKey){alert('User has not initialized secure chat yet.');if(inp)inp.value=txt;return;}
+      const {ct, iv} = await E2E.enc(txt, dmTarget.pubKey);
+      const p={Ciphertext:ct,Nonce:iv,SenderPublicKey:JSON.stringify(E2E.keys.pubJwk)};
+      await api(`Chat/DM/${dmTarget.id}/Messages`,{method:'POST',body:JSON.stringify(p)});
+    }
+    lastMsgHash = '';
     renderChat();
   }catch(ex){if(inp)inp.value=txt;alert('Send failed: '+ex.message)}
 }
