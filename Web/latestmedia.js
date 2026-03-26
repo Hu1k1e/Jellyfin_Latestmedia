@@ -560,6 +560,12 @@ let currentChatContext='';
 
 let fsMuted = localStorage.getItem('lm_fs_muted') === 'true';
 let fsSeenIds = new Set();
+
+/* Notification state — declared here so mute handler can reference them */
+window._lmVideoActive = false;
+let _lmActiveTimers = new Map();
+let _lmPollInterval = null;
+let _lmPollStartTime = 0;  // epoch ms when current video session started
 let fsPollTimer = null;
 
 function openChat(wrap,isPlayer){
@@ -690,10 +696,7 @@ function refreshBadge(){
   });
 }
 
-/* ── Player Toast Notifications (v1.0.72) ── */
-window._lmVideoActive = false;
-let _lmActiveTimers = new Map();
-let _lmPollInterval = null;
+/* ── Player Toast Notifications (v1.0.73) ── */
 
 function injectToastContainer() {
   if (document.getElementById('lmNStack')) return;
@@ -769,22 +772,21 @@ function showFsNotification(msg) {
 }
 function startNotificationPolling() {
   if (_lmPollInterval) return;
-  let seeded = false;
+  // Record when this video session started so we only show messages newer than this
+  _lmPollStartTime = Date.now();
+
   _lmPollInterval = setInterval(() => {
     if (fsMuted) return;
     if (document.getElementById('lmChat')) return;
     api('Chat/Messages').then(msgs => {
       if (!Array.isArray(msgs)) return;
-      if (!seeded) {
-        msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
-        seeded = true;
-        return;
-      }
       const newMsgs = msgs.filter(m => {
         const id = m.Id || m.id;
         const senderId = String(m.SenderId || m.senderId);
         const bc = m.IsBroadcast || m.isBroadcast;
-        return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id);
+        const ts = new Date(m.Timestamp || m.timestamp || 0).getTime();
+        // Only show messages from others, not broadcast, not already seen, and sent AFTER polling started
+        return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id) && ts >= _lmPollStartTime;
       });
       msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
       if (fsSeenIds.size > 500) { fsSeenIds = new Set(Array.from(fsSeenIds).slice(-300)); }
@@ -1240,6 +1242,17 @@ setInterval(()=>{
   if(!document.getElementById('lm-btn-latest'))S.ok=false;
   tryInject();
   tryInjectPlayerChat();
+  // Also check video lifecycle on heartbeat (in case observer missed the event)
+  const videoEl = document.querySelector('video');
+  if (videoEl && !window._lmVideoActive) {
+    window._lmVideoActive = true;
+    injectToastContainer();
+    startNotificationPolling();
+  }
+  if (!videoEl && window._lmVideoActive) {
+    window._lmVideoActive = false;
+    destroyToastContainer();
+  }
 },3000);
 setInterval(()=>{
   if(S.ok && !document.getElementById('lmChat')) refreshBadge();
