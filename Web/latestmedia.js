@@ -217,23 +217,27 @@ st.innerHTML=`
   background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
-/* Player Toast Notifications (v1.0.74) */
-.lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:300px}
-.lmNBubbleWrap{pointer-events:auto;position:relative;animation:lmFadeUp .35s ease forwards}
-.lmNBubbleWrap.lmNOut{animation:lmFadeDown .25s ease forwards}
-.lmNCloseCircle{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:rgba(40,40,40,.9);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:.85em;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;backdrop-filter:blur(8px);transition:background .15s}
+/* Player Toast Notifications (v1.0.79) */
+.lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;pointer-events:none;width:320px}
+.lmNBubbleWrap{pointer-events:auto;position:relative;opacity:0;transform:translateY(14px);transition:opacity .35s ease,transform .35s ease}
+.lmNBubbleWrap.lmNIn{opacity:1;transform:none}
+.lmNBubbleWrap.lmNOut{opacity:0;transform:translateY(8px)}
+.lmNCloseCircle{position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:rgba(35,35,35,.92);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:.8em;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(8px);transition:background .15s}
 .lmNCloseCircle:hover{background:rgba(80,80,80,.95);color:#fff}
-.lmNBubble{background:rgba(18,18,18,0.55);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:inherit;box-shadow:0 8px 25px rgba(0,0,0,.4);font-size:.85em;line-height:1.45;word-break:break-word}
-.lmNName{font-weight:700;color:${G};margin-right:5px}
-.lmNSharedReply{pointer-events:auto;display:flex;gap:8px;align-items:center;margin-top:2px;animation:lmFadeUp .3s ease .1s forwards;opacity:0}
+.lmNBubbleInner{display:flex;align-items:flex-start;gap:9px}
+.lmNAvatar{width:34px;height:34px;border-radius:50%;background:rgba(0,179,90,.15);border:1.5px solid rgba(0,179,90,.4);display:flex;align-items:center;justify-content:center;font-size:.68em;font-weight:700;color:${G};flex-shrink:0;text-transform:uppercase;letter-spacing:.5px;backdrop-filter:blur(6px);margin-top:2px}
+.lmNBubble{position:relative;flex:1;background:rgba(18,18,18,0.55);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,0.12);border-radius:4px 12px 12px 12px;padding:10px 13px;color:rgba(255,255,255,.9);box-shadow:0 6px 20px rgba(0,0,0,.4);font-size:.85em;line-height:1.45;word-break:break-word}
+.lmNBubble::before{content:'';position:absolute;left:-7px;top:10px;border:6px solid transparent;border-right-color:rgba(255,255,255,.12);border-left-width:0}
+.lmNBubble::after{content:'';position:absolute;left:-6px;top:10px;border:6px solid transparent;border-right-color:rgba(18,18,18,.55);border-left-width:0}
+.lmNName{display:block;font-weight:700;color:${G};margin-bottom:2px;font-size:.9em}
+.lmNSharedReply{pointer-events:auto;display:flex;gap:8px;align-items:center;margin-top:2px;padding-left:43px;opacity:0;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease}
+.lmNSharedReply.lmNIn{opacity:1;transform:none}
 .lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:7px 13px;font-size:.8em;outline:none;font-family:inherit}
 .lmNInp:focus{border-color:${G}}
 .lmNSnd{background:${G};color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .lmNSnd:hover{background:${GD}}
 .lmMuteBtn{background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0;cursor:pointer}
 .lmMuteBtn:hover{opacity:1}
-@keyframes lmFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes lmFadeDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(8px)}}
 `;
 document.head.appendChild(st);
 
@@ -729,11 +733,15 @@ function getOrEnsureSharedReply(stack) {
     reply.id = 'lmNSharedReply';
     reply.className = 'lmNSharedReply';
     reply.innerHTML = `
-      <input type="text" class="lmNInp" id="lmNInp" placeholder="Reply to DM..." maxlength="500" autocomplete="off"/>
+      <input type="text" class="lmNInp" id="lmNInp" placeholder="Reply back" maxlength="500" autocomplete="off"/>
       <button class="lmNSnd" id="lmNSndBtn" title="Send">
         <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>`;
     stack.appendChild(reply);
+    
+    // trigger reflow then animate in
+    reply.getBoundingClientRect();
+    reply.classList.add('lmNIn');
 
     const inp = reply.querySelector('#lmNInp');
     inp.onfocus = () => {
@@ -782,6 +790,7 @@ function dismissBubble(wrap) {
   if (!wrap || !wrap.isConnected) return;
   const id = wrap.dataset.msgId;
   if (id && _lmActiveTimers.has(id)) { clearTimeout(_lmActiveTimers.get(id)); _lmActiveTimers.delete(id); }
+  wrap.classList.remove('lmNIn');
   wrap.classList.add('lmNOut');
   setTimeout(() => {
     if (wrap.isConnected) wrap.remove();
@@ -791,7 +800,7 @@ function dismissBubble(wrap) {
       const reply = document.getElementById('lmNSharedReply');
       if (reply) reply.remove();
     }
-  }, 280);
+  }, 350);
 }
 function dismissAllToasts() {
   const stack = document.getElementById('lmNStack');
@@ -808,13 +817,18 @@ function showFsNotification(msg) {
   const senderId = msg.SenderId || msg.senderId;
   _lmLastDmSenderId = senderId; // track who to reply to
 
+  const initials = name.split(' ').map(p => p[0] || '').join('').slice(0, 2).toUpperCase() || '?';
+
   const wrap = document.createElement('div');
   wrap.className = 'lmNBubbleWrap';
   wrap.dataset.msgId = id;
   wrap.innerHTML = `
     <button class="lmNCloseCircle" title="Dismiss">&times;</button>
-    <div class="lmNBubble">
-      <span class="lmNName">${esc(name)}</span>${esc(txt)}
+    <div class="lmNBubbleInner">
+      <div class="lmNAvatar" title="${esc(name)}">${esc(initials)}</div>
+      <div class="lmNBubble">
+        <span class="lmNName">${esc(name)}</span>${esc(txt)}
+      </div>
     </div>`;
 
   wrap.querySelector('.lmNCloseCircle').onclick = (e) => { e.stopPropagation(); dismissBubble(wrap); };
@@ -826,6 +840,10 @@ function showFsNotification(msg) {
   } else {
     stack.appendChild(wrap);
   }
+
+  // trigger reflow to guarantee the transition applies
+  wrap.getBoundingClientRect();
+  wrap.classList.add('lmNIn');
 
   // Ensure shared reply exists below all bubbles
   getOrEnsureSharedReply(stack);
