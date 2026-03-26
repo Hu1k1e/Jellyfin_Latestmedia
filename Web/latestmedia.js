@@ -217,7 +217,7 @@ st.innerHTML=`
   background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
-/* Player Toast Notifications (v1.0.76) */
+/* Player Toast Notifications (v1.0.77) */
 .lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;pointer-events:none;width:320px}
 .lmNBubbleWrap{pointer-events:auto;position:relative;animation:lmFadeUp .35s ease forwards}
 .lmNBubbleWrap.lmNOut{animation:lmFadeDown .25s ease forwards}
@@ -225,9 +225,9 @@ st.innerHTML=`
 .lmNCloseCircle:hover{background:rgba(80,80,80,.95);color:#fff}
 .lmNBubbleInner{display:flex;align-items:flex-start;gap:9px}
 .lmNAvatar{width:34px;height:34px;border-radius:50%;background:rgba(0,179,90,.15);border:1.5px solid rgba(0,179,90,.4);display:flex;align-items:center;justify-content:center;font-size:.68em;font-weight:700;color:${G};flex-shrink:0;text-transform:uppercase;letter-spacing:.5px;backdrop-filter:blur(6px);margin-top:2px}
-.lmNBubble{position:relative;flex:1;background:rgba(18,18,18,0.55);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,0.12);border-radius:4px 12px 12px 12px;padding:10px 13px;color:inherit;box-shadow:0 6px 20px rgba(0,0,0,.4);font-size:.85em;line-height:1.45;word-break:break-word}
-.lmNBubble::before{content:'';position:absolute;left:-7px;top:10px;border:6px solid transparent;border-right-color:rgba(255,255,255,.12);border-left-width:0}
-.lmNBubble::after{content:'';position:absolute;left:-6px;top:10px;border:6px solid transparent;border-right-color:rgba(18,18,18,.55);border-left-width:0}
+.lmNBubble{position:relative;flex:1;background:rgba(12,12,12,0.38);backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border:1px solid rgba(255,255,255,0.14);border-radius:4px 14px 14px 14px;padding:10px 13px;color:#fff;box-shadow:0 8px 28px rgba(0,0,0,.5);font-size:.85em;line-height:1.45;word-break:break-word}
+.lmNBubble::before{content:'';position:absolute;left:-7px;top:10px;border:6px solid transparent;border-right-color:rgba(255,255,255,.14);border-left-width:0}
+.lmNBubble::after{content:'';position:absolute;left:-6px;top:10px;border:6px solid transparent;border-right-color:rgba(12,12,12,.38);border-left-width:0}
 .lmNName{display:block;font-weight:700;color:${G};margin-bottom:2px;font-size:.9em}
 .lmNSharedReply{pointer-events:auto;display:flex;gap:8px;align-items:center;margin-top:2px;padding-left:43px;animation:lmFadeUp .3s ease .1s forwards;opacity:0}
 .lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:7px 13px;font-size:.8em;outline:none;font-family:inherit}
@@ -733,7 +733,7 @@ function getOrEnsureSharedReply(stack) {
     reply.id = 'lmNSharedReply';
     reply.className = 'lmNSharedReply';
     reply.innerHTML = `
-      <input type="text" class="lmNInp" id="lmNInp" placeholder="Reply to DM..." maxlength="500" autocomplete="off"/>
+      <input type="text" class="lmNInp" id="lmNInp" placeholder="Reply back" maxlength="500" autocomplete="off"/>
       <button class="lmNSnd" id="lmNSndBtn" title="Send">
         <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>`;
