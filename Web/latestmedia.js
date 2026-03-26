@@ -217,24 +217,23 @@ st.innerHTML=`
   background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
-/* Player Toast Notifications */
-.lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:12px;pointer-events:none;width:300px}
-.lmNToast{pointer-events:auto;display:flex;flex-direction:column;gap:6px;animation:lmSlideUp .4s cubic-bezier(.175,.885,.32,1.275) forwards;transition:opacity .3s ease,transform .3s ease,max-height .3s ease,margin-bottom .3s ease;max-height:200px;overflow:hidden}
-.lmNToast.lmNOut{opacity:0;transform:scale(.9);max-height:0;margin-bottom:-12px}
-.lmNBubbleRow{background-color:#2e7d32;color:#fff;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 4px 12px rgba(0,0,0,.5)}
-.lmNBubbleContent{flex:1;font-size:.85em;line-height:1.4;word-break:break-word}
-.lmNName{font-weight:700;margin-right:6px}
-.lmNClose{background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2em;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0}
-.lmNClose:hover{color:#fff}
-.lmNReplyRow{display:flex;gap:8px;opacity:0;animation:lmFadeIn .3s ease forwards .2s}
-.lmNInp{flex:1;background:rgba(0,0,0,.7);border:1px solid #555;border-radius:16px;padding:6px 12px;color:#fff;font-size:.8em;outline:none;font-family:inherit}
+/* Player Toast Notifications (v1.0.74) */
+.lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:300px}
+.lmNBubbleWrap{pointer-events:auto;position:relative;animation:lmFadeUp .35s ease forwards}
+.lmNBubbleWrap.lmNOut{animation:lmFadeDown .25s ease forwards}
+.lmNCloseCircle{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:50%;background:rgba(40,40,40,.9);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);font-size:.85em;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;backdrop-filter:blur(8px);transition:background .15s}
+.lmNCloseCircle:hover{background:rgba(80,80,80,.95);color:#fff}
+.lmNBubble{background:rgba(18,18,18,0.55);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:11px 14px;color:inherit;box-shadow:0 8px 25px rgba(0,0,0,.4);font-size:.85em;line-height:1.45;word-break:break-word}
+.lmNName{font-weight:700;color:${G};margin-right:5px}
+.lmNSharedReply{pointer-events:auto;display:flex;gap:8px;align-items:center;margin-top:2px;animation:lmFadeUp .3s ease .1s forwards;opacity:0}
+.lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:7px 13px;font-size:.8em;outline:none;font-family:inherit}
 .lmNInp:focus{border-color:${G}}
-.lmNSnd{background-color:#2e7d32;color:#fff;border:none;border-radius:16px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.lmNSnd:hover{background-color:#1b5e20}
+.lmNSnd{background:${G};color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lmNSnd:hover{background:${GD}}
 .lmMuteBtn{background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0;cursor:pointer}
 .lmMuteBtn:hover{opacity:1}
-@keyframes lmSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-@keyframes lmFadeIn{to{opacity:1}}
+@keyframes lmFadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes lmFadeDown{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(8px)}}
 `;
 document.head.appendChild(st);
 
@@ -723,74 +722,148 @@ function dismissToast(toast) {
   toast.classList.add('lmNOut');
   setTimeout(() => { if (toast.isConnected) toast.remove(); }, 300);
 }
+function getOrEnsureSharedReply(stack) {
+  let reply = document.getElementById('lmNSharedReply');
+  if (!reply) {
+    reply = document.createElement('div');
+    reply.id = 'lmNSharedReply';
+    reply.className = 'lmNSharedReply';
+    reply.innerHTML = `
+      <input type="text" class="lmNInp" id="lmNInp" placeholder="Reply to DM..." maxlength="500" autocomplete="off"/>
+      <button class="lmNSnd" id="lmNSndBtn" title="Send">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>`;
+    stack.appendChild(reply);
+
+    const inp = reply.querySelector('#lmNInp');
+    inp.onfocus = () => {
+      // Pause all auto-dismiss timers while user is typing
+      _lmActiveTimers.forEach(tid => clearTimeout(tid));
+      _lmActiveTimers.clear();
+    };
+    inp.onblur = () => {
+      // Restart timers on blur if input is empty
+      if (inp.value.trim() === '') restartAllTimers();
+    };
+    inp.onkeyup = (e) => { if (e.key === 'Enter') sendSharedReply(); };
+    reply.querySelector('#lmNSndBtn').onclick = sendSharedReply;
+  }
+  return reply;
+}
+function sendSharedReply() {
+  const inp = document.getElementById('lmNInp');
+  if (!inp) return;
+  const val = inp.value.trim();
+  if (!val || !_lmLastDmSenderId) return;
+  inp.value = '';
+  api(`Chat/DM/${_lmLastDmSenderId}/Messages`, {
+    method: 'POST',
+    body: JSON.stringify({ content: val })
+  }).then(() => {
+    // Dismiss all current toasts after reply
+    dismissAllToasts();
+  }).catch(() => { inp.value = val; });
+}
+function restartAllTimers() {
+  // Find all bubble wraps and restart their individual 8s timers
+  const stack = document.getElementById('lmNStack');
+  if (!stack) return;
+  stack.querySelectorAll('.lmNBubbleWrap').forEach(wrap => {
+    const id = wrap.dataset.msgId;
+    if (!id) return;
+    if (_lmActiveTimers.has(id)) clearTimeout(_lmActiveTimers.get(id));
+    _lmActiveTimers.set(id, setTimeout(() => {
+      _lmActiveTimers.delete(id);
+      dismissBubble(wrap);
+    }, 8000));
+  });
+}
+function dismissBubble(wrap) {
+  if (!wrap || !wrap.isConnected) return;
+  const id = wrap.dataset.msgId;
+  if (id && _lmActiveTimers.has(id)) { clearTimeout(_lmActiveTimers.get(id)); _lmActiveTimers.delete(id); }
+  wrap.classList.add('lmNOut');
+  setTimeout(() => {
+    if (wrap.isConnected) wrap.remove();
+    // If no more bubbles, remove the shared reply too
+    const stack = document.getElementById('lmNStack');
+    if (stack && !stack.querySelector('.lmNBubbleWrap')) {
+      const reply = document.getElementById('lmNSharedReply');
+      if (reply) reply.remove();
+    }
+  }, 280);
+}
+function dismissAllToasts() {
+  const stack = document.getElementById('lmNStack');
+  if (!stack) return;
+  stack.querySelectorAll('.lmNBubbleWrap').forEach(w => dismissBubble(w));
+}
+let _lmLastDmSenderId = null;
 function showFsNotification(msg) {
   const stack = document.getElementById('lmNStack');
   if (!stack) return;
   const id = msg.Id || msg.id;
   const name = msg.SenderName || msg.senderName || 'User';
-  const txt = msg.Content || msg.content || '';
+  const txt = msg.Content || msg.content || msg.Ciphertext || msg.ciphertext || '(encrypted)';
+  const senderId = msg.SenderId || msg.senderId;
+  _lmLastDmSenderId = senderId; // track who to reply to
 
-  const toast = document.createElement('div');
-  toast.className = 'lmNToast';
-  toast.dataset.msgId = id;
-  toast.innerHTML = `
-    <div class="lmNBubbleRow">
-      <div class="lmNBubbleContent">
-        <span class="lmNName">${esc(name)}:</span> ${esc(txt)}
-      </div>
-      <button class="lmNClose" title="Dismiss">&times;</button>
-    </div>
-    <div class="lmNReplyRow">
-      <input type="text" class="lmNInp" placeholder="Reply..." maxlength="500" autocomplete="off"/>
-      <button class="lmNSnd" title="Send">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-      </button>
+  const wrap = document.createElement('div');
+  wrap.className = 'lmNBubbleWrap';
+  wrap.dataset.msgId = id;
+  wrap.innerHTML = `
+    <button class="lmNCloseCircle" title="Dismiss">&times;</button>
+    <div class="lmNBubble">
+      <span class="lmNName">${esc(name)}</span>${esc(txt)}
     </div>`;
 
-  toast.querySelector('.lmNClose').onclick = (e) => { e.stopPropagation(); dismissToast(toast); };
+  wrap.querySelector('.lmNCloseCircle').onclick = (e) => { e.stopPropagation(); dismissBubble(wrap); };
 
-  const inp = toast.querySelector('.lmNInp');
-  const sendReply = () => {
-    const val = inp.value.trim();
-    if (!val) return;
-    inp.value = '';
-    api('Chat/Messages', { method: 'POST', body: JSON.stringify({ content: val }) })
-      .then(() => dismissToast(toast)).catch(() => { inp.value = val; });
-  };
-  toast.querySelector('.lmNSnd').onclick = sendReply;
-  inp.onkeyup = (e) => { if (e.key === 'Enter') sendReply(); };
+  // Insert before the shared reply (or at end if no reply yet)
+  const existingReply = document.getElementById('lmNSharedReply');
+  if (existingReply) {
+    stack.insertBefore(wrap, existingReply);
+  } else {
+    stack.appendChild(wrap);
+  }
 
-  const startAutoDismiss = () => {
-    if (_lmActiveTimers.has(id)) clearTimeout(_lmActiveTimers.get(id));
-    _lmActiveTimers.set(id, setTimeout(() => { _lmActiveTimers.delete(id); dismissToast(toast); }, 5000));
-  };
-  inp.onfocus = () => { if (_lmActiveTimers.has(id)) { clearTimeout(_lmActiveTimers.get(id)); _lmActiveTimers.delete(id); } };
-  inp.onblur = () => { if (inp.value.trim() === '') startAutoDismiss(); };
+  // Ensure shared reply exists below all bubbles
+  getOrEnsureSharedReply(stack);
 
-  stack.appendChild(toast);
-  startAutoDismiss();
+  // Start 8s auto-dismiss
+  if (_lmActiveTimers.has(id)) clearTimeout(_lmActiveTimers.get(id));
+  _lmActiveTimers.set(id, setTimeout(() => {
+    _lmActiveTimers.delete(id);
+    dismissBubble(wrap);
+  }, 8000));
 }
 function startNotificationPolling() {
   if (_lmPollInterval) return;
-  // Record when this video session started so we only show messages newer than this
   _lmPollStartTime = Date.now();
 
   _lmPollInterval = setInterval(() => {
     if (fsMuted) return;
     if (document.getElementById('lmChat')) return;
-    api('Chat/Messages').then(msgs => {
-      if (!Array.isArray(msgs)) return;
-      const newMsgs = msgs.filter(m => {
-        const id = m.Id || m.id;
-        const senderId = String(m.SenderId || m.senderId);
-        const bc = m.IsBroadcast || m.isBroadcast;
-        const ts = new Date(m.Timestamp || m.timestamp || 0).getTime();
-        // Only show messages from others, not broadcast, not already seen, and sent AFTER polling started
-        return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id) && ts >= _lmPollStartTime;
+    // Poll DM conversations for new unread messages
+    api('Chat/DM/Conversations').then(convs => {
+      if (!Array.isArray(convs)) return;
+      const unreadConvs = convs.filter(c => (c.UnreadCount || c.unreadCount || 0) > 0);
+      unreadConvs.forEach(conv => {
+        const uid = conv.UserId || conv.userId;
+        if (!uid) return;
+        api(`Chat/DM/${uid}/Messages`).then(msgs => {
+          if (!Array.isArray(msgs)) return;
+          const newMsgs = msgs.filter(m => {
+            const id = m.Id || m.id;
+            const senderId = String(m.SenderId || m.senderId || '');
+            const ts = new Date(m.Timestamp || m.timestamp || 0).getTime();
+            return senderId !== String(S.uid) && !fsSeenIds.has(id) && ts >= _lmPollStartTime;
+          });
+          msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
+          if (fsSeenIds.size > 500) { fsSeenIds = new Set(Array.from(fsSeenIds).slice(-300)); }
+          newMsgs.forEach(m => showFsNotification(m));
+        }).catch(() => {});
       });
-      msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
-      if (fsSeenIds.size > 500) { fsSeenIds = new Set(Array.from(fsSeenIds).slice(-300)); }
-      newMsgs.forEach(m => showFsNotification(m));
     }).catch(() => {});
   }, 3000);
 }
