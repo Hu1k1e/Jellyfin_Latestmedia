@@ -742,8 +742,8 @@ function getOrEnsureSharedReply(stack) {
       _lmActiveTimers.clear();
     };
     inp.onblur = () => {
-      // Restart timers on blur if input is empty
-      if (inp.value.trim() === '') restartAllTimers();
+      // Restart timers whenever user clicks outside — whether or not they typed something
+      restartAllTimers();
     };
     inp.onkeyup = (e) => { if (e.key === 'Enter') sendSharedReply(); };
     reply.querySelector('#lmNSndBtn').onclick = sendSharedReply;

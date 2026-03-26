@@ -90,7 +90,16 @@ namespace Jellyfin_Latestmedia.Api
             return User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "User";
         }
 
-        // Admin check removed to bypass 10.11 API breaking changes
+        private Task<bool> IsAdminAsync()
+        {
+            // Jellyfin 10.11 sets an IsAdministrator claim in the JWT for admin users
+            var isAdmin = User.IsInRole("Administrator") ||
+                          User.FindFirst("IsAdministrator")?.Value == "true" ||
+                          User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value == "Administrator";
+            return Task.FromResult(isAdmin);
+        }
+
+        // Admin delete bypass: admins can delete any message at any time
 
 
         // --- PUBLIC CHAT ---
@@ -174,20 +183,18 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult> DeletePublicMessage(string id)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
+            bool isAdmin = await IsAdminAsync().ConfigureAwait(false);
 
             var messages = await _repository.ReadListAsync<ChatMessage>("chat_public");
             var msg = messages.FirstOrDefault(m => m.Id == id);
             
             if (msg == null) return NotFound();
 
-            if (msg.SenderId != userId)
+            if (!isAdmin)
             {
-                return Forbid();
-            }
-
-            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3)
-            {
-                return BadRequest("Cannot delete messages older than 3 hours.");
+                if (msg.SenderId != userId) return Forbid();
+                if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3)
+                    return BadRequest("Cannot delete messages older than 3 hours.");
             }
 
             messages.Remove(msg);
@@ -389,6 +396,7 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid? targetUserId)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
+            bool isAdmin = await IsAdminAsync().ConfigureAwait(false);
             
             if (targetUserId.HasValue && targetUserId.Value != Guid.Empty)
             {
@@ -397,8 +405,11 @@ namespace Jellyfin_Latestmedia.Api
                 var msg = messages.FirstOrDefault(m => m.Id == id);
                 if (msg != null)
                 {
-                    if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
-                    if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                    if (!isAdmin)
+                    {
+                        if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
+                        if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                    }
                     messages.Remove(msg);
                     await _repository.WriteListAsync(filename, messages);
                     return Ok();
@@ -406,18 +417,22 @@ namespace Jellyfin_Latestmedia.Api
             }
 
             var files = System.IO.Directory.GetFiles(_repository.DataDirectory, "chat_dm_*.json");
+            // For admin: search all DM files; for regular users: only own files
             var uStr = userId.ToString("N");
             foreach (var f in files)
             {
                 var fname = System.IO.Path.GetFileNameWithoutExtension(f);
-                if (fname.Contains(uStr))
+                if (isAdmin || fname.Contains(uStr))
                 {
                     var messages = await _repository.ReadListAsync<EncryptedPrivateMessage>(fname);
                     var msg = messages.FirstOrDefault(m => m.Id == id);
                     if (msg != null)
                     {
-                        if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
-                        if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                        if (!isAdmin)
+                        {
+                            if (msg.SenderId != userId) return Forbid("Cannot delete someone else's message");
+                            if ((DateTime.UtcNow - msg.Timestamp).TotalHours > 3) return BadRequest("Cannot delete older than 3 hours.");
+                        }
                         messages.Remove(msg);
                         await _repository.WriteListAsync(fname, messages);
                         return Ok();
