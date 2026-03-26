@@ -277,6 +277,7 @@ function outsideClose(excludes, cb){
     function h(e){
       if(!e.composedPath)return;
       const path=e.composedPath();
+      if(e.target && e.target.closest && e.target.closest('.lmCodePop,.lmCf,.lmEmpick')) return;
       if(!excludes.some(el=>path.includes(el))) cb();
     }
     excludes.forEach(el=>{if(el)el._outsideHandler=h});
