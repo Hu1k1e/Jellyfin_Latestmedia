@@ -232,7 +232,7 @@ st.innerHTML=`
 .lmNName{display:block;font-weight:700;color:${G};margin-bottom:2px;font-size:.9em}
 .lmNSharedReply{pointer-events:auto;display:flex;gap:8px;align-items:center;margin-top:2px;padding-left:43px;opacity:0;transform:translateY(10px);transition:opacity .3s ease,transform .3s ease}
 .lmNSharedReply.lmNIn{opacity:1;transform:none}
-.lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:7px 13px;font-size:.8em;outline:none;font-family:inherit}
+.lmNInp{flex:1;background:rgba(18,18,18,0.55);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:rgba(255,255,255,.9);padding:7px 13px;font-size:.8em;outline:none;font-family:inherit;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .lmNInp:focus{border-color:${G}}
 .lmNSnd{background:${G};color:#fff;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .lmNSnd:hover{background:${GD}}
@@ -512,17 +512,29 @@ const E2E={
   keys:null,
   sharedKeys:{},
   async init(){
-    let privJwk=localStorage.getItem('lm_priv');
-    let pubJwk=localStorage.getItem('lm_pub');
+    let owner = localStorage.getItem('lm_owner');
+    if (!owner && localStorage.getItem('lm_priv')) {
+       localStorage.setItem('lm_owner', S.uid);
+       owner = S.uid;
+    }
+    let pKey = 'lm_priv_' + S.uid;
+    let puKey = 'lm_pub_' + S.uid;
+    let privJwk = localStorage.getItem(pKey);
+    let pubJwk = localStorage.getItem(puKey);
+    if (!privJwk && owner === S.uid) {
+       privJwk = localStorage.getItem('lm_priv');
+       pubJwk = localStorage.getItem('lm_pub');
+    }
     if(!privJwk||!pubJwk){
       const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']);
       privJwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
       pubJwk=await crypto.subtle.exportKey('jwk',kp.publicKey);
-      localStorage.setItem('lm_priv',JSON.stringify(privJwk));
-      localStorage.setItem('lm_pub',JSON.stringify(pubJwk));
-    }else{
-      privJwk=JSON.parse(privJwk);pubJwk=JSON.parse(pubJwk);
+      privJwk=JSON.stringify(privJwk);
+      pubJwk=JSON.stringify(pubJwk);
     }
+    localStorage.setItem(pKey, privJwk);
+    localStorage.setItem(puKey, pubJwk);
+    privJwk=JSON.parse(privJwk);pubJwk=JSON.parse(pubJwk);
     this.keys={
       priv:await crypto.subtle.importKey('jwk',privJwk,{name:'ECDH',namedCurve:'P-256'},true,['deriveKey','deriveBits']),
       pub:await crypto.subtle.importKey('jwk',pubJwk,{name:'ECDH',namedCurve:'P-256'},true,[]),
@@ -1330,6 +1342,20 @@ const obs=new MutationObserver(()=>{
 });
 obs.observe(document.body,{childList:true,subtree:true});
 setInterval(()=>{
+  const curUid = window.ApiClient ? window.ApiClient.getCurrentUserId() : null;
+  if (curUid && S.uid && S.uid !== curUid) {
+    S.tok = window.ApiClient.accessToken();
+    S.uid = curUid;
+    S.ok = false;
+    CHAT_CACHE.pub = null;
+    CHAT_CACHE.dms = {};
+    CHAT_CACHE.convs = null;
+    E2E.keys = null;
+    if (typeof closeChat === 'function') closeChat();
+  } else if (window.ApiClient && window.ApiClient.accessToken() && S.tok && S.tok !== window.ApiClient.accessToken()) {
+    S.tok = window.ApiClient.accessToken();
+  }
+
   if(!document.getElementById('lm-btn-latest'))S.ok=false;
   tryInject();
   tryInjectPlayerChat();
