@@ -217,23 +217,24 @@ st.innerHTML=`
   background:rgba(8,8,8,.85);backdrop-filter:blur(22px);
   border:1px solid rgba(255,255,255,.14);border-radius:12px;
   padding:12px 14px 10px;box-shadow:0 10px 36px rgba(0,0,0,.65)}
-/* Fullscreen Notifications */
-.lmNStack{position:fixed;bottom:20px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
-.lmNToast{background:rgba(18,18,18,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px 16px;color:inherit;width:300px;box-shadow:0 8px 25px rgba(0,0,0,0.4);pointer-events:auto;animation:lmNIn .2s ease-out}
-@keyframes lmNIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
-.lmNOut{animation:lmNOut .2s ease-in forwards}
-@keyframes lmNOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
-.lmNClose{position:absolute;top:8px;right:8px;background:none;border:none;color:inherit;font-size:1.2em;opacity:.4;cursor:pointer}
-.lmNClose:hover{opacity:.8}
-.lmNName{font-weight:700;font-size:.9em;margin-bottom:4px}
-.lmNBbl{font-size:.85em;line-height:1.4;word-break:break-word;margin-bottom:8px}
-.lmNReply{display:flex;gap:5px;align-items:center}
-.lmNInp{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:18px;color:inherit;padding:6px 10px;font-size:.75em;outline:none;font-family:inherit}
+/* Player Toast Notifications */
+.lmNStack{position:fixed;top:80px;right:20px;z-index:999999;display:flex;flex-direction:column;gap:12px;pointer-events:none;width:300px}
+.lmNToast{pointer-events:auto;display:flex;flex-direction:column;gap:6px;animation:lmSlideUp .4s cubic-bezier(.175,.885,.32,1.275) forwards;transition:opacity .3s ease,transform .3s ease,max-height .3s ease,margin-bottom .3s ease;max-height:200px;overflow:hidden}
+.lmNToast.lmNOut{opacity:0;transform:scale(.9);max-height:0;margin-bottom:-12px}
+.lmNBubbleRow{background-color:#2e7d32;color:#fff;border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-start;box-shadow:0 4px 12px rgba(0,0,0,.5)}
+.lmNBubbleContent{flex:1;font-size:.85em;line-height:1.4;word-break:break-word}
+.lmNName{font-weight:700;margin-right:6px}
+.lmNClose{background:none;border:none;color:rgba(255,255,255,.7);font-size:1.2em;cursor:pointer;padding:0 0 0 8px;line-height:1;flex-shrink:0}
+.lmNClose:hover{color:#fff}
+.lmNReplyRow{display:flex;gap:8px;opacity:0;animation:lmFadeIn .3s ease forwards .2s}
+.lmNInp{flex:1;background:rgba(0,0,0,.7);border:1px solid #555;border-radius:16px;padding:6px 12px;color:#fff;font-size:.8em;outline:none;font-family:inherit}
 .lmNInp:focus{border-color:${G}}
-.lmNSnd{background:${G};color:#fff;border:none;border-radius:50%;width:26px;height:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.lmNSnd:hover{background:${GD}}
+.lmNSnd{background-color:#2e7d32;color:#fff;border:none;border-radius:16px;padding:6px 12px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lmNSnd:hover{background-color:#1b5e20}
 .lmMuteBtn{background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0;cursor:pointer}
 .lmMuteBtn:hover{opacity:1}
+@keyframes lmSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes lmFadeIn{to{opacity:1}}
 `;
 document.head.appendChild(st);
 
@@ -615,7 +616,11 @@ function openChat(wrap,isPlayer){
     fsMuted = !fsMuted;
     localStorage.setItem('lm_fs_muted', fsMuted);
     updateMuteIcon();
-    if (fsMuted) { const stack = document.getElementById('lmNStack'); if (stack) stack.innerHTML = ''; }
+    if (fsMuted) {
+      const stack = document.getElementById('lmNStack'); if (stack) stack.innerHTML = '';
+      _lmActiveTimers.forEach(tid => clearTimeout(tid)); _lmActiveTimers.clear();
+    }
+    refreshBadge();
   };
 
   const inp=p.querySelector('#lmInp');
@@ -677,7 +682,7 @@ function refreshBadge(){
   ]).then(([cs, pub]) => {
     const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
     const pubUnread = (pub||[]).length;
-    const hasUnread = dmUnread > 0 || pubUnread > 0;
+    const hasUnread = !fsMuted && (dmUnread > 0 || pubUnread > 0);
     const b=document.getElementById('lmChatBdg');
     if(b){ b.textContent=''; b.classList.toggle('on', hasUnread); }
     const pb=document.getElementById('lmPlayerChatBdg');
@@ -685,28 +690,39 @@ function refreshBadge(){
   });
 }
 
-/* ── Fullscreen Notifications ── */
-function isVideoPlaying() {
-  return window.location.href.indexOf('/video') !== -1 || !!document.querySelector('.videoPlayerContainer,.videoOsdBottom,[class*="videoPlayer"]');
+/* ── Player Toast Notifications (v1.0.72) ── */
+window._lmVideoActive = false;
+let _lmActiveTimers = new Map();
+let _lmPollInterval = null;
+
+function injectToastContainer() {
+  if (document.getElementById('lmNStack')) return;
+  const stack = document.createElement('div');
+  stack.id = 'lmNStack';
+  stack.className = 'lmNStack';
+  document.body.appendChild(stack);
 }
-function getOrCreateStack() {
-  let stack = document.getElementById('lmNStack');
-  if (!stack) {
-    stack = document.createElement('div');
-    stack.id = 'lmNStack';
-    stack.className = 'lmNStack';
-    document.body.appendChild(stack);
-  }
-  return stack;
+function destroyToastContainer() {
+  const stack = document.getElementById('lmNStack');
+  if (stack) stack.remove();
+  _lmActiveTimers.forEach(tid => clearTimeout(tid));
+  _lmActiveTimers.clear();
+  fsSeenIds.clear();
+  if (_lmPollInterval) { clearInterval(_lmPollInterval); _lmPollInterval = null; }
 }
 function dismissToast(toast) {
   if (!toast || !toast.isConnected) return;
+  const msgId = toast.dataset.msgId;
+  if (msgId && _lmActiveTimers.has(msgId)) {
+    clearTimeout(_lmActiveTimers.get(msgId));
+    _lmActiveTimers.delete(msgId);
+  }
   toast.classList.add('lmNOut');
-  toast.addEventListener('animationend', () => toast.remove(), { once: true });
   setTimeout(() => { if (toast.isConnected) toast.remove(); }, 300);
 }
 function showFsNotification(msg) {
-  const stack = getOrCreateStack();
+  const stack = document.getElementById('lmNStack');
+  if (!stack) return;
   const id = msg.Id || msg.id;
   const name = msg.SenderName || msg.senderName || 'User';
   const txt = msg.Content || msg.content || '';
@@ -715,11 +731,14 @@ function showFsNotification(msg) {
   toast.className = 'lmNToast';
   toast.dataset.msgId = id;
   toast.innerHTML = `
-    <button class="lmNClose">&times;</button>
-    <div class="lmNName">${esc(name)}</div>
-    <div class="lmNBbl">${esc(txt)}</div>
-    <div class="lmNReply">
-      <input class="lmNInp" placeholder="Reply..." maxlength="500" autocomplete="off"/>
+    <div class="lmNBubbleRow">
+      <div class="lmNBubbleContent">
+        <span class="lmNName">${esc(name)}:</span> ${esc(txt)}
+      </div>
+      <button class="lmNClose" title="Dismiss">&times;</button>
+    </div>
+    <div class="lmNReplyRow">
+      <input type="text" class="lmNInp" placeholder="Reply..." maxlength="500" autocomplete="off"/>
       <button class="lmNSnd" title="Send">
         <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
@@ -738,31 +757,40 @@ function showFsNotification(msg) {
   toast.querySelector('.lmNSnd').onclick = sendReply;
   inp.onkeyup = (e) => { if (e.key === 'Enter') sendReply(); };
 
-  let autoTimer = null;
-  const startAutoDismiss = () => { clearTimeout(autoTimer); autoTimer = setTimeout(() => dismissToast(toast), 5000); };
-  inp.onfocus = () => clearTimeout(autoTimer);
-  inp.onblur = () => startAutoDismiss();
+  const startAutoDismiss = () => {
+    if (_lmActiveTimers.has(id)) clearTimeout(_lmActiveTimers.get(id));
+    _lmActiveTimers.set(id, setTimeout(() => { _lmActiveTimers.delete(id); dismissToast(toast); }, 5000));
+  };
+  inp.onfocus = () => { if (_lmActiveTimers.has(id)) { clearTimeout(_lmActiveTimers.get(id)); _lmActiveTimers.delete(id); } };
+  inp.onblur = () => { if (inp.value.trim() === '') startAutoDismiss(); };
 
   stack.appendChild(toast);
   startAutoDismiss();
 }
-function pollFsNotifications() {
-  if (fsMuted || !isVideoPlaying()) return;
-  if (document.getElementById('lmChat')) return; // panels open
-  api('Chat/Messages').then(msgs => {
-    if (!Array.isArray(msgs)) return;
-    const now = Date.now();
-    const newMsgs = msgs.filter(m => {
-      const id = m.Id || m.id;
-      const senderId = String(m.SenderId || m.senderId);
-      const ts = new Date(m.Timestamp || m.timestamp).getTime();
-      const bc = m.IsBroadcast || m.isBroadcast;
-      return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id) && (now - ts) < 30000;
-    });
-    msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
-    if (fsSeenIds.size > 200) { const arr = Array.from(fsSeenIds).slice(-100); fsSeenIds = new Set(arr); }
-    newMsgs.forEach(m => showFsNotification(m));
-  }).catch(() => {});
+function startNotificationPolling() {
+  if (_lmPollInterval) return;
+  let seeded = false;
+  _lmPollInterval = setInterval(() => {
+    if (fsMuted) return;
+    if (document.getElementById('lmChat')) return;
+    api('Chat/Messages').then(msgs => {
+      if (!Array.isArray(msgs)) return;
+      if (!seeded) {
+        msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
+        seeded = true;
+        return;
+      }
+      const newMsgs = msgs.filter(m => {
+        const id = m.Id || m.id;
+        const senderId = String(m.SenderId || m.senderId);
+        const bc = m.IsBroadcast || m.isBroadcast;
+        return senderId !== String(S.uid) && !bc && !fsSeenIds.has(id);
+      });
+      msgs.forEach(m => fsSeenIds.add(m.Id || m.id));
+      if (fsSeenIds.size > 500) { fsSeenIds = new Set(Array.from(fsSeenIds).slice(-300)); }
+      newMsgs.forEach(m => showFsNotification(m));
+    }).catch(() => {});
+  }, 3000);
 }
 
 function preserveCache(oldArr, newArr) {
@@ -1187,9 +1215,7 @@ function tryInjectPlayerChat(){
   btn.addEventListener('click',e=>{e.stopPropagation();openChat(btn,true)});
   osd.insertBefore(btn,osd.firstChild);
 
-  if (!fsPollTimer) {
-    fsPollTimer = setInterval(pollFsNotifications, 3000);
-  }
+  // Polling is now managed by the video lifecycle observer
 }
 
 const obs=new MutationObserver(()=>{
@@ -1197,12 +1223,16 @@ const obs=new MutationObserver(()=>{
   tryInject();
   tryInjectPlayerChat();
 
-  if (!document.querySelector('.videoPlayerContainer,.videoOsdBottom,[class*="videoPlayer"]') && fsPollTimer) {
-    clearInterval(fsPollTimer);
-    fsPollTimer = null;
-    const stack = document.getElementById('lmNStack');
-    if (stack) stack.remove();
-    fsSeenIds.clear();
+  // Video lifecycle: inject/destroy toast container based on <video> presence
+  const videoEl = document.querySelector('video');
+  if (videoEl && !window._lmVideoActive) {
+    window._lmVideoActive = true;
+    injectToastContainer();
+    startNotificationPolling();
+  }
+  if (!videoEl && window._lmVideoActive) {
+    window._lmVideoActive = false;
+    destroyToastContainer();
   }
 });
 obs.observe(document.body,{childList:true,subtree:true});
