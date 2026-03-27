@@ -1502,6 +1502,18 @@ function openAnnDetail(ann) {
   hdrBtns.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px';
 
   if (S.admin) {
+    const editBtn = document.createElement('button');
+    editBtn.className = 'lmAnnAddBtn';
+    editBtn.title = 'Edit Announcement';
+    editBtn.style.fontSize = '.9em';
+    editBtn.innerHTML = '✏️';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      openAnnCreate(ann);
+      det.remove();
+    };
+    hdrBtns.appendChild(editBtn);
+
     const delBtn = document.createElement('button');
     delBtn.className = 'lmAnnAddBtn';
     delBtn.title = 'Delete Announcement';
@@ -1539,7 +1551,7 @@ function openAnnDetail(ann) {
   document.body.appendChild(det);
 }
 
-function openAnnCreate() {
+function openAnnCreate(editObj = null) {
   if (document.getElementById('lmAnnCreateOv')) return;
 
   const ov = document.createElement('div');
@@ -1552,7 +1564,7 @@ function openAnnCreate() {
   // Header
   const panelHdr = document.createElement('div');
   panelHdr.className = 'lmAnnCreateHdr';
-  panelHdr.innerHTML = '<span style="font-weight:700;font-size:.95em">New Announcement</span>';
+  panelHdr.innerHTML = `<span style="font-weight:700;font-size:.95em">${editObj ? 'Edit Announcement' : 'New Announcement'}</span>`;
   const panelCl = document.createElement('button');
   panelCl.className = 'lmCCl';
   panelCl.innerHTML = '&times;';
@@ -1592,17 +1604,19 @@ function openAnnCreate() {
   cancelBtn.onclick = () => ov.remove();
   const publishBtn = document.createElement('button');
   publishBtn.className = 'lmAnnPubBtn';
-  publishBtn.textContent = 'Publish';
+  publishBtn.textContent = editObj ? 'Save Changes' : 'Publish';
   publishBtn.onclick = async () => {
     const title = document.getElementById('lmAnnTitleInp').value.trim();
     const version = document.getElementById('lmAnnVerInp').value.trim();
     const bodyText = document.getElementById('lmAnnBodyInp').value.trim();
     if (!title) { alert('Title is required.'); return; }
     publishBtn.disabled = true;
-    publishBtn.textContent = 'Publishing…';
+    publishBtn.textContent = editObj ? 'Saving…' : 'Publishing…';
     try {
-      await api('Announcement', {
-        method: 'POST',
+      const endpoint = editObj ? `Announcement/${editObj.Id}` : 'Announcement';
+      const method = editObj ? 'PUT' : 'POST';
+      await api(endpoint, {
+        method,
         body: JSON.stringify({ Title: title, Version: version, Body: bodyText })
       });
       ov.remove();
@@ -1624,6 +1638,12 @@ function openAnnCreate() {
 
   ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   panel.addEventListener('click', e => e.stopPropagation());
+
+  if (editObj) {
+    document.getElementById('lmAnnTitleInp').value = editObj.Title || '';
+    if (editObj.Version) document.getElementById('lmAnnVerInp').value = editObj.Version;
+    if (editObj.Body) document.getElementById('lmAnnBodyInp').value = editObj.Body;
+  }
 
   document.getElementById('lmAnnTitleInp').focus();
 }
