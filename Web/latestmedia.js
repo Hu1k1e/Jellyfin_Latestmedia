@@ -8,7 +8,8 @@ const EMOJIS='😀😁😂🤣😃😄😅😆😇😈😉😊😋😌😍🥰�
 const ICO={
   latest:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>`,
   manage:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>`,
-  chat:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`
+  chat:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>`,
+  announce:`<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M18 11v2h4v-2h-4zm-2 6.61c.96.71 2.21 1.65 3.2 2.39.4-.53.8-1.07 1.2-1.6-.99-.74-2.24-1.68-3.2-2.4-.4.54-.8 1.08-1.2 1.61zM20.4 5.6c-.4-.53-.8-1.07-1.2-1.6-.99.74-2.24 1.68-3.2 2.4.4.53.8 1.07 1.2 1.6.96-.72 2.21-1.65 3.2-2.4zM4 9c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2h1l5 5V4L5 9H4zm11.5 3c0-1.33-.58-2.53-1.5-3.35v6.69c.92-.81 1.5-2.01 1.5-3.34z"/></svg>`
 };
 
 const S={url:'',tok:'',uid:'',dev:'',code:'',admin:false,cfg:{},ok:false,timer:null};
@@ -17,6 +18,7 @@ const S={url:'',tok:'',uid:'',dev:'',code:'',admin:false,cfg:{},ok:false,timer:n
 window.addEventListener('hashchange', () => {
   if(typeof closeDD === 'function') closeDD(document.getElementById('lm-btn-latest'));
   if(typeof closeChat === 'function') closeChat();
+  if(typeof closeAnnouncements === 'function') closeAnnouncements();
 });
 
 document.addEventListener('click', () => {
@@ -238,6 +240,53 @@ st.innerHTML=`
 .lmNSnd:hover{background:${GD}}
 .lmMuteBtn{background:none;border:none;color:inherit;font-size:1.1rem;opacity:.55;flex-shrink:0;line-height:1;padding:0;cursor:pointer}
 .lmMuteBtn:hover{opacity:1}
+/* ── Server Announcements ── */
+.lmAnnDD{position:fixed;z-index:99999;width:380px;max-height:520px;display:flex;flex-direction:column}
+.lmAnnHdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;border-bottom:1px solid rgba(255,255,255,.08)}
+.lmAnnHdrTitle{font-weight:700;font-size:.95em;color:#fff}
+.lmAnnAddBtn{background:none;border:1px solid rgba(255,255,255,.18);border-radius:50%;width:26px;height:26px;color:rgba(255,255,255,.75);font-size:1.1em;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.lmAnnAddBtn:hover{color:#fff;border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08)}
+.lmAnnBody{flex:1;overflow-y:auto;padding:6px 8px}
+.lmAnnCard{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.05);gap:8px}
+.lmAnnCard:last-child{border-bottom:none}
+.lmAnnCard:hover{background:rgba(255,255,255,.06)}
+.lmAnnCardMain{flex:1;min-width:0}
+.lmAnnCardTitle{font-weight:600;font-size:.85em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lmAnnCardDate{font-size:.68em;color:rgba(255,255,255,.35);margin-top:2px}
+.lmAnnCardVer{font-size:.72em;color:rgba(0,179,90,.75);font-weight:700;letter-spacing:.04em;flex-shrink:0}
+.lmAnnDetail{position:fixed;z-index:100000;width:480px;max-height:620px;display:flex;flex-direction:column;top:50%;left:50%;transform:translate(-50%,-50%)}
+.lmAnnDetailHdr{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.lmAnnDetailHdrText{flex:1;min-width:0}
+.lmAnnDetailTitle{font-weight:700;font-size:1em;color:#fff;word-break:break-word}
+.lmAnnDetailMeta{font-size:.72em;color:rgba(255,255,255,.4);margin-top:3px}
+.lmAnnDetailBody{flex:1;overflow-y:auto;padding:16px;font-size:.85em;line-height:1.65;color:rgba(255,255,255,.85)}
+.lmAnnDetailBody h1,.lmAnnDetailBody h2,.lmAnnDetailBody h3{color:#fff;margin:14px 0 6px;font-size:1em}
+.lmAnnDetailBody h1{font-size:1.15em}.lmAnnDetailBody h2{font-size:1.05em}
+.lmAnnDetailBody code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-size:.9em;font-family:monospace}
+.lmAnnDetailBody pre{background:rgba(0,0,0,.35);padding:12px;border-radius:8px;overflow-x:auto;font-size:.82em;margin:8px 0}
+.lmAnnDetailBody pre code{background:none;padding:0}
+.lmAnnDetailBody ul,.lmAnnDetailBody ol{padding-left:20px;margin:6px 0}
+.lmAnnDetailBody li{margin:3px 0}
+.lmAnnDetailBody blockquote{border-left:3px solid rgba(0,179,90,.5);padding-left:12px;opacity:.8;margin:8px 0;font-style:italic}
+.lmAnnDetailBody a{color:${G};text-decoration:none}.lmAnnDetailBody a:hover{text-decoration:underline}
+.lmAnnDetailBody hr{border:none;border-top:1px solid rgba(255,255,255,.1);margin:12px 0}
+.lmAnnDetailBody strong{color:#fff}
+.lmAnnCreateOv{position:fixed;top:0;left:0;right:0;bottom:0;z-index:100001;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center}
+.lmAnnCreate{width:500px;max-height:85vh;display:flex;flex-direction:column}
+.lmAnnCreate .lmAnnCreateHdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.lmAnnCreate .lmAnnCreateBody{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.lmAnnCreate .lmFieldLabel{font-size:.76em;color:rgba(255,255,255,.5);margin-bottom:4px;display:block;letter-spacing:.03em}
+.lmAnnCreate .lmAnnInp,.lmAnnCreate .lmAnnTxt{width:100%;box-sizing:border-box;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:#fff;padding:9px 12px;font-size:.85em;font-family:inherit;outline:none;transition:border-color .15s}
+.lmAnnCreate .lmAnnInp:focus,.lmAnnCreate .lmAnnTxt:focus{border-color:${G}}
+.lmAnnCreate .lmAnnTxt{min-height:200px;resize:vertical;line-height:1.55}
+.lmAnnCreate .lmAnnCreateFoot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:flex-end;gap:8px}
+.lmAnnCreate .lmAnnCreateFoot button{padding:8px 18px;border-radius:8px;font-size:.82em;cursor:pointer;border:none;font-weight:600;transition:background .15s}
+.lmAnnPubBtn{background:${G};color:#fff}
+.lmAnnPubBtn:hover{background:${GD}}
+.lmAnnCanBtn{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
+.lmAnnCanBtn:hover{background:rgba(255,255,255,.13)}
+.lmAnnBdg{position:absolute;top:0;right:0;background:#e53935;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:.6em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.6);line-height:1}
+.lmAnnBdg.on{display:flex}
 `;
 document.head.appendChild(st);
 
@@ -277,7 +326,7 @@ function outsideClose(excludes, cb){
     function h(e){
       if(!e.composedPath)return;
       const path=e.composedPath();
-      if(e.target && e.target.closest && e.target.closest('.lmCodePop,.lmCf,.lmEmpick')) return;
+      if(e.target && e.target.closest && e.target.closest('.lmCodePop,.lmCf,.lmEmpick,.lmAnnDetail,.lmAnnCreateOv')) return;
       if(!excludes.some(el=>path.includes(el))) cb();
     }
     excludes.forEach(el=>{if(el)el._outsideHandler=h});
@@ -1271,6 +1320,305 @@ async function doSend(txt){
   }catch(ex){if(inp)inp.value=txt;alert('Send failed: '+ex.message)}
 }
 
+/* ── Server Announcements ── */
+
+function renderMarkdown(raw) {
+  if (!raw) return '';
+  // Escape HTML first, then selectively allow markdown patterns
+  let t = raw
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // Fenced code blocks
+  t = t.replace(/```([\w]*)\n([\s\S]*?)```/g, (_,lang,code) => `<pre><code>${code}</code></pre>`);
+  t = t.replace(/```([\s\S]*?)```/g, (_,code) => `<pre><code>${code}</code></pre>`);
+  // Inline code
+  t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  // Horizontal rule
+  t = t.replace(/^---$/gm, '<hr>');
+  // Headers
+  t = t.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  t = t.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  t = t.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Bold + italic
+  t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+  t = t.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  t = t.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Blockquote
+  t = t.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Unordered list items
+  t = t.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
+  // Ordered list items
+  t = t.replace(/^\d+\. (.+)$/gm, '<li>$1</li>');
+  // Wrap consecutive <li> in <ul> (simple approach)
+  t = t.replace(/(<li>[\s\S]*?<\/li>)(\n<li>)/g, '$1$2');
+  t = t.replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>' + m + '</ul>');
+  t = t.replace(/<\/ul>\s*<ul>/g, '');
+  // Links
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  // Line breaks (preserve block element newlines)
+  t = t.replace(/\n(?!<(h[1-3]|ul|blockquote|pre|hr))/g, '<br>');
+  t = t.replace(/<br>(<\/(h[1-3]|ul|blockquote|pre)>)/g, '$1');
+  return t;
+}
+
+function refreshAnnounceBadge() {
+  if (!S.ok || S.cfg?.EnableAnnouncements === false) return;
+  api('Announcement').then(list => {
+    if (!Array.isArray(list)) return;
+    const lastRead = parseInt(localStorage.getItem('lm_ann_last_read') || '0', 10);
+    const unread = list.filter(a => new Date(a.CreatedAt).getTime() > lastRead).length;
+    const bdg = document.getElementById('lmAnnBdg');
+    if (!bdg) return;
+    if (unread > 0) {
+      bdg.textContent = unread > 9 ? '9+' : String(unread);
+      bdg.classList.add('on');
+    } else {
+      bdg.classList.remove('on');
+    }
+  }).catch(() => {});
+}
+
+function openAnnouncements(wrap) {
+  if (document.getElementById('lmAnnDD')) { closeAnnouncements(); return; }
+
+  const dd = document.createElement('div');
+  dd.id = 'lmAnnDD';
+  dd.className = 'lmPanel lmAnnDD';
+
+  if (wrap) {
+    const rect = wrap.getBoundingClientRect();
+    dd.style.top = (rect.bottom + 6) + 'px';
+    dd.style.right = (window.innerWidth - rect.right) + 'px';
+  }
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'lmAnnHdr';
+
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'lmAnnHdrTitle';
+  titleSpan.textContent = 'H-TV Announcements';
+  hdr.appendChild(titleSpan);
+
+  const hdrRight = document.createElement('div');
+  hdrRight.style.cssText = 'display:flex;align-items:center;gap:6px';
+
+  if (S.admin) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'lmAnnAddBtn';
+    addBtn.title = 'New Announcement';
+    addBtn.innerHTML = '+';
+    addBtn.onclick = (e) => { e.stopPropagation(); openAnnCreate(); };
+    hdrRight.appendChild(addBtn);
+  }
+
+  const cl = document.createElement('button');
+  cl.className = 'lmCCl';
+  cl.innerHTML = '&times;';
+  cl.onclick = () => closeAnnouncements();
+  hdrRight.appendChild(cl);
+  hdr.appendChild(hdrRight);
+  dd.appendChild(hdr);
+
+  // Scrollable body
+  const body = document.createElement('div');
+  body.className = 'lmAnnBody';
+  body.id = 'lmAnnBody';
+  body.innerHTML = '<div class="lmEmpty" style="padding:20px">Loading…</div>';
+  dd.appendChild(body);
+
+  dd.addEventListener('click', e => e.stopPropagation());
+  document.body.appendChild(dd);
+  outsideClose([wrap, dd], closeAnnouncements);
+
+  // Mark all as read
+  localStorage.setItem('lm_ann_last_read', String(Date.now()));
+  refreshAnnounceBadge();
+
+  loadAnnouncementList(body);
+}
+
+function closeAnnouncements() {
+  const dd = document.getElementById('lmAnnDD');
+  if (dd) { removeOverlay([null, dd]); dd.remove(); }
+  const det = document.getElementById('lmAnnDetail');
+  if (det) det.remove();
+}
+
+function loadAnnouncementList(body) {
+  api('Announcement').then(list => {
+    if (!Array.isArray(list) || !list.length) {
+      body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No announcements yet.</div>';
+      return;
+    }
+    body.innerHTML = '';
+    list.forEach(a => {
+      const card = document.createElement('div');
+      card.className = 'lmAnnCard';
+      const d = new Date(a.CreatedAt);
+      const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+      const main = document.createElement('div');
+      main.className = 'lmAnnCardMain';
+      main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
+      card.appendChild(main);
+      if (a.Version) {
+        const ver = document.createElement('span');
+        ver.className = 'lmAnnCardVer';
+        ver.textContent = esc(a.Version);
+        card.appendChild(ver);
+      }
+      card.onclick = () => openAnnDetail(a);
+      body.appendChild(card);
+    });
+  }).catch(() => {
+    body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">Error loading announcements.</div>';
+  });
+}
+
+function openAnnDetail(ann) {
+  let det = document.getElementById('lmAnnDetail');
+  if (det) det.remove();
+
+  det = document.createElement('div');
+  det.id = 'lmAnnDetail';
+  det.className = 'lmPanel lmAnnDetail';
+  det.addEventListener('click', e => e.stopPropagation());
+
+  const d = new Date(ann.CreatedAt);
+  const dateStr = d.toLocaleDateString(undefined, { month:'long', day:'numeric', year:'numeric' });
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'lmAnnDetailHdr';
+
+  const hdrText = document.createElement('div');
+  hdrText.className = 'lmAnnDetailHdrText';
+  hdrText.innerHTML = `<div class="lmAnnDetailTitle">${esc(ann.Title)}</div><div class="lmAnnDetailMeta">${ann.Version ? esc(ann.Version) + ' · ' : ''}${esc(dateStr)} · ${esc(ann.AuthorName)}</div>`;
+  hdr.appendChild(hdrText);
+
+  const hdrBtns = document.createElement('div');
+  hdrBtns.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:8px';
+
+  if (S.admin) {
+    const delBtn = document.createElement('button');
+    delBtn.className = 'lmAnnAddBtn';
+    delBtn.title = 'Delete Announcement';
+    delBtn.style.fontSize = '.9em';
+    delBtn.innerHTML = '🗑';
+    delBtn.onclick = async (e) => {
+      e.stopPropagation();
+      if (!(await modCfm('Delete this announcement? This cannot be undone.'))) return;
+      api(`Announcement/${ann.Id}`, { method: 'DELETE' })
+        .then(() => {
+          det.remove();
+          const listBody = document.getElementById('lmAnnBody');
+          if (listBody) loadAnnouncementList(listBody);
+          refreshAnnounceBadge();
+        })
+        .catch(() => alert('Delete failed. Try again.'));
+    };
+    hdrBtns.appendChild(delBtn);
+  }
+
+  const clBtn = document.createElement('button');
+  clBtn.className = 'lmCCl';
+  clBtn.innerHTML = '&times;';
+  clBtn.onclick = () => det.remove();
+  hdrBtns.appendChild(clBtn);
+  hdr.appendChild(hdrBtns);
+  det.appendChild(hdr);
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'lmAnnDetailBody';
+  body.innerHTML = renderMarkdown(ann.Body);
+  det.appendChild(body);
+
+  document.body.appendChild(det);
+}
+
+function openAnnCreate() {
+  if (document.getElementById('lmAnnCreateOv')) return;
+
+  const ov = document.createElement('div');
+  ov.id = 'lmAnnCreateOv';
+  ov.className = 'lmAnnCreateOv';
+
+  const panel = document.createElement('div');
+  panel.className = 'lmPanel lmAnnCreate';
+
+  // Header
+  const panelHdr = document.createElement('div');
+  panelHdr.className = 'lmAnnCreateHdr';
+  panelHdr.innerHTML = '<span style="font-weight:700;font-size:.95em">New Announcement</span>';
+  const panelCl = document.createElement('button');
+  panelCl.className = 'lmCCl';
+  panelCl.innerHTML = '&times;';
+  panelCl.onclick = () => ov.remove();
+  panelHdr.appendChild(panelCl);
+  panel.appendChild(panelHdr);
+
+  // Form body
+  const panelBody = document.createElement('div');
+  panelBody.className = 'lmAnnCreateBody';
+  panelBody.innerHTML = `
+    <div>
+      <label class="lmFieldLabel">Title *</label>
+      <input type="text" id="lmAnnTitleInp" class="lmAnnInp" placeholder="e.g. Server Maintenance" maxlength="200" />
+    </div>
+    <div>
+      <label class="lmFieldLabel">Version</label>
+      <input type="text" id="lmAnnVerInp" class="lmAnnInp" placeholder="e.g. v2.1.0" maxlength="50" />
+    </div>
+    <div>
+      <label class="lmFieldLabel">Body (Markdown supported — **bold**, *italic*, \`code\`, # Heading, - list, &gt; quote)</label>
+      <textarea id="lmAnnBodyInp" class="lmAnnTxt" placeholder="Write your announcement here..."></textarea>
+    </div>`;
+  panel.appendChild(panelBody);
+
+  // Footer
+  const panelFoot = document.createElement('div');
+  panelFoot.className = 'lmAnnCreateFoot';
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'lmAnnCanBtn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => ov.remove();
+  const publishBtn = document.createElement('button');
+  publishBtn.className = 'lmAnnPubBtn';
+  publishBtn.textContent = 'Publish';
+  publishBtn.onclick = async () => {
+    const title = document.getElementById('lmAnnTitleInp').value.trim();
+    const version = document.getElementById('lmAnnVerInp').value.trim();
+    const bodyText = document.getElementById('lmAnnBodyInp').value.trim();
+    if (!title) { alert('Title is required.'); return; }
+    publishBtn.disabled = true;
+    publishBtn.textContent = 'Publishing…';
+    try {
+      await api('Announcement', {
+        method: 'POST',
+        body: JSON.stringify({ Title: title, Version: version, Body: bodyText })
+      });
+      ov.remove();
+      const listBody = document.getElementById('lmAnnBody');
+      if (listBody) loadAnnouncementList(listBody);
+    } catch (ex) {
+      publishBtn.disabled = false;
+      publishBtn.textContent = 'Publish';
+      alert('Failed to publish: ' + ex.message);
+    }
+  };
+  panelFoot.appendChild(cancelBtn);
+  panelFoot.appendChild(publishBtn);
+  panel.appendChild(panelFoot);
+
+  ov.appendChild(panel);
+  document.body.appendChild(ov);
+
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  document.getElementById('lmAnnTitleInp').focus();
+}
+
 /* ── Injection ── */
 let ij=false;
 async function tryInject(){
@@ -1304,6 +1652,12 @@ async function tryInject(){
       f.appendChild(b);
       api('Chat/MyCode').then(r=>{S.code=r.Code}).catch(()=>{});
       refreshBadge();
+    }
+    if(cfg.EnableAnnouncements!==false){
+      const ab=mkBtn('lm-btn-announce',ICO.announce,(ev,w)=>openAnnouncements(w));
+      const abdg=document.createElement('span');abdg.id='lmAnnBdg';abdg.className='lmAnnBdg';ab.appendChild(abdg);
+      f.appendChild(ab);
+      refreshAnnounceBadge();
     }
     hr.insertBefore(f,hr.firstChild);S.ok=true;
   }catch(ex){console.debug('[LM] deferred:',ex.message)}finally{ij=false}
@@ -1374,6 +1728,7 @@ setInterval(()=>{
 },3000);
 setInterval(()=>{
   if(S.ok && !document.getElementById('lmChat')) refreshBadge();
+  if(S.ok) refreshAnnounceBadge();
 }, 4000);
 tryInject();
 })();

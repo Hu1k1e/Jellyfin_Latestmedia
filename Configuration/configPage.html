@@ -35,6 +35,14 @@
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
+                            <input type="checkbox" is="emby-checkbox" id="EnableAnnouncements" />
+                            <span>Enable Server Announcements</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">Shows the Announcements icon in the header. Admins can create and manage announcements.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
                             <input type="checkbox" is="emby-checkbox" id="ShowOnMobile" />
                             <span>Show Header Icons on Mobile</span>
                         </label>
@@ -74,6 +82,7 @@
                         document.getElementById('EnableLatestMediaButton').checked = !!config.EnableLatestMediaButton;
                         document.getElementById('EnableMediaManagement').checked = !!config.EnableMediaManagement;
                         document.getElementById('EnableChat').checked = !!config.EnableChat;
+                        document.getElementById('EnableAnnouncements').checked = !!config.EnableAnnouncements;
                         document.getElementById('ShowOnMobile').checked = !!config.ShowOnMobile;
                         document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
                         document.getElementById('DmRetentionDays').value = config.DmRetentionDays || 7;
@@ -91,6 +100,7 @@
                         config.EnableLatestMediaButton = document.getElementById('EnableLatestMediaButton').checked;
                         config.EnableMediaManagement = document.getElementById('EnableMediaManagement').checked;
                         config.EnableChat = document.getElementById('EnableChat').checked;
+                        config.EnableAnnouncements = document.getElementById('EnableAnnouncements').checked;
                         config.ShowOnMobile = document.getElementById('ShowOnMobile').checked;
                         config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
                         config.DmRetentionDays = parseInt(document.getElementById('DmRetentionDays').value) || 7;

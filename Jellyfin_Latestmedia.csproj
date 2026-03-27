@@ -9,9 +9,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>CS1591</NoWarn>
-    <Version>1.0.81.0</Version>
-    <AssemblyVersion>1.0.81.0</AssemblyVersion>
-    <FileVersion>1.0.81.0</FileVersion>
+    <Version>1.0.82.0</Version>
+    <AssemblyVersion>1.0.82.0</AssemblyVersion>
+    <FileVersion>1.0.82.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
