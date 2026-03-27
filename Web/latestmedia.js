@@ -254,12 +254,12 @@ st.innerHTML=`
 .lmAnnCardTitle{font-weight:600;font-size:.85em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lmAnnCardDate{font-size:.68em;color:rgba(255,255,255,.35);margin-top:2px}
 .lmAnnCardVer{font-size:.72em;color:rgba(0,179,90,.75);font-weight:700;letter-spacing:.04em;flex-shrink:0}
-.lmAnnDetail{position:fixed;z-index:100000;width:480px;max-height:620px;display:flex;flex-direction:column;top:50%;left:50%;transform:translate(-50%,-50%)}
+.lmAnnDetail{position:fixed;z-index:100000;width:560px;max-width:92vw;max-height:680px;display:flex;flex-direction:column;top:50%;left:50%;transform:translate(-50%,-50%)}
 .lmAnnDetailHdr{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
 .lmAnnDetailHdrText{flex:1;min-width:0}
 .lmAnnDetailTitle{font-weight:700;font-size:1em;color:#fff;word-break:break-word}
 .lmAnnDetailMeta{font-size:.72em;color:rgba(255,255,255,.4);margin-top:3px}
-.lmAnnDetailBody{flex:1;overflow-y:auto;padding:16px;font-size:.85em;line-height:1.65;color:rgba(255,255,255,.85)}
+.lmAnnDetailBody{flex:1;overflow-y:auto;padding:16px;font-size:.85em;line-height:1.65;color:rgba(255,255,255,.85);overflow-wrap:break-word;word-break:break-word}
 .lmAnnDetailBody h1,.lmAnnDetailBody h2,.lmAnnDetailBody h3{color:#fff;margin:14px 0 6px;font-size:1em}
 .lmAnnDetailBody h1{font-size:1.15em}.lmAnnDetailBody h2{font-size:1.05em}
 .lmAnnDetailBody code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px;font-size:.9em;font-family:monospace}
