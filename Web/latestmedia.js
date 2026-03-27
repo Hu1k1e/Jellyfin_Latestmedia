@@ -1365,10 +1365,10 @@ function renderMarkdown(raw) {
 
 function refreshAnnounceBadge() {
   if (!S.ok || S.cfg?.EnableAnnouncements === false) return;
-  api('Announcement').then(list => {
+  api(`Announcement?_t=${Date.now()}`).then(list => {
     if (!Array.isArray(list)) return;
-    const lastRead = parseInt(localStorage.getItem('lm_ann_last_read') || '0', 10);
-    const unread = list.filter(a => new Date(a.CreatedAt).getTime() > lastRead).length;
+    const lastRead = localStorage.getItem('lm_ann_last_read_str') || '';
+    const unread = list.filter(a => (a.CreatedAt || '') > lastRead).length;
     const bdg = document.getElementById('lmAnnBdg');
     if (!bdg) return;
     if (unread > 0) {
@@ -1444,13 +1444,13 @@ function closeAnnouncements() {
 }
 
 function loadAnnouncementList(body) {
-  api('Announcement').then(list => {
+  api(`Announcement?_t=${Date.now()}`).then(list => {
     if (!Array.isArray(list) || !list.length) {
       body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No announcements yet.</div>';
       return;
     }
-    const maxTs = Math.max(...list.map(a => new Date(a.CreatedAt).getTime()));
-    localStorage.setItem('lm_ann_last_read', String(maxTs));
+    const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
+    localStorage.setItem('lm_ann_last_read_str', maxStr);
     refreshAnnounceBadge();
 
     body.innerHTML = '';
