@@ -285,7 +285,7 @@ st.innerHTML=`
 .lmAnnPubBtn:hover{background:${GD}}
 .lmAnnCanBtn{background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)}
 .lmAnnCanBtn:hover{background:rgba(255,255,255,.13)}
-.lmAnnBdg{position:absolute;top:0;right:0;background:#e53935;color:#fff;border-radius:50%;min-width:16px;height:16px;font-size:.6em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.6);line-height:1}
+.lmAnnBdg{position:absolute;top:-2px;right:-2px;background:#e53935;color:#fff;border-radius:50%;width:15px;height:15px;font-size:.56em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0;pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.6);line-height:1}
 .lmAnnBdg.on{display:flex}
 `;
 document.head.appendChild(st);
@@ -1581,6 +1581,11 @@ function openAnnCreate() {
   // Footer
   const panelFoot = document.createElement('div');
   panelFoot.className = 'lmAnnCreateFoot';
+  const addLinkBtn = document.createElement('button');
+  addLinkBtn.className = 'lmAnnCanBtn';
+  addLinkBtn.style.marginRight = 'auto'; // push to left
+  addLinkBtn.textContent = 'Add Link';
+  addLinkBtn.onclick = (e) => { e.preventDefault(); openAddLink(document.getElementById('lmAnnBodyInp')); };
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'lmAnnCanBtn';
   cancelBtn.textContent = 'Cancel';
@@ -1609,6 +1614,7 @@ function openAnnCreate() {
       alert('Failed to publish: ' + ex.message);
     }
   };
+  panelFoot.appendChild(addLinkBtn);
   panelFoot.appendChild(cancelBtn);
   panelFoot.appendChild(publishBtn);
   panel.appendChild(panelFoot);
@@ -1620,6 +1626,76 @@ function openAnnCreate() {
   panel.addEventListener('click', e => e.stopPropagation());
 
   document.getElementById('lmAnnTitleInp').focus();
+}
+
+function openAddLink(textarea) {
+  if (document.getElementById('lmAddLinkOv')) return;
+  const ov = document.createElement('div');
+  ov.id = 'lmAddLinkOv';
+  ov.className = 'lmAnnCreateOv';
+  ov.style.zIndex = '100002'; // Above current popup
+
+  const panel = document.createElement('div');
+  panel.className = 'lmPanel lmAnnCreate';
+  panel.style.width = '420px';
+
+  panel.innerHTML = `
+    <div class="lmAnnCreateHdr">
+      <span style="font-weight:700;font-size:.95em">Add Link</span>
+      <button class="lmCCl" id="lmAddLinkCl">&times;</button>
+    </div>
+    <div class="lmAnnCreateBody">
+      <div>
+        <label class="lmFieldLabel">Name of link (Text to display)</label>
+        <input type="text" id="lmALName" class="lmAnnInp" placeholder="e.g. Server Rules" />
+      </div>
+      <div>
+        <label class="lmFieldLabel">Hyperlink (URL)</label>
+        <input type="url" id="lmALUrl" class="lmAnnInp" placeholder="e.g. https://google.com or #!/details?id=..." />
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:2px">
+        <input type="checkbox" id="lmALBlank" style="width:14px;height:14px;cursor:pointer" checked />
+        <label for="lmALBlank" style="cursor:pointer;font-size:.82em;color:rgba(255,255,255,.8);margin:0">Open in a new tab</label>
+      </div>
+    </div>
+    <div class="lmAnnCreateFoot">
+      <button class="lmAnnCanBtn" id="lmAddLinkCan">Cancel</button>
+      <button class="lmAnnPubBtn" id="lmAddLinkIns">Add Link</button>
+    </div>
+  `;
+
+  ov.appendChild(panel);
+  document.body.appendChild(ov);
+
+  ov.querySelector('#lmAddLinkCl').onclick = () => ov.remove();
+  ov.querySelector('#lmAddLinkCan').onclick = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  panel.addEventListener('click', e => e.stopPropagation());
+
+  ov.querySelector('#lmAddLinkIns').onclick = () => {
+    const name = document.getElementById('lmALName').value.trim();
+    let url = document.getElementById('lmALUrl').value.trim();
+    const isBlank = document.getElementById('lmALBlank').checked;
+    
+    if (!name || !url) { alert('Name and Hyperlink are required.'); return; }
+    if (!url.startsWith('http') && !url.startsWith('/') && !url.startsWith('#')) {
+      url = 'https://' + url;
+    }
+
+    const mdLink = isBlank ? `[${name}](${url} "blank")` : `[${name}](${url})`;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = textarea.value;
+    textarea.value = text.substring(0, start) + mdLink + text.substring(end);
+    textarea.focus();
+    // Move cursor after the inserted link
+    textarea.selectionStart = textarea.selectionEnd = start + mdLink.length;
+    
+    ov.remove();
+  };
+  
+  document.getElementById('lmALName').focus();
 }
 
 /* ── Injection ── */
