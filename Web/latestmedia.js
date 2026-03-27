@@ -1367,7 +1367,7 @@ function refreshAnnounceBadge() {
   if (!S.ok || S.cfg?.EnableAnnouncements === false) return;
   api(`Announcement?_t=${Date.now()}`).then(list => {
     if (!Array.isArray(list)) return;
-    const lastRead = localStorage.getItem('lm_ann_last_read_str') || '';
+    const lastRead = localStorage.getItem(`lm_ann_last_read_str_${S.uid}`) || '';
     const unread = list.filter(a => (a.CreatedAt || '') > lastRead).length;
     const bdg = document.getElementById('lmAnnBdg');
     if (!bdg) return;
@@ -1450,7 +1450,7 @@ function loadAnnouncementList(body) {
       return;
     }
     const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
-    localStorage.setItem('lm_ann_last_read_str', maxStr);
+    localStorage.setItem(`lm_ann_last_read_str_${S.uid}`, maxStr);
     refreshAnnounceBadge();
 
     body.innerHTML = '';
