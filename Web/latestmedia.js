@@ -137,7 +137,7 @@ st.innerHTML=`
 .lmMMSrch{padding:12px 16px 8px}
 
 /* Confirm dialog */
-.lmCf{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+.lmCf{position:fixed;inset:0;z-index:100005;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.65);backdrop-filter:blur(5px)}
 .lmCfb{border:1px solid rgba(255,255,255,.12);border-radius:10px;
   padding:22px 26px;max-width:350px;width:90%;text-align:center}
@@ -1353,7 +1353,10 @@ function renderMarkdown(raw) {
   t = t.replace(/(<li>[\s\S]*?<\/li>)/g, m => '<ul>' + m + '</ul>');
   t = t.replace(/<\/ul>\s*<ul>/g, '');
   // Links
-  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  t = t.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, txt, url) => {
+    const tgt = url.startsWith('http') || url.startsWith('//') ? ' target="_blank" rel="noopener"' : '';
+    return `<a href="${url}"${tgt}>${txt}</a>`;
+  });
   // Line breaks (preserve block element newlines)
   t = t.replace(/\n(?!<(h[1-3]|ul|blockquote|pre|hr))/g, '<br>');
   t = t.replace(/<br>(<\/(h[1-3]|ul|blockquote|pre)>)/g, '$1');
@@ -1430,10 +1433,6 @@ function openAnnouncements(wrap) {
   document.body.appendChild(dd);
   outsideClose([wrap, dd], closeAnnouncements);
 
-  // Mark all as read
-  localStorage.setItem('lm_ann_last_read', String(Date.now()));
-  refreshAnnounceBadge();
-
   loadAnnouncementList(body);
 }
 
@@ -1450,6 +1449,10 @@ function loadAnnouncementList(body) {
       body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No announcements yet.</div>';
       return;
     }
+    const maxTs = Math.max(...list.map(a => new Date(a.CreatedAt).getTime()));
+    localStorage.setItem('lm_ann_last_read', String(maxTs));
+    refreshAnnounceBadge();
+
     body.innerHTML = '';
     list.forEach(a => {
       const card = document.createElement('div');
