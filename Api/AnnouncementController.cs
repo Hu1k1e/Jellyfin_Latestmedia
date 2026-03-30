@@ -30,7 +30,10 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult<List<Announcement>>> GetAll()
         {
             var list = await _repository.ReadListAsync<Announcement>(FileName).ConfigureAwait(false);
-            return Ok(list.OrderByDescending(a => a.CreatedAt).ToList());
+            var now = DateTime.UtcNow;
+            // Exclude expired scheduled announcements — event has already passed
+            var filtered = list.Where(a => !a.IsScheduled || (a.EventDate.HasValue && a.EventDate.Value > now)).ToList();
+            return Ok(filtered.OrderByDescending(a => a.CreatedAt).ToList());
         }
 
         /// <summary>POST /Announcement — Admin only: create a new announcement.</summary>

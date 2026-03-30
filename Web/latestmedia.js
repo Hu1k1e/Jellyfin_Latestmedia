@@ -1477,46 +1477,67 @@ function closeAnnouncements() {
 }
 
 function loadAnnouncementList(body) {
-  const reqs = [api(`Announcement?_t=${Date.now()}`)];
-  if(S.admin) reqs.push(api(`ScheduledTask?_t=${Date.now()}`).catch(()=>[]));
-
-  Promise.all(reqs).then(res => {
-    let list = res[0] || [];
-    let scheds = res[1] || [];
+  api(`Announcement?_t=${Date.now()}`).then(list => {
     if (!Array.isArray(list)) list = [];
-    if (!Array.isArray(scheds)) scheds = [];
 
     const nowMs = Date.now();
-    scheds = scheds.filter(s => new Date(s.ExecutionUtc).getTime() > nowMs);
 
-    const allItems = [...list.map(a=>({...a, _ty:'A'})), ...scheds.map(s=>({...s, _ty:'S'}))];
+    // Filter out expired IsScheduled announcements (event already passed)
+    list = list.filter(a => {
+      if (a.IsScheduled && a.EventDate) {
+        return new Date(a.EventDate).getTime() > nowMs;
+      }
+      return true;
+    });
 
-    if (!allItems.length) {
+    if (!list.length) {
       body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No announcements yet.</div>';
       return;
     }
 
-    // Sort by CreatedAt descending for announcements, EventDate descending for scheds
-    allItems.sort((a,b) => {
-      const d1 = new Date(a._ty==='A' ? a.CreatedAt : a.ExecutionUtc).getTime();
-      const d2 = new Date(b._ty==='A' ? b.CreatedAt : b.ExecutionUtc).getTime();
-      return d2 - d1;
+    // Sort: scheduled ones by EventDate ascending (soonest first), regular by CreatedAt descending
+    list.sort((a, b) => {
+      // Regular announcements at top, sorted newest first
+      if (!a.IsScheduled && !b.IsScheduled) return new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime();
+      // Scheduled at bottom, sorted soonest first
+      if (a.IsScheduled && !b.IsScheduled) return 1;
+      if (!a.IsScheduled && b.IsScheduled) return -1;
+      return new Date(a.EventDate).getTime() - new Date(b.EventDate).getTime();
     });
 
-    const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
+    const maxStr = list.filter(a => !a.IsScheduled).reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
     localStorage.setItem(`lm_ann_last_read_str_${S.uid}`, maxStr);
     refreshAnnounceBadge();
 
     body.innerHTML = '';
-    allItems.forEach(item => {
+    list.forEach(a => {
       const card = document.createElement('div');
       card.className = 'lmAnnCard';
-      
+
       const main = document.createElement('div');
       main.className = 'lmAnnCardMain';
 
-      if (item._ty === 'A') {
-        const a = item;
+      if (a.IsScheduled && a.EventDate) {
+        // Scheduled announcement card
+        const d = new Date(a.EventDate);
+        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
+        main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div>
+                          <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
+        card.appendChild(main);
+
+        // White right-aligned countdown — no green badge
+        const cd = document.createElement('span');
+        cd.className = 'lmCdT';
+        cd.dataset.iso = a.EventDate;
+        cd.dataset.pfx = 'in ';
+        cd.style.cssText = 'font-size:.75em;color:rgba(255,255,255,0.75);font-weight:500;flex-shrink:0;margin-left:10px;';
+        cd.textContent = 'in ' + fmtCd(a.EventDate);
+        card.appendChild(cd);
+
+        // Opens detail view, NOT the edit form
+        card.onclick = () => openAnnDetail(a);
+      } else {
+        // Regular announcement card
         const d = new Date(a.CreatedAt);
         const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
         main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
@@ -1528,29 +1549,8 @@ function loadAnnouncementList(body) {
           card.appendChild(ver);
         }
         card.onclick = () => openAnnDetail(a);
-      } else {
-        const s = item;
-        const d = new Date(s.ExecutionUtc);
-        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
-        
-        main.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)}</div>
-                          <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
-        card.appendChild(main);
-        
-        const recurBadge = document.createElement('span');
-        recurBadge.className = 'lmAnnCardVer lmCdT';
-        recurBadge.dataset.pfx = 'in ';
-        recurBadge.dataset.iso = s.ExecutionUtc;
-        recurBadge.style.background = 'rgba(0,180,90,0.2)';
-        recurBadge.style.color = 'var(--lm-accent)';
-        recurBadge.textContent = 'in ' + fmtCd(s.ExecutionUtc);
-        card.appendChild(recurBadge);
-
-        card.onclick = () => {
-          closeAnnouncements();
-          openSchedCreate(s);
-        };
       }
+
       body.appendChild(card);
     });
   }).catch(() => {
