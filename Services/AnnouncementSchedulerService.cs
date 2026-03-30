@@ -76,7 +76,14 @@ namespace Jellyfin_Latestmedia.Services
                 DateTime eventDt;
                 try
                 {
-                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone ?? "UTC");
+                    string tzId = task.TimeZone ?? "UTC";
+                    TimeZoneInfo tzInfo = null;
+                    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
+                    {
+                        try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
+                    }
+                    if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                    
                     eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, tzInfo);
                 }
                 catch
@@ -119,7 +126,14 @@ namespace Jellyfin_Latestmedia.Services
                         }
                         try
                         {
-                            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone ?? "UTC");
+                            string tzId = task.TimeZone ?? "UTC";
+                            TimeZoneInfo tzInfo = null;
+                            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
+                            {
+                                try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
+                            }
+                            if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                            
                             eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, tzInfo);
                         }
                         catch

@@ -78,7 +78,15 @@ namespace Jellyfin_Latestmedia.Api
                 {
                     DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
                     if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
-                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(t.TimeZone ?? "UTC");
+                    
+                    string tzId = t.TimeZone ?? "UTC";
+                    TimeZoneInfo tzInfo = null;
+                    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
+                    {
+                        try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
+                    }
+                    if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                    
                     t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, tzInfo);
                 }
                 catch

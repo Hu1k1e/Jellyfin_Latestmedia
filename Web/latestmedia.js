@@ -1529,9 +1529,7 @@ function loadAnnouncementList(body) {
         const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
         
         main.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)}</div>
-                          <div class="lmAnnCardDate">
-                            ${esc(dateStr)} — <span style="opacity:0.7">${String(s.Recurrence).toUpperCase()}</span>
-                          </div>`;
+                          <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
         card.appendChild(main);
         
         const recurBadge = document.createElement('span');
@@ -1812,17 +1810,34 @@ function openAllScheduledTasks() {
       const main = document.createElement('div');
       main.className = 'lmAnnCardMain';
       
+      const d = new Date(s.ExecutionUtc);
+      const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
+
       const bd = document.createElement('div');
-      bd.className = 'lmAnnCardTitle';
-      bd.innerHTML = `🔁 ${esc(s.Title)}<br><span style="font-size:0.85em;color:var(--lm-accent);opacity:0.8">${esc(s.Recurrence.toUpperCase())}</span>`;
+      bd.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)} <span style="font-size:0.85em;font-weight:400;color:var(--lm-accent);opacity:0.9">— ${esc(s.Recurrence.toUpperCase())}</span></div>
+                      <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
       main.appendChild(bd);
-      
       card.appendChild(main);
 
+      const isFuture = d.getTime() > Date.now();
+      const recurBadge = document.createElement('span');
+      recurBadge.className = isFuture ? 'lmAnnCardVer lmCdT' : 'lmAnnCardVer';
+      if (isFuture) {
+        recurBadge.dataset.pfx = 'in ';
+        recurBadge.dataset.iso = s.ExecutionUtc;
+        recurBadge.style.background = 'rgba(0,180,90,0.2)';
+        recurBadge.style.color = 'var(--lm-accent)';
+        recurBadge.textContent = 'in ' + fmtCd(s.ExecutionUtc);
+      } else {
+        recurBadge.style.background = 'rgba(255,255,255,0.1)';
+        recurBadge.textContent = 'EXPIRED';
+      }
+      card.appendChild(recurBadge);
+
       const delBtn = document.createElement('button');
-      delBtn.className = 'lmAnnCanBtn';
-      delBtn.style.padding = '4px 8px';
-      delBtn.textContent = 'Delete';
+      delBtn.className = 'lmCCl';
+      delBtn.style.cssText = 'position:relative;margin-left:8px;font-size:22px;padding:0 4px;';
+      delBtn.innerHTML = '&times;';
       delBtn.onclick = async (e) => {
         e.stopPropagation();
         if(!confirm('Delete this scheduled task?')) return;
