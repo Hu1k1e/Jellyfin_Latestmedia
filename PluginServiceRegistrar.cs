@@ -22,5 +22,6 @@ public class PluginServiceRegistrar : IPluginServiceRegistrator
         // Scheduled background tasks (implement Jellyfin's IScheduledTask)
         serviceCollection.AddSingleton<IScheduledTask, DeletionSchedulerService>();
         serviceCollection.AddSingleton<IScheduledTask, ChatCleanupService>();
+        serviceCollection.AddSingleton<IScheduledTask, AnnouncementSchedulerService>();
     }
 }

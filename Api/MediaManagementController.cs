@@ -111,9 +111,8 @@ namespace Jellyfin_Latestmedia.Api
                     Title = item.Name,
                     Year = item.ProductionYear,
                     Size = size,
-                    Status = isScheduled
-                        ? $"Deleting in {Math.Max(0, (schedule!.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d"
-                        : "Active"
+                    ScheduledTime = isScheduled ? schedule?.ScheduledTime : (DateTime?)null,
+                    Status = isScheduled ? "Scheduled" : "Active"
                 });
             }
 
@@ -141,7 +140,8 @@ namespace Jellyfin_Latestmedia.Api
                             Title = item.Name,
                             Type = item.GetType().Name,
                             ScheduledByName = sched.ScheduledByName,
-                            DaysRemaining = Math.Max(0, (sched.ScheduledTime - DateTime.UtcNow).TotalDays)
+                            DaysRemaining = Math.Max(0, (sched.ScheduledTime - DateTime.UtcNow).TotalDays),
+                            ScheduledTime = sched.ScheduledTime
                         });
                     }
                 }
@@ -173,8 +173,8 @@ namespace Jellyfin_Latestmedia.Api
             {
                 string seriesIdN = series.Id.ToString("N").ToLowerInvariant();
                 bool seriesSched = schedSet.Contains(seriesIdN);
-                string seriesStatus = seriesSched && schedDict.TryGetValue(seriesIdN, out var ss)
-                    ? $"Deleting in {Math.Max(0, (ss.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+                DateTime? sTime = seriesSched && schedDict.TryGetValue(seriesIdN, out var ss) ? ss.ScheduledTime : (DateTime?)null;
+                string seriesStatus = seriesSched ? "Scheduled" : "Active";
 
                 // Get seasons for this series
                 var seasonQuery = new InternalItemsQuery
@@ -190,8 +190,8 @@ namespace Jellyfin_Latestmedia.Api
                 {
                     string seasonIdN = season.Id.ToString("N").ToLowerInvariant();
                     bool seasonSched = schedSet.Contains(seasonIdN);
-                    string seasonStatus = seasonSched && schedDict.TryGetValue(seasonIdN, out var ses)
-                        ? $"Deleting in {Math.Max(0, (ses.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+                    DateTime? snTime = seasonSched && schedDict.TryGetValue(seasonIdN, out var ses) ? ses.ScheduledTime : (DateTime?)null;
+                    string seasonStatus = seasonSched ? "Scheduled" : "Active";
 
                     // Get episodes for this season
                     var epQuery = new InternalItemsQuery
@@ -206,8 +206,8 @@ namespace Jellyfin_Latestmedia.Api
                     {
                         string epIdN = ep.Id.ToString("N").ToLowerInvariant();
                         bool epSched = schedSet.Contains(epIdN);
-                        string epStatus = epSched && schedDict.TryGetValue(epIdN, out var es)
-                            ? $"Deleting in {Math.Max(0, (es.ScheduledTime - DateTime.UtcNow).TotalDays):F0}d" : "Active";
+                        DateTime? epTime = epSched && schedDict.TryGetValue(epIdN, out var es) ? es.ScheduledTime : (DateTime?)null;
+                        string epStatus = epSched ? "Scheduled" : "Active";
 
                         long sz = 0;
                         if (!string.IsNullOrEmpty(ep.Path) && System.IO.File.Exists(ep.Path))
@@ -219,6 +219,7 @@ namespace Jellyfin_Latestmedia.Api
                             Title = ep.Name,
                             Episode = ep.IndexNumber,
                             Size = sz,
+                            ScheduledTime = epTime,
                             Status = epStatus
                         };
                     }).ToList();
@@ -229,6 +230,7 @@ namespace Jellyfin_Latestmedia.Api
                         Title = season.Name,
                         SeasonNumber = season.IndexNumber,
                         EpisodeCount = epList.Count,
+                        ScheduledTime = snTime,
                         Status = seasonStatus,
                         Episodes = epList
                     });
@@ -240,6 +242,7 @@ namespace Jellyfin_Latestmedia.Api
                     Title = series.Name,
                     Year = series.ProductionYear,
                     SeasonCount = seasonList.Count,
+                    ScheduledTime = sTime,
                     Status = seriesStatus,
                     Seasons = seasonList
                 });

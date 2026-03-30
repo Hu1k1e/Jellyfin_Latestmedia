@@ -12,5 +12,7 @@ namespace Jellyfin_Latestmedia.Configuration
         public int PublicChatRetentionHours { get; set; } = 24;
         public int DmRetentionDays { get; set; } = 7;
         public int LatestMediaCount { get; set; } = 50;
+        public string PluginTheme { get; set; } = "htv";
+        public string AnnouncementHeading { get; set; } = "H-TV Announcements";
     }
 }

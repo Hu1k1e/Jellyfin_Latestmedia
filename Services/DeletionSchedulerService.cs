@@ -36,7 +36,14 @@ namespace Jellyfin_Latestmedia.Services
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
-            return System.Array.Empty<TaskTriggerInfo>();
+            return new[]
+            {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfoType.IntervalTrigger,
+                    IntervalTicks = TimeSpan.FromMinutes(15).Ticks
+                }
+            };
         }
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)

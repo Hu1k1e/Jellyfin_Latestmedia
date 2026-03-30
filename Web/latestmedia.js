@@ -1,6 +1,14 @@
 (function(){
 'use strict';
-const G='#00b35a',GD='#008c45',PID='f94d6caf-2a62-4dd7-9f64-684ce8efff43';
+const G='var(--lm-accent)',GD='var(--lm-accent-dark)',PID='f94d6caf-2a62-4dd7-9f64-684ce8efff43';
+
+const THEMES = {
+  htv: { accent: '#00b35a', accentDark: '#008c45', panelBg: 'rgba(18,18,18,0.55)', blur: '16px', border: 'rgba(255,255,255,0.12)' },
+  midnight: { accent: '#4fc3f7', accentDark: '#0288d1', panelBg: 'rgba(10,15,30,0.75)', blur: '20px', border: 'rgba(79,195,247,0.15)' },
+  crimson: { accent: '#ef5350', accentDark: '#c62828', panelBg: 'rgba(25,10,10,0.72)', blur: '18px', border: 'rgba(239,83,80,0.15)' },
+  purple: { accent: '#ab47bc', accentDark: '#7b1fa2', panelBg: 'rgba(20,10,28,0.70)', blur: '18px', border: 'rgba(171,71,188,0.15)' },
+  slate: { accent: '#90a4ae', accentDark: '#546e7a', panelBg: 'rgba(30,30,35,0.80)', blur: '12px', border: 'rgba(144,164,174,0.18)' }
+};
 
 // Extensive emoji list
 const EMOJIS='😀😁😂🤣😃😄😅😆😇😈😉😊😋😌😍🥰😎😏😐😑😒😓😔😕😖😗😘😙😚😛😜🤪😝😞😟😠😡🤬😢😤😥😦😧😨😩🤯😪😫🥱😬😭😮😱😲😳🥺😴😵🤐🥴🤢🤮🤧🤒🤕🤑🤠🤓🧐😺😸😹😻😼😽🙀😿😾👍👎👌✌️🤞🤟🤘👋🖐️✋🖖👏🙌🤲🤜🤛💪🙏🤝❤️🧡💛💚💙💜🖤🤍🤎💔❣️💕💞💓💗💖💘💝💯✅❌❓❗💬💭🎉🎊🎈🎁🔥💧⭐🌟💫✨☄️🎬🎮🍿🎤🎧🏆🥇🎯♟️🎲🐶🐱🐭🐹🐰🦊🐻🐼🐨🐯🦁🐮🐷🐸🐙🦋🐙🐬🐳🦈🦁🌍🌎🌏🌈☀️🌙⭐🌊🏔️🏝️🌋🏕️🌅🍎🍊🍋🍇🍓🍒🍑🥭🍔🍟🌮🌯🍕🍜🍝🍣🍱🍛🍺🥂🍷☕🧃🔔🔑🔒💰💳🧾'.split(/(?<=\p{Emoji_Presentation}|\p{Extended_Pictographic})/u).filter(e=>e.trim());
@@ -14,6 +22,24 @@ const ICO={
 
 const S={url:'',tok:'',uid:'',dev:'',code:'',admin:false,cfg:{},ok:false,timer:null};
 
+function fmtCd(iso){
+  if(!iso)return'';
+  const rem=(new Date(iso)-new Date())/1000;
+  if(rem<=0)return'0d';
+  const d=Math.floor(rem/86400);
+  if(d>0)return d+'d';
+  const h=Math.floor(rem/3600),m=Math.floor((rem%3600)/60);
+  return h+'h '+m+'m';
+}
+
+setInterval(()=>{
+  document.querySelectorAll('.lmCdT').forEach(e=>{
+    if(e.dataset.iso){
+      const t=fmtCd(e.dataset.iso);
+      if(e.textContent!==t&&(e.textContent!==t+' left')) e.textContent=e.dataset.pfx?e.dataset.pfx+t:t;
+    }
+  });
+},60000);
 // Close panels automatically on SPA navigation
 window.addEventListener('hashchange', () => {
   if(typeof closeDD === 'function') closeDD(document.getElementById('lm-btn-latest'));
@@ -39,10 +65,10 @@ st.innerHTML=`
 .lmBdg.on{display:block}
 
 .lmPanel{
-  background:rgba(18,18,18,0.55)!important;
-  backdrop-filter:blur(16px) saturate(130%)!important;
-  -webkit-backdrop-filter:blur(16px) saturate(130%)!important;
-  border:1px solid rgba(255,255,255,0.12)!important;
+  background:var(--lm-panel-bg)!important;
+  backdrop-filter:blur(var(--lm-blur)) saturate(130%)!important;
+  -webkit-backdrop-filter:blur(var(--lm-blur)) saturate(130%)!important;
+  border:1px solid var(--lm-border)!important;
   border-radius:12px;
   box-shadow:0 16px 55px rgba(0,0,0,0.62)!important;
   color:inherit;
@@ -397,7 +423,7 @@ function renderL(b,items){
     const mainTitle = esc(i.SeriesName || i.Title || i.Name || '?');
     const ctx = i.SeriesName ? `<div style="font-size:.75em;opacity:.7;margin-top:1px">${i.SeasonName ? esc(i.SeasonName) + ' \u2022 ' : ''}${esc(i.Title || i.Name)}</div>` : '';
     const genres = (i.Genres && i.Genres.length) ? `<div style="font-size:.68em;opacity:.5;margin-top:2px">${esc(i.Genres.slice(0,3).join(' \u2022 '))}</div>` : '';
-    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 ${i.DaysRemaining??'?'}d left</span></div></div></a>`;
+    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 <span class="lmCdT" data-iso="${i.ScheduledDate}" data-pfx="">${fmtCd(i.ScheduledDate)}</span> left</span></div></div></a>`;
   }).join('');
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
@@ -497,14 +523,16 @@ function loadMM(ov){
         if(!filtered.length){h+='<tr><td colspan="4" style="text-align:center;opacity:.5;padding:18px">No matches.</td></tr>'}
         filtered.forEach(sr=>{
           const rid='s_'+sr.Id;
-          const totalEps=(sr.Seasons||[]).reduce((a,sn)=>a+(sn.Episodes||[]).length,0);
-          h+=`<tr class="lmSRow" data-rid="${rid}"><td><span class="lmArr" data-rid="${rid}">\u25b6</span>${esc(sr.Title)} ${sr.Year?'('+sr.Year+')':''}</td><td>${sr.SeasonCount||0} Seasons \u2022 ${totalEps} Eps</td><td>${esc(sr.Status||'Active')}</td><td>${actionCell(sr.Id,sr.Title+' (Entire Series)',sr.Status)}</td></tr>`;
+          const rStatus = sr.Status==='Scheduled' ? `<span class="lmCdT" data-pfx="Deleting in " data-iso="${sr.ScheduledTime}">Deleting in ${fmtCd(sr.ScheduledTime)}</span>` : 'Active';
+          h+=`<tr class="lmSRow" data-rid="${rid}"><td><span class="lmArr" data-rid="${rid}">\u25b6</span>${esc(sr.Title)} ${sr.Year?'('+sr.Year+')':''}</td><td>${sr.SeasonCount||0} Seasons \u2022 ${totalEps} Eps</td><td>${rStatus}</td><td>${actionCell(sr.Id,sr.Title+' (Entire Series)',sr.Status)}</td></tr>`;
           (sr.Seasons||[]).forEach(sn=>{
             const snrid='sn_'+sn.Id;
-            h+=`<tr class="lmSnRow" data-parent="${rid}" data-rid="${snrid}" style="display:none"><td><span class="lmArr" data-rid="${snrid}">\u25b6</span>${esc(sn.Title)}</td><td>${sn.EpisodeCount||0} Episodes</td><td>${esc(sn.Status||'Active')}</td><td>${actionCell(sn.Id,sr.Title+' \u2022 '+sn.Title,sn.Status)}</td></tr>`;
+            const snStatus = sn.Status==='Scheduled' ? `<span class="lmCdT" data-pfx="Deleting in " data-iso="${sn.ScheduledTime}">Deleting in ${fmtCd(sn.ScheduledTime)}</span>` : 'Active';
+            h+=`<tr class="lmSnRow" data-parent="${rid}" data-rid="${snrid}" style="display:none"><td><span class="lmArr" data-rid="${snrid}">\u25b6</span>${esc(sn.Title)}</td><td>${sn.EpisodeCount||0} Episodes</td><td>${snStatus}</td><td>${actionCell(sn.Id,sr.Title+' \u2022 '+sn.Title,sn.Status)}</td></tr>`;
             (sn.Episodes||[]).forEach(ep=>{
               const mb=ep.Size?(ep.Size/1048576).toFixed(1):'\u2014';
-              h+=`<tr class="lmEpRow" data-parent="${snrid}" style="display:none"><td>E${ep.Episode??'?'}: ${esc(ep.Title)}</td><td>${mb} MB</td><td>${esc(ep.Status||'Active')}</td><td>${actionCell(ep.Id,sr.Title+' \u2022 '+sn.Title+' \u2022 E'+ep.Episode,ep.Status)}</td></tr>`;
+              const epStatus = ep.Status==='Scheduled' ? `<span class="lmCdT" data-pfx="Deleting in " data-iso="${ep.ScheduledTime}">Deleting in ${fmtCd(ep.ScheduledTime)}</span>` : 'Active';
+              h+=`<tr class="lmEpRow" data-parent="${snrid}" style="display:none"><td>E${ep.Episode??'?'}: ${esc(ep.Title)}</td><td>${mb} MB</td><td>${epStatus}</td><td>${actionCell(ep.Id,sr.Title+' \u2022 '+sn.Title+' \u2022 E'+ep.Episode,ep.Status)}</td></tr>`;
             });
           });
         });
@@ -543,7 +571,7 @@ function loadMM(ov){
         let h=`<table class="lmTbl"><thead><tr><th>Title</th><th>Type</th><th>Scheduled By</th><th>Status</th><th>Action</th></tr></thead><tbody>`;
         if(!filtered.length){h+='<tr><td colspan="5" style="text-align:center;opacity:.5;padding:18px">No matches.</td></tr>'}
         filtered.forEach(i=>{
-          h+=`<tr><td>${esc(i.Title||'\u2014')}</td><td>${esc(i.Type||'\u2014')}</td><td>${esc(i.ScheduledByName||'Unknown')}</td><td>Deleting in ${i.DaysRemaining.toFixed(0)}d</td><td><button class="lmBtn dn lmCD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}">Cancel</button></td></tr>`;
+          h+=`<tr><td>${esc(i.Title||'\u2014')}</td><td>${esc(i.Type||'\u2014')}</td><td>${esc(i.ScheduledByName||'Unknown')}</td><td><span class="lmCdT" data-pfx="Deleting in " data-iso="${i.ScheduledTime}">Deleting in ${fmtCd(i.ScheduledTime)}</span></td><td><button class="lmBtn dn lmCD" data-id="${i.Id}" data-t="${esc(i.Title||'this item')}">Cancel</button></td></tr>`;
         });
         b.innerHTML=h+'</tbody></table>';
         bindActions(b,ov);
@@ -1399,7 +1427,7 @@ function openAnnouncements(wrap) {
 
   const titleSpan = document.createElement('span');
   titleSpan.className = 'lmAnnHdrTitle';
-  titleSpan.textContent = 'H-TV Announcements';
+  titleSpan.textContent = S.cfg.AnnouncementHeading || 'H-TV Announcements';
   hdr.appendChild(titleSpan);
 
   const hdrRight = document.createElement('div');
@@ -1444,32 +1472,81 @@ function closeAnnouncements() {
 }
 
 function loadAnnouncementList(body) {
-  api(`Announcement?_t=${Date.now()}`).then(list => {
-    if (!Array.isArray(list) || !list.length) {
+  const reqs = [api(`Announcement?_t=${Date.now()}`)];
+  if(S.admin) reqs.push(api(`ScheduledTask?_t=${Date.now()}`).catch(()=>[]));
+
+  Promise.all(reqs).then(res => {
+    let list = res[0];
+    if (!Array.isArray(list)) list = [];
+    
+    let scheds = res[1] || [];
+    if (!Array.isArray(scheds)) scheds = [];
+
+    // Filter out announcements that map to a ScheduledTask if we're showing the task itself to prevent dupes,
+    // actually it's fine to show both. The task represents the future/recurring logic, the announcement represents the published post.
+    // However, if the user specifically asked to see ScheduledTasks in the Annoucements pane with a 🔁 icon and countdown, we render them.
+
+    const allItems = [...list.map(a=>({...a, _ty:'A'})), ...scheds.map(s=>({...s, _ty:'S'}))];
+
+    if (!allItems.length) {
       body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No announcements yet.</div>';
       return;
     }
+
+    // Sort by CreatedAt descending for announcements, EventDate descending for scheds (just mapping to a common sort field)
+    allItems.sort((a,b) => {
+      const d1 = new Date(a._ty==='A' ? a.CreatedAt : a.EventDate).getTime();
+      const d2 = new Date(b._ty==='A' ? b.CreatedAt : b.EventDate).getTime();
+      return d2 - d1;
+    });
+
     const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
     localStorage.setItem(`lm_ann_last_read_str_${S.uid}`, maxStr);
     refreshAnnounceBadge();
 
     body.innerHTML = '';
-    list.forEach(a => {
+    allItems.forEach(item => {
       const card = document.createElement('div');
       card.className = 'lmAnnCard';
-      const d = new Date(a.CreatedAt);
-      const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+      
       const main = document.createElement('div');
       main.className = 'lmAnnCardMain';
-      main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
-      card.appendChild(main);
-      if (a.Version) {
-        const ver = document.createElement('span');
-        ver.className = 'lmAnnCardVer';
-        ver.textContent = esc(a.Version);
-        card.appendChild(ver);
+
+      if (item._ty === 'A') {
+        const a = item;
+        const d = new Date(a.CreatedAt);
+        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
+        main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
+        card.appendChild(main);
+        if (a.Version) {
+          const ver = document.createElement('span');
+          ver.className = 'lmAnnCardVer';
+          ver.textContent = esc(a.Version);
+          card.appendChild(ver);
+        }
+        card.onclick = () => openAnnDetail(a);
+      } else {
+        const s = item;
+        const d = new Date(s.EventDate);
+        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + (s.EventTime||'');
+        
+        main.innerHTML = `<div class="lmAnnCardTitle">🔁 ${esc(s.Title)}</div>
+                          <div class="lmAnnCardDate" style="color:var(--lm-accent)">
+                            <span class="lmCdT" data-pfx="Live in " data-iso="${s.EventDate}">Live in ${fmtCd(s.EventDate)}</span>
+                          </div>`;
+        card.appendChild(main);
+        
+        const recurBadge = document.createElement('span');
+        recurBadge.className = 'lmAnnCardVer';
+        recurBadge.style.background = 'rgba(255,255,255,0.1)';
+        recurBadge.textContent = String(s.Recurrence).toUpperCase();
+        card.appendChild(recurBadge);
+
+        card.onclick = () => {
+          closeAnnouncements();
+          openSchedCreate(s);
+        };
       }
-      card.onclick = () => openAnnDetail(a);
       body.appendChild(card);
     });
   }).catch(() => {
@@ -1551,6 +1628,132 @@ function openAnnDetail(ann) {
   document.body.appendChild(det);
 }
 
+function openSchedCreate(editObj = null) {
+  if (document.getElementById('lmSchedCreateOv')) return;
+
+  const ov = document.createElement('div');
+  ov.id = 'lmSchedCreateOv';
+  ov.className = 'lmAnnCreateOv';
+
+  const panel = document.createElement('div');
+  panel.className = 'lmPanel lmAnnCreate';
+
+  const panelHdr = document.createElement('div');
+  panelHdr.className = 'lmAnnCreateHdr';
+  panelHdr.innerHTML = `<span style="font-weight:700;font-size:.95em">${editObj ? 'Edit Scheduled Task' : 'New Scheduled Task'}</span>`;
+  const panelCl = document.createElement('button');
+  panelCl.className = 'lmCCl';
+  panelCl.innerHTML = '&times;';
+  panelCl.onclick = () => ov.remove();
+  panelHdr.appendChild(panelCl);
+  panel.appendChild(panelHdr);
+
+  const panelBody = document.createElement('div');
+  panelBody.className = 'lmAnnCreateBody';
+  panelBody.innerHTML = `
+    <div>
+      <label class="lmFieldLabel">Task Title *</label>
+      <input type="text" id="lmSchTitle" class="lmAnnInp" placeholder="e.g. Server Formatting" maxlength="200" value="${esc(editObj?.Title || '')}" />
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1">
+        <label class="lmFieldLabel">Event Date *</label>
+        <input type="date" id="lmSchDate" class="lmAnnInp" value="${editObj?.EventDate ? editObj.EventDate.split('T')[0] : ''}" />
+      </div>
+      <div style="flex:1">
+        <label class="lmFieldLabel">Event Time *</label>
+        <input type="time" id="lmSchTime" class="lmAnnInp" value="${editObj?.EventTime || '00:00'}" />
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1">
+        <label class="lmFieldLabel">Recurrence</label>
+        <select id="lmSchRecur" class="lmAnnInp" style="background:rgba(0,0,0,0.2);padding:8px">
+          <option value="none">None (One-time)</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="bimonthly">Every 2 Months</option>
+          <option value="6months">Every 6 Months</option>
+          <option value="yearly">Yearly</option>
+          <option value="15th-30th">15th & 30th of Month</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label class="lmFieldLabel">Post Announcement Days Before</label>
+        <input type="number" id="lmSchDaysBox" class="lmAnnInp" min="1" max="90" value="${editObj?.PostDaysBefore || 7}" />
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      <label class="lmFieldLabel">Description (Markdown supported)</label>
+      <textarea id="lmSchDesc" class="lmAnnTxt" placeholder="Write the announcement body here...">${esc(editObj?.Description || '')}</textarea>
+    </div>`;
+  panel.appendChild(panelBody);
+
+  const panelFoot = document.createElement('div');
+  panelFoot.className = 'lmAnnCreateFoot';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'lmAnnCanBtn';
+  cancelBtn.style.marginRight = 'auto';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.onclick = () => ov.remove();
+
+  const publishBtn = document.createElement('button');
+  publishBtn.className = 'lmAnnPubBtn';
+  publishBtn.textContent = editObj ? 'Save Task' : 'Create Task';
+  publishBtn.onclick = async () => {
+    const title = document.getElementById('lmSchTitle').value.trim();
+    const date = document.getElementById('lmSchDate').value;
+    const time = document.getElementById('lmSchTime').value;
+    const recur = document.getElementById('lmSchRecur').value;
+    const days = parseInt(document.getElementById('lmSchDaysBox').value, 10) || 7;
+    const desc = document.getElementById('lmSchDesc').value.trim();
+
+    if (!title || !date || !time) { alert('Title, Date, and Time are required.'); return; }
+    
+    publishBtn.disabled = true;
+    publishBtn.textContent = editObj ? 'Saving…' : 'Creating…';
+    
+    try {
+      const endpoint = editObj ? `ScheduledTask/${editObj.Id}` : 'ScheduledTask';
+      const method = editObj ? 'PUT' : 'POST';
+      
+      await api(endpoint, {
+        method,
+        body: JSON.stringify({ 
+          Title: title, 
+          Description: desc, 
+          EventDate: date + 'T00:00:00Z',
+          EventTime: time,
+          Recurrence: recur,
+          PostDaysBefore: days
+        })
+      });
+      ov.remove();
+      // Need to close header and reopen it to see changes
+      closeAnnouncements();
+      setTimeout(() => openAnnouncements(document.getElementById('lm-btn-latest')), 100);
+    } catch (e) {
+      console.error(e);
+      publishBtn.disabled = false;
+      publishBtn.textContent = editObj ? 'Save Task' : 'Create Task';
+      alert('Failed to save scheduled task.');
+    }
+  };
+
+  panelFoot.appendChild(cancelBtn);
+  panelFoot.appendChild(publishBtn);
+  panel.appendChild(panelFoot);
+
+  ov.appendChild(panel);
+  document.body.appendChild(ov);
+  
+  if(editObj) {
+    document.getElementById('lmSchRecur').value = editObj.Recurrence || 'none';
+  }
+}
+
 function openAnnCreate(editObj = null) {
   if (document.getElementById('lmAnnCreateOv')) return;
 
@@ -1595,9 +1798,16 @@ function openAnnCreate(editObj = null) {
   panelFoot.className = 'lmAnnCreateFoot';
   const addLinkBtn = document.createElement('button');
   addLinkBtn.className = 'lmAnnCanBtn';
-  addLinkBtn.style.marginRight = 'auto'; // push to left
+  addLinkBtn.style.marginRight = '8px';
   addLinkBtn.textContent = 'Add Link';
   addLinkBtn.onclick = (e) => { e.preventDefault(); openAddLink(document.getElementById('lmAnnBodyInp')); };
+
+  const addSchedBtn = document.createElement('button');
+  addSchedBtn.className = 'lmAnnCanBtn';
+  addSchedBtn.style.marginRight = 'auto'; // push to left
+  addSchedBtn.textContent = 'Add Scheduled Task';
+  addSchedBtn.onclick = (e) => { e.preventDefault(); ov.remove(); openSchedCreate(); };
+
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'lmAnnCanBtn';
   cancelBtn.textContent = 'Cancel';
@@ -1629,6 +1839,7 @@ function openAnnCreate(editObj = null) {
     }
   };
   panelFoot.appendChild(addLinkBtn);
+  panelFoot.appendChild(addSchedBtn);
   panelFoot.appendChild(cancelBtn);
   panelFoot.appendChild(publishBtn);
   panel.appendChild(panelFoot);
@@ -1737,6 +1948,15 @@ async function tryInject(){
     S.uid=me.Id;S.admin=me.Policy?.IsAdministrator||false;
     let cfg={};try{cfg=await api(`Plugins/${PID}/Configuration`)}catch(e){}
     S.cfg=cfg;
+
+    const tId = cfg.PluginTheme || 'htv';
+    const th = THEMES[tId] || THEMES.htv;
+    const root = document.documentElement.style;
+    root.setProperty('--lm-accent', th.accent);
+    root.setProperty('--lm-accent-dark', th.accentDark);
+    root.setProperty('--lm-panel-bg', th.panelBg);
+    root.setProperty('--lm-blur', th.blur);
+    root.setProperty('--lm-border', th.border);
 
     let mobSt=document.getElementById('lm-mob-st');
     if(!mobSt){mobSt=document.createElement('style');mobSt.id='lm-mob-st';document.head.appendChild(mobSt);}

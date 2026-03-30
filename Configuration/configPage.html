@@ -67,6 +67,24 @@
                         <div class="fieldDescription">Number of items to show in the Latest Media dropdown.</div>
                     </div>
 
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="PluginTheme">Plugin Theme:</label>
+                        <select is="emby-select" id="PluginTheme" class="emby-select-withcolor emby-select">
+                            <option value="htv">H-TV Theme (Default)</option>
+                            <option value="midnight">Midnight Blue</option>
+                            <option value="crimson">Crimson Dark</option>
+                            <option value="purple">Purple Haze</option>
+                            <option value="slate">Neutral Slate</option>
+                        </select>
+                        <div class="fieldDescription">Select the visual theme for plugin elements (Chat, Announcements, Modals).</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AnnouncementHeading">Announcement Panel Heading:</label>
+                        <input type="text" id="AnnouncementHeading" name="AnnouncementHeading" is="emby-input" placeholder="H-TV Announcements" />
+                        <div class="fieldDescription">The text displayed at the top of the Announcements dropdown.</div>
+                    </div>
+
                     <button is="emby-button" type="submit" class="raised button-submit block emby-button">
                         <span>Save</span>
                     </button>
@@ -87,6 +105,8 @@
                         document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
                         document.getElementById('DmRetentionDays').value = config.DmRetentionDays || 7;
                         document.getElementById('LatestMediaCount').value = config.LatestMediaCount || 50;
+                        document.getElementById('PluginTheme').value = config.PluginTheme || 'htv';
+                        document.getElementById('AnnouncementHeading').value = config.AnnouncementHeading || 'H-TV Announcements';
                     }).catch(function (err) {
                         console.error('[LatestMedia] Failed to load config', err);
                     });
@@ -105,6 +125,8 @@
                         config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
                         config.DmRetentionDays = parseInt(document.getElementById('DmRetentionDays').value) || 7;
                         config.LatestMediaCount = parseInt(document.getElementById('LatestMediaCount').value) || 50;
+                        config.PluginTheme = document.getElementById('PluginTheme').value || 'htv';
+                        config.AnnouncementHeading = document.getElementById('AnnouncementHeading').value || 'H-TV Announcements';
 
                         return ApiClient.updatePluginConfiguration(pluginId, config);
                     }).then(function (result) {
