@@ -3,3 +3,11 @@ bin/
 obj/
 *.user
 *.suo
+
+# internal docs
+instructions.md
+Instructions.md
+project_specs.md
+task.md
+walkthrough.md
+implementation_plan.md
