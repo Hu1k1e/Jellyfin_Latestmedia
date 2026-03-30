@@ -1505,7 +1505,7 @@ function loadAnnouncementList(body) {
       return new Date(a.EventDate).getTime() - new Date(b.EventDate).getTime();
     });
 
-    const maxStr = list.filter(a => !a.IsScheduled).reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
+    const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
     localStorage.setItem(`lm_ann_last_read_str_${S.uid}`, maxStr);
     refreshAnnounceBadge();
 
@@ -1542,7 +1542,7 @@ function loadAnnouncementList(body) {
         const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
         main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
         card.appendChild(main);
-        if (a.Version) {
+        if (a.Version && a.Version !== 'SCHEDULED') {
           const ver = document.createElement('span');
           ver.className = 'lmAnnCardVer';
           ver.textContent = esc(a.Version);

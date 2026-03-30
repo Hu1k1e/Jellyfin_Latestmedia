@@ -125,7 +125,7 @@ namespace Jellyfin_Latestmedia.Api
                 {
                     Id = Guid.NewGuid().ToString("N"),
                     Title = task.Title,
-                    Version = "SCHEDULED",
+                    Version = "",
                     Body = string.IsNullOrWhiteSpace(task.Description)
                         ? $"Scheduled Event: {task.Title}"
                         : task.Description,
