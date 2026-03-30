@@ -74,28 +74,34 @@ namespace Jellyfin_Latestmedia.Api
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             foreach (var t in tasks)
             {
-                try
+                if (!string.IsNullOrEmpty(t.EventUtcIso) && DateTime.TryParse(t.EventUtcIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime parsedUtc))
                 {
-                    DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
-                    if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
-                    
-                    string tzId = t.TimeZone ?? "UTC";
-                    TimeZoneInfo tzInfo = null;
-                    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
-                    {
-                        try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
-                    }
-                    if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
-                    
-                    t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, tzInfo);
+                    // Use the pre-computed UTC from the browser (100% accurate, no IANA conversion needed)
+                    t.ExecutionUtc = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
                 }
-                catch
+                else
                 {
-                    // Fallback to local
-                    DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
-                    if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
-                    try { t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, TimeZoneInfo.Local); }
-                    catch { t.ExecutionUtc = dt.ToUniversalTime(); }
+                    // Legacy fallback for tasks created before EventUtcIso was added
+                    try
+                    {
+                        DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
+                        if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
+                        string tzId = t.TimeZone ?? "UTC";
+                        TimeZoneInfo tzInfo = null;
+                        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
+                        {
+                            try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
+                        }
+                        if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                        t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, tzInfo);
+                    }
+                    catch
+                    {
+                        DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
+                        if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
+                        try { t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, TimeZoneInfo.Local); }
+                        catch { t.ExecutionUtc = dt.ToUniversalTime(); }
+                    }
                 }
             }
             return Ok(tasks.OrderBy(t => t.EventDate));
@@ -138,6 +144,7 @@ namespace Jellyfin_Latestmedia.Api
             existing.EventDate = update.EventDate;
             existing.EventTime = update.EventTime;
             existing.TimeZone = update.TimeZone;
+            existing.EventUtcIso = update.EventUtcIso;
             existing.Recurrence = update.Recurrence;
             existing.OriginalEventDate = update.OriginalEventDate ?? update.EventDate;
             existing.PostDaysBefore = update.PostDaysBefore;

@@ -10,6 +10,7 @@ namespace Jellyfin_Latestmedia.Models
         public DateTime EventDate { get; set; }
         public string EventTime { get; set; } = "00:00";
         public string TimeZone { get; set; } = "UTC";
+        public string? EventUtcIso { get; set; }
         public DateTime? ExecutionUtc { get; set; }
         public string Recurrence { get; set; } = "none";
         public DateTime? OriginalEventDate { get; set; }
