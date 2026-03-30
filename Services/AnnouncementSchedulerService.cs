@@ -33,7 +33,7 @@ namespace Jellyfin_Latestmedia.Services
                 new TaskTriggerInfo
                 {
                     Type = TaskTriggerInfoType.IntervalTrigger,
-                    IntervalTicks = TimeSpan.FromHours(1).Ticks
+                    IntervalTicks = TimeSpan.FromMinutes(15).Ticks
                 }
             };
         }

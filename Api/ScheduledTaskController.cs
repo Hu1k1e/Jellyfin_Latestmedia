@@ -66,6 +66,85 @@ namespace Jellyfin_Latestmedia.Api
             return false;
         }
 
+        /// <summary>
+        /// Resolves the next future execution UTC for a task.
+        /// For recurring tasks whose stored date is in the past, advances by the recurrence period.
+        /// </summary>
+        private static (DateTime eventDt, string iso) ResolveNextEventUtc(ScheduledTask task)
+        {
+            DateTime eventDt = DateTime.MaxValue;
+
+            if (!string.IsNullOrEmpty(task.EventUtcIso) &&
+                DateTime.TryParse(task.EventUtcIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out var parsed))
+            {
+                eventDt = DateTime.SpecifyKind(parsed, DateTimeKind.Utc);
+            }
+
+            // For recurring tasks whose stored date is past, fast-forward to the next occurrence
+            if (!string.Equals(task.Recurrence, "none", StringComparison.OrdinalIgnoreCase) && eventDt <= DateTime.UtcNow)
+            {
+                var daySteps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["daily"] = 1, ["weekly"] = 7, ["biweekly"] = 14,
+                    ["monthly"] = 30, ["bimonthly"] = 60, ["6months"] = 182, ["yearly"] = 365
+                };
+
+                if (daySteps.TryGetValue(task.Recurrence, out int days))
+                {
+                    while (eventDt <= DateTime.UtcNow)
+                        eventDt = eventDt.AddDays(days);
+                }
+                else if (string.Equals(task.Recurrence, "15th-30th", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Advance by approximately 2 weeks at a time
+                    while (eventDt <= DateTime.UtcNow) eventDt = eventDt.AddDays(15);
+                }
+            }
+
+            return (eventDt, eventDt == DateTime.MaxValue ? (task.EventUtcIso ?? "") : eventDt.ToString("O"));
+        }
+
+        /// <summary>
+        /// Immediately evaluates whether an announcement should be created/updated for a task.
+        /// Called after any create or update so users don't have to wait for the hourly scheduler.
+        /// </summary>
+        private static bool EvaluateAndPostAnnouncement(ScheduledTask task, List<Announcement> announcements)
+        {
+            var (eventDt, resolvedIso) = ResolveNextEventUtc(task);
+            if (eventDt == DateTime.MaxValue) return false;
+
+            // Update EventUtcIso if we advanced it for a recurring task
+            task.EventUtcIso = resolvedIso;
+
+            var now = DateTime.UtcNow;
+            var postDate = eventDt.AddDays(-task.PostDaysBefore);
+
+            if (now >= postDate && now < eventDt)
+            {
+                var newAnn = new Announcement
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Title = task.Title,
+                    Version = "SCHEDULED",
+                    Body = string.IsNullOrWhiteSpace(task.Description)
+                        ? $"Scheduled Event: {task.Title}"
+                        : task.Description,
+                    AuthorId = task.CreatedBy,
+                    AuthorName = task.CreatedByName,
+                    CreatedAt = DateTime.UtcNow,
+                    ScheduledTaskId = task.Id,
+                    EventDate = eventDt,
+                    IsScheduled = true
+                };
+                task.GeneratedAnnouncementId = newAnn.Id;
+                announcements.RemoveAll(a => a.IsScheduled && a.ScheduledTaskId == task.Id);
+                announcements.Insert(0, newAnn);
+                return true;
+            }
+
+            return false;
+        }
+
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ScheduledTask>>> GetAll()
         {
@@ -76,12 +155,10 @@ namespace Jellyfin_Latestmedia.Api
             {
                 if (!string.IsNullOrEmpty(t.EventUtcIso) && DateTime.TryParse(t.EventUtcIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime parsedUtc))
                 {
-                    // Use the pre-computed UTC from the browser (100% accurate, no IANA conversion needed)
                     t.ExecutionUtc = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
                 }
                 else
                 {
-                    // Legacy fallback for tasks created before EventUtcIso was added
                     try
                     {
                         DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
@@ -119,11 +196,18 @@ namespace Jellyfin_Latestmedia.Api
             task.CreatedBy = uid;
             task.CreatedByName = user?.Username ?? "Admin";
             task.CreatedAt = DateTime.UtcNow;
+            task.GeneratedAnnouncementId = null;
             if (task.OriginalEventDate == null) task.OriginalEventDate = task.EventDate;
 
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             tasks.Add(task);
+
+            // Immediately evaluate whether an announcement should be posted now
+            var announcements = await _repository.ReadListAsync<Announcement>("announcements");
+            bool annChanged = EvaluateAndPostAnnouncement(task, announcements);
+
             await _repository.WriteListAsync("scheduled_announcements", tasks);
+            if (annChanged) await _repository.WriteListAsync("announcements", announcements);
 
             return Ok(task);
         }
@@ -139,6 +223,11 @@ namespace Jellyfin_Latestmedia.Api
             if (index == -1) return NotFound();
 
             var existing = tasks[index];
+
+            // Remember old announcement so we can clean it up
+            var oldAnnId = existing.GeneratedAnnouncementId;
+
+            // Apply all updates
             existing.Title = update.Title;
             existing.Description = update.Description;
             existing.EventDate = update.EventDate;
@@ -149,8 +238,32 @@ namespace Jellyfin_Latestmedia.Api
             existing.OriginalEventDate = update.OriginalEventDate ?? update.EventDate;
             existing.PostDaysBefore = update.PostDaysBefore;
             
+            // Clear stale GeneratedAnnouncementId — force re-evaluation below
+            existing.GeneratedAnnouncementId = null;
             tasks[index] = existing;
+
+            // Load announcements, remove the old generated one if it existed
+            var announcements = await _repository.ReadListAsync<Announcement>("announcements");
+            bool annChanged = false;
+            if (!string.IsNullOrEmpty(oldAnnId))
+            {
+                annChanged = announcements.RemoveAll(a => a.Id == oldAnnId || (a.IsScheduled && a.ScheduledTaskId == id)) > 0;
+            }
+            else
+            {
+                // Also clean up any orphaned scheduled announcements for this task
+                annChanged = announcements.RemoveAll(a => a.IsScheduled && a.ScheduledTaskId == id) > 0;
+            }
+
+            // Immediately evaluate whether a new announcement should be posted
+            bool newAnnPosted = EvaluateAndPostAnnouncement(existing, announcements);
+            if (newAnnPosted) annChanged = true;
+
+            // EvaluateAndPostAnnouncement may have updated EventUtcIso (for recurring advance)
+            tasks[index] = existing;
+
             await _repository.WriteListAsync("scheduled_announcements", tasks);
+            if (annChanged) await _repository.WriteListAsync("announcements", announcements);
 
             return Ok(existing);
         }
@@ -168,8 +281,13 @@ namespace Jellyfin_Latestmedia.Api
             tasks.Remove(task);
             await _repository.WriteListAsync("scheduled_announcements", tasks);
             
-            // Note: Background service will clean up the orphaned announcement 
-            // since it'll no longer find the backing ScheduledTask.
+            // Clean up the generated announcement immediately (don't wait for scheduler)
+            if (!string.IsNullOrEmpty(task.GeneratedAnnouncementId))
+            {
+                var announcements = await _repository.ReadListAsync<Announcement>("announcements");
+                if (announcements.RemoveAll(a => a.Id == task.GeneratedAnnouncementId || (a.IsScheduled && a.ScheduledTaskId == id)) > 0)
+                    await _repository.WriteListAsync("announcements", announcements);
+            }
 
             return Ok(new { success = true });
         }
