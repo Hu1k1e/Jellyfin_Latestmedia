@@ -136,9 +136,8 @@ namespace Jellyfin_Latestmedia.Services
                     {
                         Id = Guid.NewGuid().ToString("N"),
                         Title = task.Title,
-                        Version = "SCHEDULED", // Placeholder for backward compat if needed
+                        Version = "", // no longer needed for identifying scheduled announcements
                         Body = string.IsNullOrWhiteSpace(task.Description) ? $"Scheduled Event: {task.Title}" : task.Description,
-                        AuthorId = task.CreatedBy,
                         AuthorName = task.CreatedByName,
                         CreatedAt = DateTime.UtcNow,
                         ScheduledTaskId = task.Id,
