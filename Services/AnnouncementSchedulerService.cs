@@ -67,21 +67,23 @@ namespace Jellyfin_Latestmedia.Services
                 }
 
                 // Parse Event DateTime using target TimeZone
-                DateTime eventDt = task.EventDate.Date;
+                DateTime eventDtBase = DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified);
                 if (TimeSpan.TryParse(task.EventTime, out TimeSpan time))
                 {
-                    eventDt = eventDt.Add(time);
+                    eventDtBase = eventDtBase.Add(time);
                 }
                 
+                DateTime eventDt;
                 try
                 {
-                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
-                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDt, tzInfo);
+                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone ?? "UTC");
+                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, tzInfo);
                 }
                 catch
                 {
                     // Fallback to local machine timezone if specified timezone is invalid
-                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDt, TimeZoneInfo.Local);
+                    try { eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, TimeZoneInfo.Local); }
+                    catch { eventDt = eventDtBase.ToUniversalTime(); }
                 }
 
                 // Check Expired (Event passed)
@@ -110,19 +112,20 @@ namespace Jellyfin_Latestmedia.Services
                         scheduleChanged = true;
                         
                         // Re-parse with new date for the posting window trigger
-                        DateTime newEventDt = task.EventDate.Date;
+                        DateTime newEventDt = DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified);
                         if (TimeSpan.TryParse(task.EventTime, out TimeSpan newTime))
                         {
                             newEventDt = newEventDt.Add(newTime);
                         }
                         try
                         {
-                            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
+                            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone ?? "UTC");
                             eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, tzInfo);
                         }
                         catch
                         {
-                            eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, TimeZoneInfo.Local);
+                            try { eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, TimeZoneInfo.Local); }
+                            catch { eventDt = newEventDt.ToUniversalTime(); }
                         }
                     }
                 }

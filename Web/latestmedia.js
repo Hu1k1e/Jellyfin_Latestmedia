@@ -1768,6 +1768,80 @@ function openSchedCreate(editObj = null) {
   }
 }
 
+function openAllScheduledTasks() {
+  if (document.getElementById('lmAllSchOv')) return;
+
+  const ov = document.createElement('div');
+  ov.id = 'lmAllSchOv';
+  ov.className = 'lmAnnCreateOv';
+
+  const panel = document.createElement('div');
+  panel.className = 'lmPanel';
+  panel.style.cssText = 'width:90%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;pointer-events:auto;';
+
+  const panelHdr = document.createElement('div');
+  panelHdr.className = 'lmAnnCreateHdr';
+  panelHdr.innerHTML = '<span style="font-weight:700;font-size:.95em">All Scheduled Tasks</span>';
+  const panelCl = document.createElement('button');
+  panelCl.className = 'lmCCl';
+  panelCl.innerHTML = '&times;';
+  panelCl.onclick = () => ov.remove();
+  panelHdr.appendChild(panelCl);
+  panel.appendChild(panelHdr);
+
+  const body = document.createElement('div');
+  body.className = 'lmAnnBody';
+  body.style.cssText = 'flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;';
+  body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">Loading...</div>';
+  panel.appendChild(body);
+
+  ov.appendChild(panel);
+  document.body.appendChild(ov);
+
+  api(`ScheduledTask?_t=${Date.now()}`).then(list => {
+    body.innerHTML = '';
+    if (!Array.isArray(list) || !list.length) {
+      body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">No scheduled tasks found.</div>';
+      return;
+    }
+
+    list.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'lmAnnCard';
+      
+      const main = document.createElement('div');
+      main.className = 'lmAnnCardMain';
+      
+      const bd = document.createElement('div');
+      bd.className = 'lmAnnCardTitle';
+      bd.innerHTML = `🔁 ${esc(s.Title)}<br><span style="font-size:0.85em;color:var(--lm-accent);opacity:0.8">${esc(s.Recurrence.toUpperCase())}</span>`;
+      main.appendChild(bd);
+      
+      card.appendChild(main);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'lmAnnCanBtn';
+      delBtn.style.padding = '4px 8px';
+      delBtn.textContent = 'Delete';
+      delBtn.onclick = async (e) => {
+        e.stopPropagation();
+        if(!confirm('Delete this scheduled task?')) return;
+        await api(`ScheduledTask/${s.Id}`, { method: 'DELETE' });
+        card.remove();
+      };
+      card.appendChild(delBtn);
+
+      card.onclick = () => {
+        ov.remove();
+        openSchedCreate(s);
+      };
+      body.appendChild(card);
+    });
+  }).catch(() => {
+    body.innerHTML = '<div class="lmEmpty" style="padding:20px 14px">Error loading tasks.</div>';
+  });
+}
+
 function openAnnCreate(editObj = null) {
   if (document.getElementById('lmAnnCreateOv')) return;
 
@@ -1816,6 +1890,12 @@ function openAnnCreate(editObj = null) {
   addLinkBtn.textContent = 'Add Link';
   addLinkBtn.onclick = (e) => { e.preventDefault(); openAddLink(document.getElementById('lmAnnBodyInp')); };
 
+  const viewSchedBtn = document.createElement('button');
+  viewSchedBtn.className = 'lmAnnCanBtn';
+  viewSchedBtn.style.marginRight = '8px';
+  viewSchedBtn.textContent = 'View Scheduled Tasks';
+  viewSchedBtn.onclick = (e) => { e.preventDefault(); ov.remove(); openAllScheduledTasks(); };
+
   const addSchedBtn = document.createElement('button');
   addSchedBtn.className = 'lmAnnCanBtn';
   addSchedBtn.style.marginRight = 'auto'; // push to left
@@ -1853,6 +1933,7 @@ function openAnnCreate(editObj = null) {
     }
   };
   panelFoot.appendChild(addLinkBtn);
+  panelFoot.appendChild(viewSchedBtn);
   panelFoot.appendChild(addSchedBtn);
   panelFoot.appendChild(cancelBtn);
   panelFoot.appendChild(publishBtn);
