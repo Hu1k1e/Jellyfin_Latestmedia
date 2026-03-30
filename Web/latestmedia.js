@@ -524,6 +524,7 @@ function loadMM(ov){
         filtered.forEach(sr=>{
           const rid='s_'+sr.Id;
           const rStatus = sr.Status==='Scheduled' ? `<span class="lmCdT" data-pfx="Deleting in " data-iso="${sr.ScheduledTime}">Deleting in ${fmtCd(sr.ScheduledTime)}</span>` : 'Active';
+          const totalEps = (sr.Seasons||[]).reduce((sum, sn) => sum + (sn.EpisodeCount||0), 0);
           h+=`<tr class="lmSRow" data-rid="${rid}"><td><span class="lmArr" data-rid="${rid}">\u25b6</span>${esc(sr.Title)} ${sr.Year?'('+sr.Year+')':''}</td><td>${sr.SeasonCount||0} Seasons \u2022 ${totalEps} Eps</td><td>${rStatus}</td><td>${actionCell(sr.Id,sr.Title+' (Entire Series)',sr.Status)}</td></tr>`;
           (sr.Seasons||[]).forEach(sn=>{
             const snrid='sn_'+sn.Id;
@@ -1808,11 +1809,15 @@ function openAllScheduledTasks() {
 
   const panelHdr = document.createElement('div');
   panelHdr.className = 'lmAnnCreateHdr';
-  panelHdr.innerHTML = '<span style="font-weight:700;font-size:.95em">All Scheduled Tasks</span>';
+  panelHdr.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 18px;';
+  const panelHdrTitle = document.createElement('span');
+  panelHdrTitle.style.cssText = 'font-weight:700;font-size:1em;';
+  panelHdrTitle.textContent = 'All Scheduled Tasks';
   const panelCl = document.createElement('button');
   panelCl.className = 'lmCCl';
   panelCl.innerHTML = '&times;';
   panelCl.onclick = () => ov.remove();
+  panelHdr.appendChild(panelHdrTitle);
   panelHdr.appendChild(panelCl);
   panel.appendChild(panelHdr);
 
@@ -1976,6 +1981,11 @@ function openAnnCreate(editObj = null) {
       alert('Failed to publish: ' + ex.message);
     }
   };
+  panelFoot.style.cssText = 'display:flex;align-items:center;gap:8px;padding:12px 16px;flex-wrap:wrap;';
+  addLinkBtn.style.marginRight = '';
+  viewSchedBtn.style.marginRight = '';
+  addSchedBtn.style.marginRight = 'auto';
+  cancelBtn.style.marginLeft = '0';
   panelFoot.appendChild(addLinkBtn);
   panelFoot.appendChild(viewSchedBtn);
   panelFoot.appendChild(addSchedBtn);
