@@ -9,7 +9,10 @@ namespace Jellyfin_Latestmedia.Models
         public string Description { get; set; } = string.Empty;
         public DateTime EventDate { get; set; }
         public string EventTime { get; set; } = "00:00";
+        public string TimeZone { get; set; } = "UTC";
+        public DateTime? ExecutionUtc { get; set; }
         public string Recurrence { get; set; } = "none";
+        public DateTime? OriginalEventDate { get; set; }
         public int PostDaysBefore { get; set; } = 7;
         public Guid CreatedBy { get; set; }
         public string CreatedByName { get; set; } = string.Empty;

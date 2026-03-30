@@ -1476,15 +1476,13 @@ function loadAnnouncementList(body) {
   if(S.admin) reqs.push(api(`ScheduledTask?_t=${Date.now()}`).catch(()=>[]));
 
   Promise.all(reqs).then(res => {
-    let list = res[0];
-    if (!Array.isArray(list)) list = [];
-    
+    let list = res[0] || [];
     let scheds = res[1] || [];
+    if (!Array.isArray(list)) list = [];
     if (!Array.isArray(scheds)) scheds = [];
 
-    // Filter out announcements that map to a ScheduledTask if we're showing the task itself to prevent dupes,
-    // actually it's fine to show both. The task represents the future/recurring logic, the announcement represents the published post.
-    // However, if the user specifically asked to see ScheduledTasks in the Annoucements pane with a 🔁 icon and countdown, we render them.
+    const nowMs = Date.now();
+    scheds = scheds.filter(s => new Date(s.ExecutionUtc).getTime() > nowMs);
 
     const allItems = [...list.map(a=>({...a, _ty:'A'})), ...scheds.map(s=>({...s, _ty:'S'}))];
 
@@ -1493,10 +1491,10 @@ function loadAnnouncementList(body) {
       return;
     }
 
-    // Sort by CreatedAt descending for announcements, EventDate descending for scheds (just mapping to a common sort field)
+    // Sort by CreatedAt descending for announcements, EventDate descending for scheds
     allItems.sort((a,b) => {
-      const d1 = new Date(a._ty==='A' ? a.CreatedAt : a.EventDate).getTime();
-      const d2 = new Date(b._ty==='A' ? b.CreatedAt : b.EventDate).getTime();
+      const d1 = new Date(a._ty==='A' ? a.CreatedAt : a.ExecutionUtc).getTime();
+      const d2 = new Date(b._ty==='A' ? b.CreatedAt : b.ExecutionUtc).getTime();
       return d2 - d1;
     });
 
@@ -1527,19 +1525,22 @@ function loadAnnouncementList(body) {
         card.onclick = () => openAnnDetail(a);
       } else {
         const s = item;
-        const d = new Date(s.EventDate);
-        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + (s.EventTime||'');
+        const d = new Date(s.ExecutionUtc);
+        const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
         
-        main.innerHTML = `<div class="lmAnnCardTitle">🔁 ${esc(s.Title)}</div>
-                          <div class="lmAnnCardDate" style="color:var(--lm-accent)">
-                            <span class="lmCdT" data-pfx="Live in " data-iso="${s.EventDate}">Live in ${fmtCd(s.EventDate)}</span>
+        main.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)}</div>
+                          <div class="lmAnnCardDate">
+                            ${esc(dateStr)} — <span style="opacity:0.7">${String(s.Recurrence).toUpperCase()}</span>
                           </div>`;
         card.appendChild(main);
         
         const recurBadge = document.createElement('span');
-        recurBadge.className = 'lmAnnCardVer';
-        recurBadge.style.background = 'rgba(255,255,255,0.1)';
-        recurBadge.textContent = String(s.Recurrence).toUpperCase();
+        recurBadge.className = 'lmAnnCardVer lmCdT';
+        recurBadge.dataset.pfx = 'in ';
+        recurBadge.dataset.iso = s.ExecutionUtc;
+        recurBadge.style.background = 'rgba(0,180,90,0.2)';
+        recurBadge.style.color = 'var(--lm-accent)';
+        recurBadge.textContent = 'in ' + fmtCd(s.ExecutionUtc);
         card.appendChild(recurBadge);
 
         card.onclick = () => {
@@ -1664,6 +1665,12 @@ function openSchedCreate(editObj = null) {
         <label class="lmFieldLabel">Event Time *</label>
         <input type="time" id="lmSchTime" class="lmAnnInp" value="${editObj?.EventTime || '00:00'}" />
       </div>
+      <div style="flex:1">
+        <label class="lmFieldLabel">Time Zone *</label>
+        <select id="lmSchTz" class="lmAnnInp" style="background:rgba(0,0,0,0.2);padding:8px">
+          ${(Intl.supportedValuesOf ? Intl.supportedValuesOf('timeZone') : ['UTC']).map(tz => `<option value="${tz}">${tz}</option>`).join('')}
+        </select>
+      </div>
     </div>
     <div style="display:flex;gap:12px;margin-top:10px">
       <div style="flex:1">
@@ -1672,6 +1679,7 @@ function openSchedCreate(editObj = null) {
           <option value="none">None (One-time)</option>
           <option value="daily">Daily</option>
           <option value="weekly">Weekly</option>
+          <option value="biweekly">Bi-weekly (Every 2 Wks)</option>
           <option value="monthly">Monthly</option>
           <option value="bimonthly">Every 2 Months</option>
           <option value="6months">Every 6 Months</option>
@@ -1706,11 +1714,12 @@ function openSchedCreate(editObj = null) {
     const title = document.getElementById('lmSchTitle').value.trim();
     const date = document.getElementById('lmSchDate').value;
     const time = document.getElementById('lmSchTime').value;
+    const tz = document.getElementById('lmSchTz').value;
     const recur = document.getElementById('lmSchRecur').value;
     const days = parseInt(document.getElementById('lmSchDaysBox').value, 10) || 7;
     const desc = document.getElementById('lmSchDesc').value.trim();
 
-    if (!title || !date || !time) { alert('Title, Date, and Time are required.'); return; }
+    if (!title || !date || !time || !tz) { alert('All marked fields are required.'); return; }
     
     publishBtn.disabled = true;
     publishBtn.textContent = editObj ? 'Saving…' : 'Creating…';
@@ -1726,6 +1735,8 @@ function openSchedCreate(editObj = null) {
           Description: desc, 
           EventDate: date + 'T00:00:00Z',
           EventTime: time,
+          TimeZone: tz,
+          OriginalEventDate: editObj && editObj.OriginalEventDate ? editObj.OriginalEventDate : (date + 'T00:00:00Z'),
           Recurrence: recur,
           PostDaysBefore: days
         })
@@ -1751,6 +1762,9 @@ function openSchedCreate(editObj = null) {
   
   if(editObj) {
     document.getElementById('lmSchRecur').value = editObj.Recurrence || 'none';
+    if(editObj.TimeZone) document.getElementById('lmSchTz').value = editObj.TimeZone;
+  } else {
+    try { document.getElementById('lmSchTz').value = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch(e) {}
   }
 }
 

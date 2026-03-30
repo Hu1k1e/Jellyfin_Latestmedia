@@ -66,11 +66,22 @@ namespace Jellyfin_Latestmedia.Services
                     scheduleChanged = true;
                 }
 
-                // Parse Event DateTime
+                // Parse Event DateTime using target TimeZone
                 DateTime eventDt = task.EventDate.Date;
                 if (TimeSpan.TryParse(task.EventTime, out TimeSpan time))
                 {
                     eventDt = eventDt.Add(time);
+                }
+                
+                try
+                {
+                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
+                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDt, tzInfo);
+                }
+                catch
+                {
+                    // Fallback to local machine timezone if specified timezone is invalid
+                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDt, TimeZoneInfo.Local);
                 }
 
                 // Check Expired (Event passed)
@@ -95,14 +106,23 @@ namespace Jellyfin_Latestmedia.Services
                     else
                     {
                         // Calculate next occurrence
-                        task.EventDate = CalculateNextOccurrence(task.EventDate, task.Recurrence);
+                        task.EventDate = CalculateNextOccurrence(task.EventDate, task.Recurrence, task.OriginalEventDate);
                         scheduleChanged = true;
                         
-                        // Re-parse with new date
-                        eventDt = task.EventDate.Date;
+                        // Re-parse with new date for the posting window trigger
+                        DateTime newEventDt = task.EventDate.Date;
                         if (TimeSpan.TryParse(task.EventTime, out TimeSpan newTime))
                         {
-                            eventDt = eventDt.Add(newTime);
+                            newEventDt = newEventDt.Add(newTime);
+                        }
+                        try
+                        {
+                            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(task.TimeZone);
+                            eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, tzInfo);
+                        }
+                        catch
+                        {
+                            eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, TimeZoneInfo.Local);
                         }
                     }
                 }
@@ -145,16 +165,26 @@ namespace Jellyfin_Latestmedia.Services
             progress.Report(100);
         }
 
-        private DateTime CalculateNextOccurrence(DateTime current, string recurrence)
+        private DateTime CalculateNextOccurrence(DateTime current, string recurrence, DateTime? originalDateOpt)
         {
             var next = current;
+            var originalDate = originalDateOpt ?? current;
+
             switch(recurrence)
             {
                 case "daily":
                     next = current.AddDays(1);
                     break;
                 case "weekly":
+                    // Snap to the original day of week. Days since original date % 7.
                     next = current.AddDays(7);
+                    var diffW = (next.Date - originalDate.Date).Days;
+                    if (diffW % 7 != 0) next = originalDate.Date.AddDays(diffW + (7 - (diffW % 7)));
+                    break;
+                case "biweekly":
+                    next = current.AddDays(14);
+                    var diffB = (next.Date - originalDate.Date).Days;
+                    if (diffB % 14 != 0) next = originalDate.Date.AddDays(diffB + (14 - (diffB % 14)));
                     break;
                 case "monthly":
                     next = current.AddMonths(1);

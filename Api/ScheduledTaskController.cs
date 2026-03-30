@@ -72,6 +72,23 @@ namespace Jellyfin_Latestmedia.Api
             if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
             
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
+            foreach (var t in tasks)
+            {
+                try
+                {
+                    DateTime dt = t.EventDate.Date;
+                    if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
+                    var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(t.TimeZone ?? "UTC");
+                    t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, tzInfo);
+                }
+                catch
+                {
+                    // Fallback to local
+                    DateTime dt = t.EventDate.Date;
+                    if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
+                    t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, TimeZoneInfo.Local);
+                }
+            }
             return Ok(tasks.OrderBy(t => t.EventDate));
         }
 
@@ -87,6 +104,7 @@ namespace Jellyfin_Latestmedia.Api
             task.CreatedBy = uid;
             task.CreatedByName = user?.Username ?? "Admin";
             task.CreatedAt = DateTime.UtcNow;
+            if (task.OriginalEventDate == null) task.OriginalEventDate = task.EventDate;
 
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             tasks.Add(task);
@@ -110,7 +128,9 @@ namespace Jellyfin_Latestmedia.Api
             existing.Description = update.Description;
             existing.EventDate = update.EventDate;
             existing.EventTime = update.EventTime;
+            existing.TimeZone = update.TimeZone;
             existing.Recurrence = update.Recurrence;
+            existing.OriginalEventDate = update.OriginalEventDate ?? update.EventDate;
             existing.PostDaysBefore = update.PostDaysBefore;
             
             tasks[index] = existing;
