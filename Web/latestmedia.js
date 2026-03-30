@@ -36,7 +36,10 @@ setInterval(()=>{
   document.querySelectorAll('.lmCdT').forEach(e=>{
     if(e.dataset.iso){
       const t=fmtCd(e.dataset.iso);
-      if(e.textContent!==t&&(e.textContent!==t+' left')) e.textContent=e.dataset.pfx?e.dataset.pfx+t:t;
+      const pfx=e.dataset.pfx||'';
+      const sfx=e.dataset.sfx||'';
+      const full=pfx+t+sfx;
+      if(e.textContent!==full) e.textContent=full;
     }
   });
 },60000);
@@ -423,7 +426,8 @@ function renderL(b,items){
     const mainTitle = esc(i.SeriesName || i.Title || i.Name || '?');
     const ctx = i.SeriesName ? `<div style="font-size:.75em;opacity:.7;margin-top:1px">${i.SeasonName ? esc(i.SeasonName) + ' \u2022 ' : ''}${esc(i.Title || i.Name)}</div>` : '';
     const genres = (i.Genres && i.Genres.length) ? `<div style="font-size:.68em;opacity:.5;margin-top:2px">${esc(i.Genres.slice(0,3).join(' \u2022 '))}</div>` : '';
-    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span class="lmLd">\u23f3 <span class="lmCdT" data-iso="${i.ScheduledDate}" data-pfx="">${fmtCd(i.ScheduledDate)}</span> left</span></div></div></a>`;
+    const cdText = fmtCd(i.ScheduledDate);
+    return`<a class="lmCard" href="#!/details?id=${i.Id}"><img class="lmPoster" loading="lazy" src="${S.url}/Items/${i.Id}/Images/Primary?fillWidth=90&quality=75" onerror="this.style.visibility='hidden'"/><div class="lmMeta"><div class="lmTitle">${mainTitle}</div>${ctx}${genres}<div class="lmSub" style="margin-top:4px;display:flex;align-items:center;justify-content:space-between"><span class="lmBdge ${tyC(i.Type)}">${i.Type||'?'}</span><span style="margin-left:auto;font-size:.75em;color:rgba(255,255,255,0.75);font-weight:500" class="lmCdT" data-iso="${i.ScheduledDate}" data-pfx="" data-sfx=" left">${cdText} left</span></div></div></a>`;
   }).join('');
   b.querySelectorAll('.lmCard').forEach(a=>a.addEventListener('click',()=>{const w=document.getElementById('lm-btn-latest');closeDD(w)}));
 }
@@ -1830,6 +1834,19 @@ function openAllScheduledTasks() {
   ov.appendChild(panel);
   document.body.appendChild(ov);
 
+  // Helper: advance a past UTC ms to the next recurrence
+  function nextRecur(utcMs, recurrence) {
+    const rec = (recurrence||'').toLowerCase();
+    if (rec === 'none') return utcMs;
+    const DAY = 86400000;
+    const steps = { daily:1, weekly:7, biweekly:14, monthly:30, bimonthly:60, '6months':182, yearly:365 };
+    const days = steps[rec];
+    if (!days) return utcMs;
+    let next = utcMs;
+    while (next <= Date.now()) next += days * DAY;
+    return next;
+  }
+
   api(`ScheduledTask?_t=${Date.now()}`).then(list => {
     body.innerHTML = '';
     if (!Array.isArray(list) || !list.length) {
@@ -1845,27 +1862,27 @@ function openAllScheduledTasks() {
       main.className = 'lmAnnCardMain';
       
       const d = new Date(s.ExecutionUtc);
-      const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
+
+      const rawMs = d.getTime();
+      const recurrence = s.Recurrence || 'none';
+      const effectiveMs = rawMs > Date.now() ? rawMs : nextRecur(rawMs, recurrence);
+      const effectiveUtc = new Date(effectiveMs).toISOString();
+      const effectiveD = new Date(effectiveMs);
+      const effectiveDateStr = effectiveD.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + effectiveD.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
 
       const bd = document.createElement('div');
-      bd.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)} <span style="font-size:0.85em;font-weight:400;color:var(--lm-accent);opacity:0.9">— ${esc(s.Recurrence.toUpperCase())}</span></div>
-                      <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
+      bd.innerHTML = `<div class="lmAnnCardTitle">${esc(s.Title)} <span style="font-size:0.85em;font-weight:400;color:var(--lm-accent);opacity:0.9">— ${esc(recurrence.toUpperCase())}</span></div>
+                      <div class="lmAnnCardDate">${esc(effectiveDateStr)}</div>`;
       main.appendChild(bd);
       card.appendChild(main);
 
-      const isFuture = d.getTime() > Date.now();
       const recurBadge = document.createElement('span');
-      recurBadge.className = isFuture ? 'lmAnnCardVer lmCdT' : 'lmAnnCardVer';
-      if (isFuture) {
-        recurBadge.dataset.pfx = 'in ';
-        recurBadge.dataset.iso = s.ExecutionUtc;
-        recurBadge.style.background = 'rgba(0,180,90,0.2)';
-        recurBadge.style.color = 'var(--lm-accent)';
-        recurBadge.textContent = 'in ' + fmtCd(s.ExecutionUtc);
-      } else {
-        recurBadge.style.background = 'rgba(255,255,255,0.1)';
-        recurBadge.textContent = 'EXPIRED';
-      }
+      recurBadge.className = 'lmAnnCardVer lmCdT';
+      recurBadge.dataset.pfx = 'in ';
+      recurBadge.dataset.iso = effectiveUtc;
+      recurBadge.style.background = 'rgba(0,180,90,0.2)';
+      recurBadge.style.color = 'var(--lm-accent)';
+      recurBadge.textContent = 'in ' + fmtCd(effectiveUtc);
       card.appendChild(recurBadge);
 
       const delBtn = document.createElement('button');
