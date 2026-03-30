@@ -76,7 +76,7 @@ namespace Jellyfin_Latestmedia.Api
             {
                 try
                 {
-                    DateTime dt = t.EventDate.Date;
+                    DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
                     if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
                     var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(t.TimeZone ?? "UTC");
                     t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, tzInfo);
@@ -84,9 +84,10 @@ namespace Jellyfin_Latestmedia.Api
                 catch
                 {
                     // Fallback to local
-                    DateTime dt = t.EventDate.Date;
+                    DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
                     if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
-                    t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, TimeZoneInfo.Local);
+                    try { t.ExecutionUtc = TimeZoneInfo.ConvertTimeToUtc(dt, TimeZoneInfo.Local); }
+                    catch { t.ExecutionUtc = dt.ToUniversalTime(); }
                 }
             }
             return Ok(tasks.OrderBy(t => t.EventDate));
