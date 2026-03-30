@@ -66,7 +66,13 @@ jobs:
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           REPO="${{ github.repository }}"
 
-          jq --arg ver "${VERSION}.0" \
+          if [[ "$VERSION" == *.*.*.* ]]; then
+            VER_ARG="$VERSION"
+          else
+            VER_ARG="${VERSION}.0"
+          fi
+
+          jq --arg ver "$VER_ARG" \
              --arg dl "https://github.com/${REPO}/releases/download/v${VERSION}/jellyfin_latestmedia_v${VERSION}.zip" \
              --arg cs "$CHECKSUM" \
              --arg ts "$TIMESTAMP" \
