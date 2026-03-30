@@ -1719,6 +1719,34 @@ function openSchedCreate(editObj = null) {
 
     if (!title || !date || !time || !tz) { alert('All marked fields are required.'); return; }
     
+    // Compute the correct UTC time using browser's Intl (handles all IANA timezones natively)
+    // This bypasses all server-side Windows/IANA registry conversion which causes time offset bugs
+    function tzLocalToUtcIso(dateStr, timeStr, tzId) {
+      try {
+        // Treat user's local time naively as UTC to get a reference ms value
+        const refMs = new Date(`${dateStr}T${timeStr}:00Z`).getTime();
+        const refDate = new Date(refMs);
+        // Ask Intl what this UTC moment looks like in the target timezone
+        const fmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tzId, year:'numeric', month:'2-digit', day:'2-digit',
+          hour:'2-digit', minute:'2-digit', hour12: false
+        });
+        const p = {};
+        fmt.formatToParts(refDate).forEach(pt => { p[pt.type] = pt.value; });
+        const h = parseInt(p.hour) === 24 ? 0 : parseInt(p.hour);
+        // tzMs = what the target timezone shows, expressed as UTC ms (for offset math)
+        const tzMs = Date.UTC(parseInt(p.year), parseInt(p.month)-1, parseInt(p.day), h, parseInt(p.minute));
+        // offsetMs = how many ms ahead the target timezone is from UTC
+        const offsetMs = tzMs - refMs;
+        // True UTC = local_time - offset
+        return new Date(refMs - offsetMs).toISOString();
+      } catch(e) {
+        return `${dateStr}T${timeStr}:00Z`;
+      }
+    }
+
+    const eventUtcIso = tzLocalToUtcIso(date, time, tz);
+    
     publishBtn.disabled = true;
     publishBtn.textContent = editObj ? 'Saving…' : 'Creating…';
     
@@ -1734,6 +1762,7 @@ function openSchedCreate(editObj = null) {
           EventDate: date + 'T00:00:00Z',
           EventTime: time,
           TimeZone: tz,
+          EventUtcIso: eventUtcIso,
           OriginalEventDate: editObj && editObj.OriginalEventDate ? editObj.OriginalEventDate : (date + 'T00:00:00Z'),
           Recurrence: recur,
           PostDaysBefore: days

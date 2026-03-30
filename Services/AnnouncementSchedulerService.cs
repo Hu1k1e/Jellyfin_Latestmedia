@@ -66,31 +66,33 @@ namespace Jellyfin_Latestmedia.Services
                     scheduleChanged = true;
                 }
 
-                // Parse Event DateTime using target TimeZone
-                DateTime eventDtBase = DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified);
-                if (TimeSpan.TryParse(task.EventTime, out TimeSpan time))
-                {
-                    eventDtBase = eventDtBase.Add(time);
-                }
-                
+                // Resolve the event's UTC time — prefer pre-computed EventUtcIso (set by browser Intl, 100% accurate)
                 DateTime eventDt;
-                try
+                if (!string.IsNullOrEmpty(task.EventUtcIso) && DateTime.TryParse(task.EventUtcIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime parsedUtc))
                 {
-                    string tzId = task.TimeZone ?? "UTC";
-                    TimeZoneInfo tzInfo = null;
-                    if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
-                    {
-                        try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
-                    }
-                    if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
-                    
-                    eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, tzInfo);
+                    eventDt = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
                 }
-                catch
+                else
                 {
-                    // Fallback to local machine timezone if specified timezone is invalid
-                    try { eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, TimeZoneInfo.Local); }
-                    catch { eventDt = eventDtBase.ToUniversalTime(); }
+                    // Legacy fallback: server-side IANA timezone conversion
+                    DateTime eventDtBase = DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified);
+                    if (TimeSpan.TryParse(task.EventTime, out TimeSpan time)) eventDtBase = eventDtBase.Add(time);
+                    try
+                    {
+                        string tzId = task.TimeZone ?? "UTC";
+                        TimeZoneInfo tzInfo = null;
+                        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
+                        {
+                            try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
+                        }
+                        if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
+                        eventDt = TimeZoneInfo.ConvertTimeToUtc(eventDtBase, tzInfo);
+                    }
+                    catch
+                    {
+                        try { eventDt = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified).Add(TimeSpan.TryParse(task.EventTime, out var t2) ? t2 : TimeSpan.Zero), TimeZoneInfo.Local); }
+                        catch { eventDt = task.EventDate.ToUniversalTime(); }
+                    }
                 }
 
                 // Check Expired (Event passed)
@@ -114,33 +116,15 @@ namespace Jellyfin_Latestmedia.Services
                     }
                     else
                     {
-                        // Calculate next occurrence
+                        // Calculate next occurrence — advance both EventDate and EventUtcIso by recurrence period
+                        var oldDate = task.EventDate;
                         task.EventDate = CalculateNextOccurrence(task.EventDate, task.Recurrence, task.OriginalEventDate);
                         scheduleChanged = true;
-                        
-                        // Re-parse with new date for the posting window trigger
-                        DateTime newEventDt = DateTime.SpecifyKind(task.EventDate.Date, DateTimeKind.Unspecified);
-                        if (TimeSpan.TryParse(task.EventTime, out TimeSpan newTime))
-                        {
-                            newEventDt = newEventDt.Add(newTime);
-                        }
-                        try
-                        {
-                            string tzId = task.TimeZone ?? "UTC";
-                            TimeZoneInfo tzInfo = null;
-                            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) && TimeZoneInfo.TryConvertIanaIdToWindowsId(tzId, out string winId))
-                            {
-                                try { tzInfo = TimeZoneInfo.FindSystemTimeZoneById(winId); } catch {}
-                            }
-                            if (tzInfo == null) tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tzId);
-                            
-                            eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, tzInfo);
-                        }
-                        catch
-                        {
-                            try { eventDt = TimeZoneInfo.ConvertTimeToUtc(newEventDt, TimeZoneInfo.Local); }
-                            catch { eventDt = newEventDt.ToUniversalTime(); }
-                        }
+
+                        // Advance EventUtcIso by same number of UTC days as EventDate advanced
+                        var daysDiff = (task.EventDate - oldDate).Days;
+                        eventDt = eventDt.AddDays(daysDiff);
+                        task.EventUtcIso = eventDt.ToString("O"); // ISO 8601 round-trip
                     }
                 }
 
