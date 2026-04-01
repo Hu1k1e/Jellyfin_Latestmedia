@@ -307,6 +307,23 @@
                             <div class="fieldDescription checkboxFieldDescription">Show server, quality profile, and root folder selection when requesting.</div>
                         </div>
 
+                        <div class="lm-grid-2">
+                            <div class="inputContainer" style="margin-top: 10px;">
+                                <label class="inputLabel inputLabelUnfocused" for="JellyseerrDefaultSonarrProfileId">Default Sonarr Quality Profile</label>
+                                <select id="JellyseerrDefaultSonarrProfileId" is="emby-select" class="emby-select-withcolor">
+                                    <option value="">Use Server Default</option>
+                                </select>
+                                <div class="fieldDescription">Select a globally enforced Sonarr Quality profile for TV Requests.</div>
+                            </div>
+                            <div class="inputContainer" style="margin-top: 10px;">
+                                <label class="inputLabel inputLabelUnfocused" for="JellyseerrDefaultRadarrProfileId">Default Radarr Quality Profile</label>
+                                <select id="JellyseerrDefaultRadarrProfileId" is="emby-select" class="emby-select-withcolor">
+                                    <option value="">Use Server Default</option>
+                                </select>
+                                <div class="fieldDescription">Select a globally enforced Radarr Quality profile for Movie Requests.</div>
+                            </div>
+                        </div>
+
                         <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowReportButton" /><span>Show report issue button</span></label></div>
                         <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowIssueIndicator" /><span>Show issue indicator on items</span></label></div>
 
@@ -655,6 +672,8 @@
                         document.getElementById('JellyseerrEnable4KRequests').checked = !!config.JellyseerrEnable4KRequests;
                         document.getElementById('JellyseerrEnable4KTvRequests').checked = !!config.JellyseerrEnable4KTvRequests;
                         document.getElementById('JellyseerrShowAdvanced').checked = !!config.JellyseerrShowAdvanced;
+                        document.getElementById('JellyseerrDefaultSonarrProfileId').value = config.JellyseerrDefaultSonarrProfileId || '';
+                        document.getElementById('JellyseerrDefaultRadarrProfileId').value = config.JellyseerrDefaultRadarrProfileId || '';
                         document.getElementById('JellyseerrShowReportButton').checked = !!config.JellyseerrShowReportButton;
                         document.getElementById('JellyseerrShowIssueIndicator').checked = !!config.JellyseerrShowIssueIndicator;
                         document.getElementById('JellyseerrExcludeLibraryItems').checked = config.JellyseerrExcludeLibraryItems !== false;
@@ -728,6 +747,8 @@
                         config.JellyseerrEnable4KRequests = document.getElementById('JellyseerrEnable4KRequests').checked;
                         config.JellyseerrEnable4KTvRequests = document.getElementById('JellyseerrEnable4KTvRequests').checked;
                         config.JellyseerrShowAdvanced = document.getElementById('JellyseerrShowAdvanced').checked;
+                        config.JellyseerrDefaultSonarrProfileId = document.getElementById('JellyseerrDefaultSonarrProfileId').value;
+                        config.JellyseerrDefaultRadarrProfileId = document.getElementById('JellyseerrDefaultRadarrProfileId').value;
                         config.JellyseerrShowReportButton = document.getElementById('JellyseerrShowReportButton').checked;
                         config.JellyseerrShowIssueIndicator = document.getElementById('JellyseerrShowIssueIndicator').checked;
                         config.JellyseerrExcludeLibraryItems = document.getElementById('JellyseerrExcludeLibraryItems').checked;
@@ -866,7 +887,33 @@
 
                 // Init on page show
                 document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
-                    loadConfig();
+                    loadConfig().then(function() {
+                        var authHdr = getAuthHeader();
+                        var sonarrSel = document.getElementById('JellyseerrDefaultSonarrProfileId');
+                        var radarrSel = document.getElementById('JellyseerrDefaultRadarrProfileId');
+                        
+                        fetch('/Arr/SonarrProfiles', { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
+                            .then(function(r) { return r.ok ? r.json() : []; })
+                            .then(function(profiles) {
+                                var currentVal = sonarrSel.value;
+                                sonarrSel.innerHTML = '<option value="">Use Server Default</option>';
+                                if(profiles && profiles.length) {
+                                    profiles.forEach(function(p) { sonarrSel.appendChild(new Option(p.name, p.id)); });
+                                    sonarrSel.value = currentVal || '';
+                                }
+                            }).catch(function() {});
+                            
+                        fetch('/Arr/RadarrProfiles', { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
+                            .then(function(r) { return r.ok ? r.json() : []; })
+                            .then(function(profiles) {
+                                var currentVal = radarrSel.value;
+                                radarrSel.innerHTML = '<option value="">Use Server Default</option>';
+                                if(profiles && profiles.length) {
+                                    profiles.forEach(function(p) { radarrSel.appendChild(new Option(p.name, p.id)); });
+                                    radarrSel.value = currentVal || '';
+                                }
+                            }).catch(function() {});
+                    });
                     if (!document.getElementById('lm-branding-script')) {
                         var s = document.createElement('script');
                         s.id = 'lm-branding-script';

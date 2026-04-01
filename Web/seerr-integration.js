@@ -131,6 +131,9 @@
         var year = item.releaseDate || item.firstAirDate;
         var yearStr = year ? year.substring(0, 4) : 'N/A';
         var rating = item.voteAverage ? item.voteAverage.toFixed(1) : 'N/A';
+        
+        // "Available movies should not come here" filter out items completely
+        if (status === 4 || status === 5) return null;
 
         // Wrap — uses Jellyfin's card classes for visual consistency
         var wrap = document.createElement('div');
@@ -172,13 +175,9 @@
         reqBtn.className = 'jellyseerr-request-button lm-seerr-req-btn';
         reqBtn.style.cssText = 'padding:6px 14px;border-radius:4px;border:none;pointer-events:auto;cursor:pointer;font-weight:600;min-width:100px;';
 
-        if (status === 5) {
-            reqBtn.textContent = 'Available';
-            reqBtn.style.background = '#28a745';
-            reqBtn.disabled = true;
-        } else if (status === 2 || status === 3 || status === 4) {
+        if (status === 2 || status === 3) {
             reqBtn.textContent = 'Requested';
-            reqBtn.style.background = '#ff9800';
+            reqBtn.style.background = '#00b35a';
             reqBtn.disabled = true;
         } else {
             reqBtn.textContent = 'Request';
@@ -231,6 +230,14 @@
         cardBox.appendChild(footerFirst);
         cardBox.appendChild(footerSecond);
         wrap.appendChild(cardBox);
+
+        // Click handler to open the detailed popup (but exclude the request button itself)
+        wrap.addEventListener('click', function(e) {
+            if (e.target.closest('.jellyseerr-request-button') || e.target.closest('a')) return;
+            e.preventDefault();
+            e.stopPropagation();
+            showInfoModal(item);
+        });
 
         return wrap;
     }
@@ -476,6 +483,101 @@
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    // MORE INFO MODAL
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function showInfoModal(item) {
+        var existing = document.getElementById('lm-seerr-info-modal');
+        if (existing) existing.remove();
+
+        var mediaType = (item.mediaType || 'movie').toLowerCase();
+        var tmdbId = item.id;
+        var title = item.title || item.name || 'Unknown';
+        var year = (item.releaseDate || item.firstAirDate || '').substring(0, 4);
+        var pPath = item.posterPath ? 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' + item.posterPath : '';
+        var bPath = item.backdropPath ? 'https://image.tmdb.org/t/p/w1920_and_h800_multi_faces' + item.backdropPath : '';
+
+        var modal = document.createElement('div');
+        modal.id = 'lm-seerr-info-modal';
+        modal.className = 'lm-seerr-modal';
+        if (bPath) modal.style.backgroundImage = 'linear-gradient(to right, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0.6) 100%), url("' + bPath + '")';
+        modal.style.backgroundSize = 'cover';
+        modal.style.backgroundPosition = 'center';
+
+        var contentDiv = document.createElement('div');
+        contentDiv.className = 'lm-seerr-modal-box';
+        contentDiv.style.maxWidth = '800px';
+        contentDiv.style.flexDirection = 'row';
+        contentDiv.style.justifyContent = 'space-between';
+        contentDiv.style.alignItems = 'flex-start';
+        contentDiv.style.gap = '30px';
+        contentDiv.style.background = 'rgba(20,20,30,0.75)';
+
+        // Left Col (Text)
+        var leftCol = document.createElement('div');
+        leftCol.style.flex = '1';
+
+        var h3 = document.createElement('h2');
+        h3.style.marginTop = '0';
+        h3.style.marginBottom = '5px';
+        h3.textContent = title + (year ? ' (' + year + ')' : '');
+        leftCol.appendChild(h3);
+
+        var overviewP = document.createElement('p');
+        overviewP.style.lineHeight = '1.6';
+        overviewP.style.color = '#ccc';
+        overviewP.textContent = item.overview || 'No overview available.';
+        leftCol.appendChild(overviewP);
+
+        var actorsEl = document.createElement('div');
+        actorsEl.style.marginTop = '20px';
+        actorsEl.innerHTML = '<span style="color:#00b35a;font-weight:bold;">Cast:</span> <span class="actor-list">Loading...</span>';
+        leftCol.appendChild(actorsEl);
+        
+        // Right Col (Poster + Close Btn)
+        var rightCol = document.createElement('div');
+        rightCol.style.width = '200px';
+        rightCol.style.flexShrink = '0';
+        rightCol.style.textAlign = 'right';
+
+        var closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = 'background:none;border:none;color:#fff;font-size:24px;cursor:pointer;margin-bottom:15px;float:right;';
+        closeBtn.addEventListener('click', function() { modal.remove(); });
+        rightCol.appendChild(closeBtn);
+        
+        var clearDiv = document.createElement('div');
+        clearDiv.style.clear = 'both';
+        rightCol.appendChild(clearDiv);
+
+        if (pPath) {
+            var img = document.createElement('img');
+            img.src = pPath;
+            img.style.width = '100%';
+            img.style.borderRadius = '8px';
+            img.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)';
+            rightCol.appendChild(img);
+        }
+
+        contentDiv.appendChild(leftCol);
+        contentDiv.appendChild(rightCol);
+        modal.appendChild(contentDiv);
+
+        modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+        document.body.appendChild(modal);
+
+        seerrGet((mediaType === 'movie' ? 'movie/' : 'tv/') + tmdbId)
+            .then(function(fullData) {
+                var credits = fullData.credits || {};
+                var cast = credits.cast || [];
+                var topCast = cast.slice(0, 6).map(function(c) { return c.name; }).join(', ');
+                actorsEl.querySelector('.actor-list').textContent = topCast || 'Unknown';
+            }).catch(function() {
+                actorsEl.querySelector('.actor-list').textContent = 'Could not load cast.';
+            });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
     // REQUEST MODAL — Simple + Advanced (server/quality/folder)
     // ═══════════════════════════════════════════════════════════════════════════
 
@@ -664,7 +766,8 @@
         reqBtn.addEventListener('click', function () {
             var adv = {};
             if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
-            if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+            var profileToUse = advancedState.profileId || (isMovie ? cfg.JellyseerrDefaultRadarrProfileId : cfg.JellyseerrDefaultSonarrProfileId);
+            if (profileToUse) adv.profileId = parseInt(profileToUse);
             if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
             
             if (!isMovie) {
@@ -685,7 +788,8 @@
             req4kBtn.addEventListener('click', function () {
                 var adv = {};
                 if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
-                if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+                var profileToUse = advancedState.profileId || (isMovie ? cfg.JellyseerrDefaultRadarrProfileId : cfg.JellyseerrDefaultSonarrProfileId);
+                if (profileToUse) adv.profileId = parseInt(profileToUse);
                 if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
                 submitRequest(modal, req4kBtn, Object.assign({ mediaType: 'movie', mediaId: tmdbId, is4k: true }, adv));
             });
@@ -700,7 +804,8 @@
                 
                 var adv = {};
                 if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
-                if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+                var profileToUse = advancedState.profileId || (isMovie ? cfg.JellyseerrDefaultRadarrProfileId : cfg.JellyseerrDefaultSonarrProfileId);
+                if (profileToUse) adv.profileId = parseInt(profileToUse);
                 if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
                 
                 submitRequest(modal, req4kTvBtn, Object.assign({ mediaType: 'tv', mediaId: tmdbId, is4k: true, seasons: selectedSeasons }, adv));

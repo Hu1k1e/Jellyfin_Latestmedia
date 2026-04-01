@@ -478,22 +478,31 @@
 
         var obs = new MutationObserver(function () {
             var sidebar = document.querySelector('.mainDrawer, .navDrawer');
-            if (sidebar && !document.getElementById('lm-arr-nav-btn')) {
-                var a = document.createElement('a');
-                a.setAttribute('is', 'emby-linkbutton');
-                a.className = 'navMenuOption emby-button';
-                a.id = 'lm-arr-nav-btn';
-                a.href = '#/lm-arr-downloads';
-                a.innerHTML = '<span class="material-icons navMenuOptionIcon" aria-hidden="true">download</span><span class="sectionName navMenuOptionText">Active Downloads</span>';
-                
+            if (!sidebar || document.getElementById('lm-arr-nav-btn')) return;
+
+            var jellyfinEnhancedSection = sidebar.querySelector('.jellyfinEnhancedSection');
+            if (!jellyfinEnhancedSection) {
+                jellyfinEnhancedSection = document.createElement('div');
+                jellyfinEnhancedSection.className = 'jellyfinEnhancedSection';
+                jellyfinEnhancedSection.innerHTML = '<h3 class="sidebarHeader">Jellyfin Enhanced</h3>';
+
                 var mediaSection = sidebar.querySelector('.libraryMenuOptions');
                 if (mediaSection && mediaSection.parentNode) {
-                    mediaSection.parentNode.insertBefore(a, mediaSection);
+                    mediaSection.parentNode.insertBefore(jellyfinEnhancedSection, mediaSection);
                 } else {
                     var container = sidebar.querySelector('.mainDrawer-scrollContainer, .scrollSlider') || sidebar;
-                    container.appendChild(a);
+                    container.appendChild(jellyfinEnhancedSection);
                 }
             }
+
+            var a = document.createElement('a');
+            a.setAttribute('is', 'emby-linkbutton');
+            a.className = 'navMenuOption lnkMediaFolder emby-button je-nav-downloads-item';
+            a.id = 'lm-arr-nav-btn';
+            a.href = '#/lm-arr-downloads';
+            a.innerHTML = '<span class="material-icons navMenuOptionIcon" aria-hidden="true">download</span><span class="sectionName navMenuOptionText">Active Downloads</span>';
+            
+            jellyfinEnhancedSection.appendChild(a);
         });
         obs.observe(document.body, { childList: true, subtree: true });
     }

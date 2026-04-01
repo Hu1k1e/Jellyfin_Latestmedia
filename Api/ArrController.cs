@@ -242,5 +242,16 @@ namespace Jellyfin_Latestmedia.Api
                 return Ok(new { success = false, error = ex.Message });
             }
         }
+        // ── Profiles ─────────────────────────────────────────────────────────
+
+        /// <summary>Returns Sonarr Quality Profiles.</summary>
+        [HttpGet("SonarrProfiles")]
+        [Authorize(Policy = "RequiresElevation")]
+        public Task<IActionResult> SonarrProfiles() => ProxyGet(Config.SonarrUrl, Config.SonarrApiKey, "/api/v3/qualityprofile");
+
+        /// <summary>Returns Radarr Quality Profiles.</summary>
+        [HttpGet("RadarrProfiles")]
+        [Authorize(Policy = "RequiresElevation")]
+        public Task<IActionResult> RadarrProfiles() => ProxyGet(Config.RadarrUrl, Config.RadarrApiKey, "/api/v3/qualityprofile");
     }
 }

@@ -42,6 +42,8 @@ namespace Jellyfin_Latestmedia.Configuration
         public bool JellyseerrEnable4KRequests { get; set; } = false;
         public bool JellyseerrEnable4KTvRequests { get; set; } = false;
         public bool JellyseerrShowAdvanced { get; set; } = false;
+        public string JellyseerrDefaultSonarrProfileId { get; set; } = "";
+        public string JellyseerrDefaultRadarrProfileId { get; set; } = "";
         public bool JellyseerrShowReportButton { get; set; } = false;
         public bool JellyseerrShowIssueIndicator { get; set; } = false;
 
