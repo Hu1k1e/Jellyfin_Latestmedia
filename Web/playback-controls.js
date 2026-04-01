@@ -1,18 +1,17 @@
 /**
- * playback-controls.js — v3.0.2.0
+ * playback-controls.js — v3.1.0.0
  * Auto Pause / Auto Resume / Auto Picture-in-Picture on Tab Switch
  * Lazy-loaded by latestmedia.js bootloader only when any of the 3 toggles are enabled.
  *
  * Performance: minimal event listeners, zero polling, zero DOM observers.
  *
- * CHROME PIP FIX (v3.0.2):
- *  Chrome requires requestPictureInPicture() to be called from a context where the
- *  user has previously interacted with the video element. visibilitychange alone is
- *  not a user gesture. We track user interaction via a 'pointerdown' listener on
- *  the video element, and only attempt PIP after interaction has occurred.
- *
- *  This matches JE's behavior: their PIP only works because the user has already
- *  clicked play before switching tabs.
+ * PIP NOTE (v3.1.0):
+ *  This implementation exactly mirrors Jellyfin Enhanced's events.js logic.
+ *  JE does NOT track user gestures separately. It simply:
+ *   1. Pauses the video (if autoPause enabled)
+ *   2. Requests PiP (if autoPip enabled, unconditionally)
+ *  Chrome's visibilitychange IS a trusted event context for requestPictureInPicture.
+ *  The previous _hasUserGesture gate was a false negative that blocked PiP entirely.
  */
 (function () {
     'use strict';
@@ -20,43 +19,8 @@
     var DATA_KEY = 'lmWasPlayingBeforeHidden';
     var REGISTERED = false;
 
-    // Track whether user has interacted with video (needed for Chrome PIP policy)
-    var _hasUserGesture = false;
-    var _gestureWatcherActive = false;
-
     function getCfg() {
         return window.__latestMediaConfig || {};
-    }
-
-    /**
-     * Attaches a one-time pointerdown listener to the video element to mark
-     * that a user gesture has occurred. Chrome requires this before PIP can
-     * be triggered programmatically from a non-gesture event (visibilitychange).
-     */
-    function watchForUserGesture(video) {
-        if (_gestureWatcherActive) return;
-        _gestureWatcherActive = true;
-
-        function onGesture() {
-            _hasUserGesture = true;
-            // Also mark on the video element itself for persistence across re-queries
-            if (video) video.dataset.lmHasGesture = 'true';
-        }
-
-        // Listen on both the video and document (in case focus goes to controls)
-        if (video) {
-            video.addEventListener('play', onGesture, { once: false, passive: true });
-            video.addEventListener('click', onGesture, { once: false, passive: true });
-            video.addEventListener('pointerdown', onGesture, { once: false, passive: true });
-        }
-        document.addEventListener('pointerdown', function onDocGesture() {
-            // Only mark if a video is playing
-            var v = document.querySelector('video');
-            if (v && !v.paused) {
-                _hasUserGesture = true;
-                if (v) v.dataset.lmHasGesture = 'true';
-            }
-        }, { passive: true });
     }
 
     function onVisibilityChange() {
@@ -64,41 +28,35 @@
         var video = document.querySelector('video');
         if (!video) return;
 
-        // Watch for gestures on this video
-        watchForUserGesture(video);
-
         if (document.hidden) {
-            // ── Tab is now hidden ──
-            
-            if (cfg.AutoPipEnabled && document.pictureInPictureEnabled && !document.pictureInPictureElement) {
-                // If PiP is enabled, request it FIRST so the browser allows it (video must be actively playing).
-                video.requestPictureInPicture().catch(function (err) {
-                    console.debug('[LatestMedia] PIP request blocked:', err.name, err.message);
-                    // Fallback to auto-pause if PiP fails
-                    if (cfg.AutoPauseEnabled && !video.paused) {
-                        video.pause();
-                        video.dataset[DATA_KEY] = 'true';
-                    }
-                });
-            } else if (cfg.AutoPauseEnabled && !video.paused) {
-                // If PiP is disabled (or already in PiP), and auto-pause is enabled, pause the video.
+            // ── Tab is now hidden ── (mirrors JE events.js exactly)
+
+            // 1. Auto Pause first
+            if (cfg.AutoPauseEnabled && !video.paused) {
                 video.pause();
                 video.dataset[DATA_KEY] = 'true';
             }
 
-        } else {
-            // ── Tab is visible again ──
-
-            // Exit PIP when tab becomes visible again
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture().catch(function () {});
+            // 2. Auto PiP after pause (JE does it this way — Chrome allows PiP from visibilitychange)
+            if (cfg.AutoPipEnabled && !document.pictureInPictureElement) {
+                video.requestPictureInPicture().catch(function (err) {
+                    console.debug('[LatestMedia] PIP request failed:', err.name, '-', err.message);
+                });
             }
 
-            // Auto Resume
-            if (cfg.AutoResumeEnabled && video.paused && video.dataset[DATA_KEY] === 'true') {
+        } else {
+            // ── Tab is visible again ── (mirrors JE events.js exactly)
+
+            // 1. Resume if we paused it
+            if (video.paused && video.dataset[DATA_KEY] === 'true' && cfg.AutoResumeEnabled) {
                 video.play().catch(function () {});
             }
             delete video.dataset[DATA_KEY];
+
+            // 2. Exit PiP when returning to tab
+            if (cfg.AutoPipEnabled && document.pictureInPictureElement) {
+                document.exitPictureInPicture().catch(function () {});
+            }
         }
     }
 
@@ -106,12 +64,7 @@
         if (REGISTERED) return;
         REGISTERED = true;
         document.addEventListener('visibilitychange', onVisibilityChange);
-
-        // Immediately watch any video already present
-        var v = document.querySelector('video');
-        if (v) watchForUserGesture(v);
-
-        console.log('[LatestMedia] playback-controls: registered (will watch for user gesture for PIP)');
+        console.log('[LatestMedia] playback-controls: registered');
     }
 
     register();
@@ -120,11 +73,8 @@
     if (window.__latestMediaObserver) {
         window.__latestMediaObserver.register('playback-controls-init', function () {
             register();
-            // Watch any newly added video
-            var v = document.querySelector('video');
-            if (v && !_gestureWatcherActive) watchForUserGesture(v);
         });
     }
 
-    console.log('[LatestMedia] playback-controls loaded');
+    console.log('[LatestMedia] playback-controls loaded (v3.1.0)');
 })();
