@@ -123,12 +123,15 @@
 
     var LOGO_SELECTORS = [
         // Jellyfin's own banner/logo images
+        '.pageTitleWithLogo',
+        '.pageTitleWithDefaultLogo',
         'img[src*="banner-light"]',
         'img[src*="banner-dark"]',
         'img.imgLogoHeader',
         'img.headerLogo',
         '.headerLogoImage',
         '.splash img',
+        '.splashLogo',
         '.loginDisclaimer img',
         '.readUserName img',
         // Drawer / sidebar logo
@@ -158,11 +161,15 @@
         var url = brandingUrl(type);
 
         LOGO_SELECTORS.forEach(function (sel) {
-            document.querySelectorAll(sel).forEach(function (img) {
-                if (img.getAttribute('data-lm-branded')) return;
-                img.src = url;
-                img.removeAttribute('srcset');
-                img.setAttribute('data-lm-branded', '1');
+            document.querySelectorAll(sel).forEach(function (el) {
+                if (el.getAttribute('data-lm-branded')) return;
+                if (el.tagName === 'IMG') {
+                    el.src = url;
+                    el.removeAttribute('srcset');
+                } else {
+                    el.style.backgroundImage = 'url("' + url + '")';
+                }
+                el.setAttribute('data-lm-branded', '1');
             });
         });
     }
@@ -171,11 +178,13 @@
 
     var ICON_SELECTORS = [
         // Jellyfin's server icon — appears in sidebar, login, dashboard header
+        '#splashscreen',
         'img[src*="icon-transparent"]',
         'img[src*="icon.svg"]',
         // The circular server icon badge in the drawer / top-left header
         '.serverLogoImage',
         '.appIconContainer img',
+        '.appIconContainer',
         'img.appIcon',
         '.loginLogo img',
         // Login page logo (if custom icon set)
@@ -188,11 +197,15 @@
     function applyIconImages() {
         var url = brandingUrl('icon-transparent');
         ICON_SELECTORS.forEach(function (sel) {
-            document.querySelectorAll(sel).forEach(function (img) {
-                if (img.getAttribute('data-lm-icon-branded')) return;
-                img.src = url;
-                img.removeAttribute('srcset');
-                img.setAttribute('data-lm-icon-branded', '1');
+            document.querySelectorAll(sel).forEach(function (el) {
+                if (el.getAttribute('data-lm-icon-branded')) return;
+                if (el.tagName === 'IMG') {
+                    el.src = url;
+                    el.removeAttribute('srcset');
+                } else {
+                    el.style.backgroundImage = 'url("' + url + '")';
+                }
+                el.setAttribute('data-lm-icon-branded', '1');
             });
         });
     }

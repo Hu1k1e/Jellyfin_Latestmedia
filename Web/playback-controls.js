@@ -70,23 +70,20 @@
         if (document.hidden) {
             // ── Tab is now hidden ──
 
-            // Auto PIP FIRST (before pausing) — Chrome requires video to be PLAYING
-            // when requestPictureInPicture() is called from visibilitychange.
-            // If we pause first, Chrome blocks PIP with NotAllowedError.
+            // Auto Pause FIRST (this matches JE's logic exactly)
+            if (cfg.AutoPauseEnabled && !video.paused) {
+                video.pause();
+                video.dataset[DATA_KEY] = 'true';
+            }
+
+            // Auto PIP AFTER pause (synchronous call after pause matches JE's expected browser state handling)
             if (cfg.AutoPipEnabled &&
                 document.pictureInPictureEnabled &&
-                !document.pictureInPictureElement &&
-                !video.paused) {
+                !document.pictureInPictureElement) {
 
                 video.requestPictureInPicture().catch(function (err) {
                     console.debug('[LatestMedia] PIP request blocked:', err.name, err.message);
                 });
-            }
-
-            // Auto Pause AFTER PIP attempt
-            if (cfg.AutoPauseEnabled && !video.paused) {
-                video.pause();
-                video.dataset[DATA_KEY] = 'true';
             }
 
         } else {

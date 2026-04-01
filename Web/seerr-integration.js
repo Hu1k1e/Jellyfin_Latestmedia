@@ -129,104 +129,100 @@
 
     function buildSeerrCard(item) {
         var title = item.title || item.name || 'Unknown';
-        var mediaType = (item.mediaType || 'movie').toLowerCase(); // 'movie' | 'tv'
+        var mediaType = (item.mediaType || 'movie').toLowerCase();
         var status = (item.mediaInfo && item.mediaInfo.status) || 0;
-        var posterPath = item.posterPath ? 'https://image.tmdb.org/t/p/w200' + item.posterPath : '';
-
-        // Status label
-        var statusLabel = '', statusClass = '';
-        if (status === 5)       { statusLabel = 'Available';  statusClass = 'available'; }
-        else if (status === 3 || status === 4) { statusLabel = 'Processing'; statusClass = 'requested'; }
-        else if (status === 2)  { statusLabel = 'Requested'; statusClass = 'requested'; }
-        else if (status === 1)  { statusLabel = 'Pending';    statusClass = 'pending'; }
+        var posterPath = item.posterPath ? 'https://image.tmdb.org/t/p/w400' + item.posterPath : '';
+        var year = item.releaseDate || item.firstAirDate;
+        var yearStr = year ? year.substring(0, 4) : 'N/A';
+        var rating = item.voteAverage ? item.voteAverage.toFixed(1) : 'N/A';
 
         // Wrap — uses Jellyfin's card classes for visual consistency
         var wrap = document.createElement('div');
-        wrap.className = 'card portraitCard card-withuserdata';
-        wrap.style.cssText = 'min-width:130px;max-width:160px;flex-shrink:0;position:relative;';
+        wrap.className = 'card overflowPortraitCard card-hoverable card-withuserdata jellyseerr-card';
 
-        // Image container
+        var cardBox = document.createElement('div');
+        cardBox.className = 'cardBox cardBox-bottompadded';
+
+        var cardScalable = document.createElement('div');
+        cardScalable.className = 'cardScalable';
+        cardScalable.style.contain = 'paint';
+
         var imgContainer = document.createElement('div');
-        imgContainer.className = 'cardImageContainer coveredImage cardContent';
-        imgContainer.style.cssText = 'aspect-ratio:2/3;background:#18181e;border-radius:4px 4px 0 0;overflow:hidden;position:relative;';
-
-        var img = document.createElement('img');
-        img.className = 'cardImage';
-        img.alt = title;
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
-
-        if (posterPath) {
-            // Lazy-load
-            var imgObs = new IntersectionObserver(function (entries, obs) {
-                if (entries[0].isIntersecting) { img.src = posterPath; obs.disconnect(); }
-            }, { rootMargin: '200px' });
-            imgObs.observe(img);
-        } else {
-            // Placeholder
+        imgContainer.className = 'cardImageContainer coveredImage cardContent jellyseerr-poster-image';
+        imgContainer.style.backgroundImage = posterPath ? 'url("' + posterPath + '")' : 'none';
+        
+        if (!posterPath) {
             imgContainer.style.background = '#2a2a40';
-            img.style.display = 'none';
-            var placeholder = document.createElement('div');
-            placeholder.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2em;opacity:0.3;';
-            placeholder.textContent = mediaType === 'tv' ? '📺' : '🎬';
-            imgContainer.appendChild(placeholder);
+            imgContainer.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2em;opacity:0.3;">' + (mediaType === 'tv' ? '📺' : '🎬') + '</div>';
         }
 
-        imgContainer.appendChild(img);
-
-        // Status badge
-        if (statusLabel) {
-            var badge = document.createElement('div');
-            badge.className = 'lm-seerr-badge-wrap';
-            badge.innerHTML = '<span class="lm-seerr-status ' + statusClass + '">' + statusLabel + '</span>';
-            imgContainer.appendChild(badge);
-        }
-
-        wrap.appendChild(imgContainer);
-
-        // Card footer text — same structure as Jellyfin
-        var footer = document.createElement('div');
-        footer.className = 'cardText';
-        footer.style.cssText = 'padding:6px 4px 0; font-size:0.78em;';
-
-        var titleEl = document.createElement('div');
-        titleEl.className = 'cardText-first';
-        titleEl.style.cssText = 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:500;';
-        titleEl.title = title;
-        titleEl.textContent = title;
-        footer.appendChild(titleEl);
-
-        // Year subtitle if available
-        var year = item.releaseDate || item.firstAirDate;
-        if (year) {
-            var yearEl = document.createElement('div');
-            yearEl.className = 'cardText-secondary';
-            yearEl.style.cssText = 'opacity:0.6;font-size:0.92em;';
-            yearEl.textContent = year.substring(0, 4);
-            footer.appendChild(yearEl);
-        }
-
-        wrap.appendChild(footer);
-
-        // Request button (below footer)
+        // Overview Overlay (Hover) — Exact JE Clone
+        var overview = document.createElement('div');
+        overview.className = 'jellyseerr-overview';
+        overview.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:15px;opacity:0;transition:opacity 0.25s;z-index:10;text-align:center;pointer-events:none;';
+        
+        var content = document.createElement('div');
+        content.className = 'content';
+        content.style.cssText = 'font-size:0.85em;opacity:0.85;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px;';
+        
+        // Very basic HTMLEscape for textContent
+        content.textContent = item.overview || 'No overview available.';
+        
         var reqBtn = document.createElement('button');
-        reqBtn.className = 'lm-seerr-req-btn';
+        reqBtn.className = 'jellyseerr-request-button lm-seerr-req-btn';
+        reqBtn.style.cssText = 'padding:6px 14px;border-radius:4px;border:none;pointer-events:auto;cursor:pointer;font-weight:600;min-width:100px;';
 
         if (status === 5) {
             reqBtn.textContent = 'Available';
+            reqBtn.style.background = '#28a745';
             reqBtn.disabled = true;
         } else if (status === 2 || status === 3 || status === 4) {
             reqBtn.textContent = 'Requested';
+            reqBtn.style.background = '#ff9800';
             reqBtn.disabled = true;
-            reqBtn.classList.add('requested');
         } else {
             reqBtn.textContent = 'Request';
+            reqBtn.style.background = '#0061e0';
             reqBtn.addEventListener('click', function (e) {
+                e.preventDefault();
                 e.stopPropagation();
                 showRequestModal(item);
             });
         }
 
-        wrap.appendChild(reqBtn);
+        overview.appendChild(content);
+        overview.appendChild(reqBtn);
+        
+        // Touch/Hover events to show overlay
+        cardScalable.addEventListener('mouseenter', function() { overview.style.opacity = '1'; });
+        cardScalable.addEventListener('mouseleave', function() { overview.style.opacity = '0'; });
+        imgContainer.addEventListener('touchstart', function(e) {
+             if (e.target.closest('.jellyseerr-request-button')) return;
+             e.preventDefault();
+             overview.style.opacity = '1';
+        });
+
+        var overlayContainer = document.createElement('div');
+        overlayContainer.className = 'cardOverlayContainer';
+
+        cardScalable.appendChild(imgContainer);
+        cardScalable.appendChild(overview);
+        cardScalable.appendChild(overlayContainer);
+        
+        // Footer texts
+        var footerFirst = document.createElement('div');
+        footerFirst.className = 'cardText cardTextCentered cardText-first';
+        footerFirst.innerHTML = '<a href="javascript:void(0)" style="cursor:default;text-decoration:none;color:inherit;"><bdi>' + title.replace(/</g, "&lt;") + '</bdi></a>';
+
+        var footerSecond = document.createElement('div');
+        footerSecond.className = 'cardText cardTextCentered cardText-secondary jellyseerr-meta';
+        footerSecond.innerHTML = '<bdi>' + yearStr + '</bdi> <span style="margin-left:8px;color:#a3a3a3;">★ ' + rating + '</span>';
+
+        cardBox.appendChild(cardScalable);
+        cardBox.appendChild(footerFirst);
+        cardBox.appendChild(footerSecond);
+        wrap.appendChild(cardBox);
+
         return wrap;
     }
 
@@ -275,18 +271,37 @@
                 });
                 section.appendChild(container);
 
-                // Insert at TOP of search page content area
+                // Insert at BOTTOM of search page content area
+                // Like JE: positionSection() finds last primary section
                 var searchPage = document.querySelector('#searchPage');
-                var insertTarget = searchPage && (
-                    searchPage.querySelector('.padded-top.padded-bottom-page') ||
-                    searchPage.querySelector('.searchResults') ||
-                    searchPage.querySelector('.content-primary')
-                );
-                if (insertTarget) {
-                    insertTarget.insertBefore(section, insertTarget.firstChild);
-                } else if (searchPage) {
-                    searchPage.insertBefore(section, searchPage.firstChild);
-                }
+                if (!searchPage) return;
+
+                var positionSection = function() {
+                    var noResultsMessage = searchPage.querySelector('.noItemsMessage');
+                    if (noResultsMessage) {
+                        noResultsMessage.textContent = 'No local results found. Showing Discover results:';
+                        noResultsMessage.parentElement.insertBefore(section, noResultsMessage.nextSibling);
+                        return true;
+                    }
+                    var sections = Array.from(searchPage.querySelectorAll('.verticalSection:not(.lm-seerr-section)'));
+                    var keywords = ['movies', 'shows', 'film', 'series', 'películas', 'films', 'séries'];
+                    for (var i = sections.length - 1; i >= 0; i--) {
+                        var t = sections[i].querySelector('.sectionTitle');
+                        if (t && keywords.some(function(k) { return t.textContent.toLowerCase().includes(k); })) {
+                            sections[i].after(section);
+                            return true;
+                        }
+                    }
+                    var cont = searchPage.querySelector('.searchResults, [class*="searchResults"], .padded-top.padded-bottom-page');
+                    if (cont) {
+                        cont.appendChild(section);
+                    } else {
+                        searchPage.appendChild(section);
+                    }
+                    return false;
+                };
+
+                positionSection();
             })
             .catch(function (err) { console.debug('[LatestMedia] Seerr search failed:', err.message); });
     }
