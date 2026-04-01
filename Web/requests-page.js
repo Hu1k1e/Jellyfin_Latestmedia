@@ -2202,51 +2202,56 @@
     if (config.DownloadsUseCustomTabs) return;
 
     if (document.querySelector('.je-nav-downloads-item')) return;
+    if (window._jeDownloadsNavInterval) return;
 
-    // Find the sidebar using Jellyfin 10.9+ and legacy selectors
-    const sidebarContainer =
-      document.querySelector('.mainDrawer-scrollContainer') ||
-      document.querySelector('.navDrawer .scrollSlider') ||
-      document.querySelector('.navDrawer .scrollContainer') ||
-      document.querySelector('.navDrawer');
-
-    if (!sidebarContainer) {
-      console.log(`${logPrefix} Sidebar not found, will retry via observer`);
-      return;
-    }
-
-    // Find or create our dedicated plugin section (mirrors JE's jellyfinEnhancedSection)
-    let pluginSection = sidebarContainer.querySelector('.lm-downloads-section');
-    if (!pluginSection) {
-      pluginSection = document.createElement('div');
-      pluginSection.className = 'lm-downloads-section';
-
-      // Insert before the media library section, matching JE's position
-      const mediaSection = sidebarContainer.querySelector('.libraryMenuOptions');
-      if (mediaSection) {
-        sidebarContainer.insertBefore(pluginSection, mediaSection);
-      } else {
-        sidebarContainer.appendChild(pluginSection);
+    // Find the sidebar menu using an interval to ensure full DOM propagation (Discover pattern)
+    window._jeDownloadsNavInterval = setInterval(function() {
+      var menu = document.querySelector('.navMenu');
+      if (menu && !menu.querySelector('.je-nav-downloads-item')) {
+        clearInterval(window._jeDownloadsNavInterval);
+        window._jeDownloadsNavInterval = null;
+        
+        var link = document.createElement('a');
+        link.className = 'navMenuOption lnkMediaFolder emby-button je-nav-downloads-item';
+        link.setAttribute('is', 'emby-linkbutton');
+        link.href = '#';
+        link.title = 'Active Downloads';
+        link.innerHTML = '<span class="navMenuOptionIcon material-icons">download</span><span class="navMenuOptionText">Active Downloads</span>';
+        
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var drawer = document.querySelector('.appDrawer-open');
+            if (drawer) drawer.classList.remove('appDrawer-open');
+            showPage();
+        });
+        
+        var container = document.querySelector('.customMenuOptions');
+        var watchlist = container ? container.querySelector('[data-name="watchlist"]') : null;
+        
+        if (watchlist) {
+            watchlist.after(link);
+        } else if (container) {
+            container.appendChild(link);
+        } else {
+            // Fallback logic
+            var homeLink = menu.querySelector('a[href="#/home"]');
+            if (homeLink && homeLink.nextSibling) {
+                menu.insertBefore(link, homeLink.nextSibling);
+            } else {
+                menu.appendChild(link);
+            }
+        }
+        console.log(`${logPrefix} Navigation item injected into sidebar (.navMenu)`);
       }
-    }
-
-    // Build nav item with full Jellyfin classes (lnkMediaFolder for active-state highlighting)
-    const navItem = document.createElement('a');
-    navItem.setAttribute('is', 'emby-linkbutton');
-    navItem.className = 'navMenuOption lnkMediaFolder emby-button je-nav-downloads-item';
-    navItem.href = '#';
-    navItem.innerHTML = `
-      <span class="navMenuOptionIcon material-icons">download</span>
-      <span class="sectionName navMenuOptionText">Active Downloads</span>
-    `;
-    navItem.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      showPage();
-    });
-
-    pluginSection.appendChild(navItem);
-    console.log(`${logPrefix} Navigation item injected into sidebar`);
+    }, 500);
+    // Timeout clearInterval after 15s to prevent infinite loop if UI is fundamentally broken
+    setTimeout(function() { 
+        if (window._jeDownloadsNavInterval) {
+            clearInterval(window._jeDownloadsNavInterval); 
+            window._jeDownloadsNavInterval = null;
+        }
+    }, 15000);
   }
 
   /**

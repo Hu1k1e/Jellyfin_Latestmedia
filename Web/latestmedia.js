@@ -2407,10 +2407,9 @@ function _starScanAndProcess() {
         if (_starShouldIgnore(el)) { el.setAttribute(STAR_TAGGED_ATTR, 'skip'); return; }
         el.setAttribute(STAR_TAGGED_ATTR, '1');
         _starProcessed.add(el);
-        var idCard = el.closest('[data-id]');
-        var typeCard = el.closest('[data-type]');
-        var itemId = idCard ? idCard.getAttribute('data-id') : null;
-        var itemType = typeCard ? typeCard.getAttribute('data-type') : null;
+        var card = el.closest('.card') || el;
+        var itemId = card.getAttribute('data-id') || card.getAttribute('data-itemid');
+        var itemType = card.getAttribute('data-type');
         if (!itemId || !itemType || !STAR_MEDIA_TYPES[itemType]) return;
         _starPendingQueue.push({ id: itemId, element: el });
     });
