@@ -2340,8 +2340,9 @@ var _starProcessed = new WeakSet();
 var _starPendingQueue = [];
 var _starProcessing = false;
 var _starDebounceTimer = null;
-var STAR_DEBOUNCE_MS = 400;
+var STAR_DEBOUNCE_MS = 150;
 var STAR_TAGGED_ATTR = 'data-lm-star-checked';
+var STAR_CACHE = JSON.parse(sessionStorage.getItem('lmStarCache') || '{}');
 var STAR_MEDIA_TYPES = { Movie: true, Series: true, Episode: true, Season: true };
 var STAR_IGNORE_SELECTORS = [
     '#itemDetailPage .infoWrapper .cardImageContainer',
@@ -2373,29 +2374,50 @@ function _starApplyTag(el, rating) {
 function _starProcessQueue() {
     if (_starProcessing || _starPendingQueue.length === 0 || !window.ApiClient) return;
     _starProcessing = true;
-    var batch = _starPendingQueue.splice(0, 5);
+    
+    // Batch up to 50 items natively via Jellyfin API
+    var batch = _starPendingQueue.splice(0, 50);
     var userId = ApiClient.getCurrentUserId();
-    var ids = batch.map(function(item) { return item.id; }).join(',');
+    
+    var idsToFetch = [];
+    var batchMap = {};
+    batch.forEach(function(req) {
+        batchMap[req.id] = req.element;
+        if (STAR_CACHE[req.id] !== undefined) {
+             _starApplyTag(req.element, STAR_CACHE[req.id]);
+        } else {
+             idsToFetch.push(req.id);
+        }
+    });
+
+    if (idsToFetch.length === 0) {
+        _starProcessing = false;
+        if (_starPendingQueue.length > 0) _starProcessQueue();
+        return;
+    }
+
     ApiClient.ajax({
         type: 'GET',
         url: ApiClient.getUrl('/Users/' + userId + '/Items', {
-            Ids: ids,
+            Ids: idsToFetch.join(','),
             Fields: 'CommunityRating'
         }),
         dataType: 'json'
     }).then(function(result) {
-        var ratings = {};
         if (result && result.Items) {
             result.Items.forEach(function(item) {
-                if (item.CommunityRating != null) ratings[item.Id] = item.CommunityRating;
+                var rating = item.CommunityRating != null ? item.CommunityRating : false;
+                STAR_CACHE[item.Id] = rating;
+                if (batchMap[item.Id]) _starApplyTag(batchMap[item.Id], rating);
             });
+            // Mark any fetched IDs that didn't have CommunityRating as false to avoid refetching
+            idsToFetch.forEach(function(id) {
+                if (STAR_CACHE[id] === undefined) STAR_CACHE[id] = false;
+            });
+            sessionStorage.setItem('lmStarCache', JSON.stringify(STAR_CACHE));
         }
-        batch.forEach(function(req) {
-            var r = ratings[req.id];
-            if (r) _starApplyTag(req.element, r);
-        });
         _starProcessing = false;
-        if (_starPendingQueue.length > 0) setTimeout(_starProcessQueue, 100);
+        if (_starPendingQueue.length > 0) setTimeout(_starProcessQueue, 50);
     }).catch(function() {
         _starProcessing = false;
     });
@@ -2411,7 +2433,13 @@ function _starScanAndProcess() {
         var itemId = card.getAttribute('data-id') || card.getAttribute('data-itemid');
         var itemType = card.getAttribute('data-type');
         if (!itemId || !itemType || !STAR_MEDIA_TYPES[itemType]) return;
-        _starPendingQueue.push({ id: itemId, element: el });
+        
+        if (STAR_CACHE[itemId] !== undefined) {
+            // Apply instantly from cache
+            _starApplyTag(el, STAR_CACHE[itemId]);
+        } else {
+            _starPendingQueue.push({ id: itemId, element: el });
+        }
     });
     if (_starPendingQueue.length > 0 && !_starProcessing) _starProcessQueue();
 }
