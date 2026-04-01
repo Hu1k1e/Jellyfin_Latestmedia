@@ -780,23 +780,42 @@ function refreshOnline(){
   api('Chat/Online').then(r=>{const e=document.getElementById('lmOnl');if(e)e.innerHTML=`<span class="lmOnlDot"></span> ${r.Count} online`}).catch(()=>{});
 }
 function refreshBadge(){
+  // Always fetch server-side read state first — this is the cross-device source of truth
   Promise.all([
     api('Chat/DM/Conversations').catch(()=>[]),
-    api('Chat/Read').catch(()=>({date:''})).then(r => {
-      const lastRead = (r && r.date) ? r.date : new Date(0).toISOString();
-      if (!localStorage.getItem('lm_last_pub_read') || lastRead > localStorage.getItem('lm_last_pub_read')) {
-        localStorage.setItem('lm_last_pub_read', lastRead);
-      }
-      return api(`Chat/Messages?since=${encodeURIComponent(localStorage.getItem('lm_last_pub_read'))}`).catch(()=>[]);
-    })
-  ]).then(([cs, pub]) => {
-    const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
-    const pubUnread = (pub||[]).filter(m => (m.SenderId||m.senderId||'').toLowerCase() !== (S.uid||'').toLowerCase()).length;
-    const hasUnread = !fsMuted && (dmUnread > 0 || pubUnread > 0);
-    const b=document.getElementById('lmChatBdg');
-    if(b){ b.textContent=''; b.classList.toggle('on', hasUnread); }
-    const pb=document.getElementById('lmPlayerChatBdg');
-    if(pb){ pb.textContent=''; pb.classList.toggle('on', hasUnread); }
+    api('Chat/Read').catch(()=>({date:''}))
+  ]).then(([cs, readResp]) => {
+    // Determine the authoritative "last read" timestamp:
+    //   - Server date wins if it's newer than local (or if local doesn't exist)
+    //   - If server has no date, fall back to local, then epoch
+    const serverDate = (readResp && readResp.date) ? readResp.date : null;
+    const localDate  = localStorage.getItem('lm_last_pub_read');
+    let lastRead;
+    if (serverDate && (!localDate || serverDate > localDate)) {
+      lastRead = serverDate;
+      localStorage.setItem('lm_last_pub_read', serverDate);
+    } else if (localDate) {
+      lastRead = localDate;
+    } else {
+      lastRead = new Date(0).toISOString();
+    }
+
+    return api(`Chat/Messages?since=${encodeURIComponent(lastRead)}`).catch(()=>[])
+      .then(pub => {
+        const myUid = (S.uid||'').toLowerCase();
+        const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
+        // Exclude own messages — a user's own sent messages are never "unread"
+        const pubUnread = (pub||[]).filter(m => {
+          const sender = (m.SenderId||m.senderId||'').toString().toLowerCase().replace(/-/g,'');
+          const me = myUid.replace(/-/g,'');
+          return sender !== me;
+        }).length;
+        const hasUnread = !fsMuted && (dmUnread > 0 || pubUnread > 0);
+        const b=document.getElementById('lmChatBdg');
+        if(b){ b.textContent=''; b.classList.toggle('on', hasUnread); }
+        const pb=document.getElementById('lmPlayerChatBdg');
+        if(pb){ pb.textContent=''; pb.classList.toggle('on', hasUnread); }
+      });
   });
 }
 
@@ -2183,6 +2202,20 @@ async function tryInject(){
       // Feature 5: *arr Integration (Quick Links, Tag Links, Active Downloads)
       if (cfg.ArrLinksEnabled || cfg.ArrTagsShowAsLinks || cfg.ArrDownloadsEnabled) {
         loadModule('arr-integration.js');
+      }
+
+      // Feature 6: Active Downloads page (requests-page.js) – load separately so it can
+      // self-initialize with our config keys even without the JellyfinEnhanced namespace.
+      if (cfg.ArrDownloadsEnabled) {
+        loadModule('requests-page.js');
+        // Once the module registers JE.initializeDownloadsPage, call it.
+        var downloadsInitPoll = setInterval(function() {
+          if (typeof window.lmInitDownloadsPage === 'function') {
+            clearInterval(downloadsInitPoll);
+            window.lmInitDownloadsPage();
+          }
+        }, 100);
+        setTimeout(function() { clearInterval(downloadsInitPoll); }, 10000);
       }
     })();
 
