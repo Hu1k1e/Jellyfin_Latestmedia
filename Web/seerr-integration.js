@@ -563,13 +563,15 @@
             });
         }
 
-        // Advanced options section (loaded asynchronously)
+        // Advanced options: only rendered when admin has enabled them in settings
         var advancedState = { serverId: null, profileId: null, rootFolder: null };
         var serverSelect = null, qualitySelect = null, folderSelect = null;
         var advParent = document.createElement('div');
         body.appendChild(advParent);
 
         var loadAdvancedOptions = function() {
+            if (!cfg.JellyseerrShowAdvanced) return; // ← gated by setting
+
             var advDiv = document.createElement('div');
             advDiv.className = 'lm-adv-options';
             advDiv.innerHTML = '<h4>Advanced Options</h4>' +
@@ -583,24 +585,26 @@
                 '<div class="lm-adv-group"><label>Root Folder</label>' +
                 '<select class="lm-adv-folder" disabled><option>Select server first</option></select></div>' +
                 '</div>';
-            
+
             serverSelect = advDiv.querySelector('.lm-adv-server');
             qualitySelect = advDiv.querySelector('.lm-adv-quality');
             folderSelect = advDiv.querySelector('.lm-adv-folder');
 
-            // Capture changes
             serverSelect.addEventListener('change', function () {
                 advancedState.serverId = serverSelect.value || null;
-                // Find selected server and populate quality/folder
                 var selServer = (serverSelect._servers || []).find(function (s) { return String(s.id) === String(serverSelect.value); });
                 if (!selServer) return;
 
                 qualitySelect.innerHTML = '<option value="">Default</option>';
                 qualitySelect.disabled = false;
+                var defaultProfileId = null;
                 (selServer.profiles || []).forEach(function (p) {
                     var o = new Option(p.name || 'Profile ' + p.id, p.id);
+                    // Auto-select the default quality profile
+                    if (p.isDefault) { o.selected = true; defaultProfileId = String(p.id); }
                     qualitySelect.appendChild(o);
                 });
+                advancedState.profileId = defaultProfileId;
 
                 folderSelect.innerHTML = '<option value="">Default</option>';
                 folderSelect.disabled = false;
@@ -614,15 +618,14 @@
             qualitySelect.addEventListener('change', function () { advancedState.profileId = qualitySelect.value || null; });
             folderSelect.addEventListener('change', function () { advancedState.rootFolder = folderSelect.value || null; });
 
-            // Fetch radarr/sonarr servers
             var serverEndpoint = isMovie ? 'Radarr' : 'Sonarr';
             seerrGet(serverEndpoint)
                 .then(function (servers) {
                     var list = Array.isArray(servers) ? servers : [];
-                    if (list.length === 0) return; // Hide advanced options if no servers
-                    
-                    advParent.appendChild(advDiv); // Only append if servers exist
-                    
+                    if (list.length === 0) return;
+
+                    advParent.appendChild(advDiv);
+
                     serverSelect.innerHTML = '<option value="">Default</option>';
                     serverSelect._servers = [];
                     var fetches = list.map(function (srv) {
@@ -640,15 +643,12 @@
                             if (srv.isDefault) o.selected = true;
                             serverSelect.appendChild(o);
                         });
-                        // Auto-trigger if default selected
                         if (serverSelect.value) serverSelect.dispatchEvent(new Event('change'));
                     });
                 })
-                .catch(function () {
-                    // Fail silently, hide advanced options
-                });
+                .catch(function () {});
         };
-        
+
         loadAdvancedOptions();
 
 
@@ -750,6 +750,7 @@
         var S = window.__latestMediaState;
         if (!S || !S.tok || !S.uid) return;
         var typeParam = payload.mediaType === 'movie' ? 'Movie' : 'Series';
+        // Look up the Jellyfin item by TMDB ID
         fetch((S.url || '') + '/Items?IncludeItemTypes=' + typeParam +
             '&AnyProviderIdEquals=tmdb.' + payload.mediaId + '&Recursive=true&Fields=Id', {
             headers: getAuthHeaders()
@@ -757,7 +758,9 @@
             .then(function (d) {
                 var items = d && d.Items;
                 if (!items || !items.length) return;
-                return fetch((S.url || '') + '/Users/' + S.uid + '/FavoriteItems/' + items[0].Id, {
+                var itemId = items[0].Id;
+                // Add to Jellyfin Favorites (Wishlist/Watchlist equivalent)
+                return fetch((S.url || '') + '/Users/' + S.uid + '/FavoriteItems/' + itemId, {
                     method: 'POST', headers: getAuthHeaders()
                 });
             }).catch(function () {});
@@ -789,5 +792,5 @@
         handleItemDetailsPage();
     }
 
-    console.log('[LatestMedia] seerr-integration loaded (v3.0.3)');
+    console.log('[LatestMedia] seerr-integration loaded (v3.2.0)');
 })();

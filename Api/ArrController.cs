@@ -198,5 +198,49 @@ namespace Jellyfin_Latestmedia.Api
                 return null;
             }
         }
+        // ── Test connectivity ─────────────────────────────────────────────────
+
+        /// <summary>Tests Sonarr connectivity. Returns { success, version }.</summary>
+        [HttpPost("TestSonarr")]
+        [Authorize(Policy = "RequiresElevation")]
+        public Task<IActionResult> TestSonarr() => TestService(Config.SonarrUrl, Config.SonarrApiKey, "Sonarr");
+
+        /// <summary>Tests Radarr connectivity. Returns { success, version }.</summary>
+        [HttpPost("TestRadarr")]
+        [Authorize(Policy = "RequiresElevation")]
+        public Task<IActionResult> TestRadarr() => TestService(Config.RadarrUrl, Config.RadarrApiKey, "Radarr");
+
+        private async Task<IActionResult> TestService(string baseUrl, string apiKey, string label)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(apiKey))
+                return Ok(new { success = false, error = $"{label} URL or API key not configured." });
+
+            var url = $"{baseUrl.TrimEnd('/')}/api/v3/system/status";
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+                client.Timeout = TimeSpan.FromSeconds(8);
+
+                using var response = await client.GetAsync(url).ConfigureAwait(false);
+                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
+                    return Ok(new { success = false, error = $"HTTP {(int)response.StatusCode}" });
+
+                using var doc = JsonDocument.Parse(body);
+                var version = doc.RootElement.TryGetProperty("version", out var v) ? v.GetString() : "?";
+                return Ok(new { success = true, version });
+            }
+            catch (TaskCanceledException)
+            {
+                return Ok(new { success = false, error = "Request timed out." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[ArrController] TestService failed for {Label}", label);
+                return Ok(new { success = false, error = ex.Message });
+            }
+        }
     }
 }

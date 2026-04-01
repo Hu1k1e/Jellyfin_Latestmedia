@@ -55,13 +55,18 @@
             <div class="content-primary">
                 <h1>Latest Media &amp; Management Settings</h1>
 
-                <!-- ── Tab Bar ─────────────────────────────────────────── -->
-                <div class="lm-tabs" id="lmTabBar">
-                    <button class="lm-tab-btn active" data-tab="general">General</button>
-                    <button class="lm-tab-btn" data-tab="playback">Playback</button>
-                    <button class="lm-tab-btn" data-tab="jellyseerr">Jellyseerr</button>
-                    <button class="lm-tab-btn" data-tab="arr">*arr</button>
-                    <button class="lm-tab-btn" data-tab="branding">Branding</button>
+                <!-- ── Tab Bar (JE-style inline active state) ──────────────── -->
+                <div style="margin-bottom:1em;">
+                    <button class="jellyfin-tab-button lm-tab-btn active" data-tab="general"
+                        style="background:none;border:none;color:var(--primary-accent-color,#00b35a);cursor:pointer;transition:color .3s,border-bottom .3s;border-bottom:2px solid var(--primary-accent-color,#00b35a);padding:8px 0;margin-right:24px;font-size:1em;"><h3 style="margin:0;">General</h3></button>
+                    <button class="jellyfin-tab-button lm-tab-btn" data-tab="playback"
+                        style="background:none;border:none;color:#ccc;cursor:pointer;transition:color .3s,border-bottom .3s;border-bottom:2px solid transparent;padding:8px 0;margin-right:24px;font-size:1em;"><h3 style="margin:0;">Playback</h3></button>
+                    <button class="jellyfin-tab-button lm-tab-btn" data-tab="jellyseerr"
+                        style="background:none;border:none;color:#ccc;cursor:pointer;transition:color .3s,border-bottom .3s;border-bottom:2px solid transparent;padding:8px 0;margin-right:24px;font-size:1em;"><h3 style="margin:0;">Jellyseerr</h3></button>
+                    <button class="jellyfin-tab-button lm-tab-btn" data-tab="arr"
+                        style="background:none;border:none;color:#ccc;cursor:pointer;transition:color .3s,border-bottom .3s;border-bottom:2px solid transparent;padding:8px 0;margin-right:24px;font-size:1em;"><h3 style="margin:0;">*arr Settings</h3></button>
+                    <button class="jellyfin-tab-button lm-tab-btn" data-tab="branding"
+                        style="background:none;border:none;color:#ccc;cursor:pointer;transition:color .3s,border-bottom .3s;border-bottom:2px solid transparent;padding:8px 0;margin-right:24px;font-size:1em;"><h3 style="margin:0;">Branding</h3></button>
                 </div>
 
                 <form id="LatestMediaConfigForm" class="pluginConfigurationForm">
@@ -69,7 +74,7 @@
                     <!-- ════════════════════════════════════════════════ -->
                     <!-- TAB: General                                     -->
                     <!-- ════════════════════════════════════════════════ -->
-                    <div class="lm-tab-panel active" id="tab-general">
+                    <div class="lm-tab-panel" id="tab-general" style="display:block;font-family:inherit;">
 
                         <div class="lm-section-title">Core Features</div>
 
@@ -391,7 +396,7 @@
                     <!-- ════════════════════════════════════════════════ -->
                     <!-- TAB: *arr                                        -->
                     <!-- ════════════════════════════════════════════════ -->
-                    <div class="lm-tab-panel" id="tab-arr">
+                    <div class="lm-tab-panel" id="tab-arr" style="display:none;font-family:inherit;">
 
                         <div class="lm-section-title">Sonarr</div>
 
@@ -402,8 +407,11 @@
                             </div>
                             <div class="inputContainer">
                                 <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey">Sonarr API Key</label>
-                                <input type="password" id="SonarrApiKey" is="emby-input" />
-                                <div class="fieldDescription">Found in Sonarr → Settings → General → API Key.</div>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <input type="password" id="SonarrApiKey" is="emby-input" style="flex:1;" />
+                                    <button is="emby-button" type="button" id="btnTestSonarr" class="raised button-submit lm-test-btn"><span>Test</span></button>
+                                </div>
+                                <div class="fieldDescription">Found in Sonarr → Settings → General → API Key. <span id="sonarrTestResult" style="font-size:0.85em;"></span></div>
                             </div>
                         </div>
 
@@ -417,8 +425,11 @@
                             </div>
                             <div class="inputContainer">
                                 <label class="inputLabel inputLabelUnfocused" for="RadarrApiKey">Radarr API Key</label>
-                                <input type="password" id="RadarrApiKey" is="emby-input" />
-                                <div class="fieldDescription">Found in Radarr → Settings → General → API Key.</div>
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <input type="password" id="RadarrApiKey" is="emby-input" style="flex:1;" />
+                                    <button is="emby-button" type="button" id="btnTestRadarr" class="raised button-submit lm-test-btn"><span>Test</span></button>
+                                </div>
+                                <div class="fieldDescription">Found in Radarr → Settings → General → API Key. <span id="radarrTestResult" style="font-size:0.85em;"></span></div>
                             </div>
                         </div>
 
@@ -482,7 +493,7 @@
                     <!-- ════════════════════════════════════════════════ -->
                     <!-- TAB: Branding                                    -->
                     <!-- ════════════════════════════════════════════════ -->
-                    <div class="lm-tab-panel" id="tab-branding">
+                    <div class="lm-tab-panel" id="tab-branding" style="display:none;font-family:inherit;">
 
                         <div class="lm-note">
                             Requires the <a href="https://github.com/IAmParadox27/jellyfin-plugin-file-transformation" target="_blank" rel="noopener">File Transformation Plugin</a> to be installed.
@@ -501,29 +512,33 @@
                         <div class="lm-branding-grid" id="lmBrandingGrid">
 
                             <div class="lm-upload-zone" data-branding-type="icon-transparent">
-                                <h4>Icon (Transparent)</h4>
-                                <div class="lm-zone-desc">Main app logo. Recommended: 536×536px PNG with transparent background.</div>
+                                <h4>Icon Transparent</h4>
+                                <div style="font-weight:600;margin-bottom:2px;">The icon in the top-left beside the server version</div>
+                                <div class="lm-zone-desc" style="margin-bottom:2px;">Jellyfin Default: 536×536px (square)</div>
+                                <div class="lm-zone-desc">Format: PNG with transparency</div>
                                 <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
                                     <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
                                     <div class="lm-upload-placeholder">
                                         <span class="material-icons">cloud_upload</span>
                                         <div class="lm-up-label">Drop image here or click to upload</div>
-                                        <div class="lm-up-hint">Max 10MB · PNG</div>
+                                        <div class="lm-up-hint">Max 10MB</div>
                                     </div>
-                                    <div class="lm-upload-preview"><img src="" alt="Icon Transparent preview" /><div class="lm-upload-dims"></div></div>
+                                    <div class="lm-upload-preview"><img src="" alt="Icon preview" /><div class="lm-upload-dims"></div></div>
                                     <input type="file" accept=".png" style="display:none;" />
                                 </div>
                             </div>
 
                             <div class="lm-upload-zone" data-branding-type="favicon">
                                 <h4>Favicon</h4>
-                                <div class="lm-zone-desc">Browser tab icon. Recommended: 32×32px or 48×48px. ICO, PNG, or SVG.</div>
+                                <div style="font-weight:600;margin-bottom:2px;">Favicon in the browser tab</div>
+                                <div class="lm-zone-desc" style="margin-bottom:2px;">Jellyfin Default: 16×16px, 32×32px, or 48×48px</div>
+                                <div class="lm-zone-desc">Format: ICO, PNG, or SVG</div>
                                 <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
                                     <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
                                     <div class="lm-upload-placeholder">
                                         <span class="material-icons">cloud_upload</span>
                                         <div class="lm-up-label">Drop image here or click to upload</div>
-                                        <div class="lm-up-hint">Max 10MB · ICO, PNG, SVG</div>
+                                        <div class="lm-up-hint">Max 10MB</div>
                                     </div>
                                     <div class="lm-upload-preview"><img src="" alt="Favicon preview" /><div class="lm-upload-dims"></div></div>
                                     <input type="file" accept=".ico,.png,.svg" style="display:none;" />
@@ -531,14 +546,16 @@
                             </div>
 
                             <div class="lm-upload-zone" data-branding-type="banner-light">
-                                <h4>Banner (Light)</h4>
-                                <div class="lm-zone-desc">Splash/login banner for dark mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
+                                <h4>Banner Light</h4>
+                                <div style="font-weight:600;margin-bottom:2px;">Splash Screen Banner for Dark Mode</div>
+                                <div class="lm-zone-desc" style="margin-bottom:2px;">Jellyfin Default: 1302×378px</div>
+                                <div class="lm-zone-desc">Format: PNG, JPG, or WebP</div>
                                 <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
                                     <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
                                     <div class="lm-upload-placeholder">
                                         <span class="material-icons">cloud_upload</span>
                                         <div class="lm-up-label">Drop image here or click to upload</div>
-                                        <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
+                                        <div class="lm-up-hint">Max 10MB</div>
                                     </div>
                                     <div class="lm-upload-preview"><img src="" alt="Banner Light preview" /><div class="lm-upload-dims"></div></div>
                                     <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
@@ -546,14 +563,16 @@
                             </div>
 
                             <div class="lm-upload-zone" data-branding-type="banner-dark">
-                                <h4>Banner (Dark)</h4>
-                                <div class="lm-zone-desc">Splash/login banner for light mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
+                                <h4>Banner Dark</h4>
+                                <div style="font-weight:600;margin-bottom:2px;">Splash Screen Banner for Light Mode</div>
+                                <div class="lm-zone-desc" style="margin-bottom:2px;">Jellyfin Default: 1302×378px</div>
+                                <div class="lm-zone-desc">Format: PNG, JPG, or WebP</div>
                                 <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
                                     <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
                                     <div class="lm-upload-placeholder">
                                         <span class="material-icons">cloud_upload</span>
                                         <div class="lm-up-label">Drop image here or click to upload</div>
-                                        <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
+                                        <div class="lm-up-hint">Max 10MB</div>
                                     </div>
                                     <div class="lm-upload-preview"><img src="" alt="Banner Dark preview" /><div class="lm-upload-dims"></div></div>
                                     <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
@@ -575,20 +594,32 @@
             (function () {
                 var pluginId = 'f94d6caf-2a62-4dd7-9f64-684ce8efff43';
 
-                // ── Tab switching ─────────────────────────────────────────────
-                var tabBar = document.getElementById('lmTabBar');
-                tabBar.addEventListener('click', function (e) {
-                    var btn = e.target.closest('.lm-tab-btn');
-                    if (!btn) return;
-                    var tab = btn.dataset.tab;
-                    document.querySelectorAll('.lm-tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-                    document.querySelectorAll('.lm-tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === 'tab-' + tab); });
-                    try { sessionStorage.setItem('lm-cfg-tab', tab); } catch(e){}
+                // ── Tab switching (JE-style inline active state) ──────────────
+                var accent = getComputedStyle(document.documentElement).getPropertyValue('--primary-accent-color').trim() || '#00b35a';
+                var tabBtns = document.querySelectorAll('.jellyfin-tab-button.lm-tab-btn');
+                var tabPanels = document.querySelectorAll('.lm-tab-panel');
+
+                function activateTab(targetTab) {
+                    tabBtns.forEach(function(b) {
+                        var isActive = b.dataset.tab === targetTab;
+                        b.style.color = isActive ? (accent || '#00b35a') : '#ccc';
+                        b.style.borderBottomColor = isActive ? (accent || '#00b35a') : 'transparent';
+                        if (isActive) b.classList.add('active'); else b.classList.remove('active');
+                    });
+                    tabPanels.forEach(function(p) {
+                        p.style.display = (p.id === 'tab-' + targetTab) ? 'block' : 'none';
+                    });
+                    try { sessionStorage.setItem('lm-cfg-tab', targetTab); } catch(e){}
+                }
+
+                tabBtns.forEach(function(btn) {
+                    btn.addEventListener('click', function() { activateTab(btn.dataset.tab); });
                 });
+
                 // Restore last tab
                 try {
                     var saved = sessionStorage.getItem('lm-cfg-tab');
-                    if (saved) { var b = tabBar.querySelector('[data-tab="' + saved + '"]'); if (b) b.click(); }
+                    if (saved) activateTab(saved);
                 } catch(e){}
 
                 // ── Load config ───────────────────────────────────────────────
@@ -792,6 +823,46 @@
 
                 makeTestBtn('btnTestSeerr', 'seerrTestResult', '/Seerr/Test');
                 makeTestBtn('btnTestTmdb', 'tmdbTestResult', '/Seerr/TestTmdb');
+
+                // ── *arr test buttons ─────────────────────────────────────────
+                function makeArrTestBtn(btnId, resultId, saveUrlId, saveKeyId, testEndpoint) {
+                    var btn = document.getElementById(btnId);
+                    var result = document.getElementById(resultId);
+                    if (!btn || !result) return;
+                    btn.addEventListener('click', function() {
+                        result.textContent = 'Testing...';
+                        result.style.color = 'rgba(255,255,255,0.5)';
+                        btn.disabled = true;
+                        var authHdr = getAuthHeader();
+                        // Save current URL+key into config first, then test
+                        ApiClient.getPluginConfiguration(pluginId).then(function(config) {
+                            config[saveUrlId] = document.getElementById(saveUrlId).value;
+                            config[saveKeyId] = document.getElementById(saveKeyId).value;
+                            return ApiClient.updatePluginConfiguration(pluginId, config);
+                        }).then(function() {
+                            return fetch(testEndpoint, {
+                                method: 'POST',
+                                headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr }
+                            });
+                        }).then(function(r) {
+                            return r.json().then(function(d) { return d; });
+                        }).then(function(data) {
+                            if (data && data.success) {
+                                result.textContent = '✓ Connected (' + (data.version || '?') + ')';
+                                result.style.color = '#00b35a';
+                            } else {
+                                result.textContent = '✗ ' + (data && data.error ? data.error : 'Connection failed');
+                                result.style.color = '#ef5350';
+                            }
+                        }).catch(function(err) {
+                            result.textContent = '✗ ' + err.message;
+                            result.style.color = '#ef5350';
+                        }).finally(function() { btn.disabled = false; });
+                    });
+                }
+
+                makeArrTestBtn('btnTestSonarr', 'sonarrTestResult', 'SonarrUrl', 'SonarrApiKey', '/Arr/TestSonarr');
+                makeArrTestBtn('btnTestRadarr', 'radarrTestResult', 'RadarrUrl', 'RadarrApiKey', '/Arr/TestRadarr');
 
                 // Init on page show
                 document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {

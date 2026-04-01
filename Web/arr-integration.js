@@ -477,17 +477,22 @@
         if (!cfg.ArrDownloadsEnabled) return;
 
         var obs = new MutationObserver(function () {
-            var nav = document.querySelector('.mainDrawer-scrollContainer .navMenuList');
-            if (nav && !document.getElementById('lm-arr-nav-btn')) {
-                var li = document.createElement('li');
-                li.className = 'navMenuOption';
-                li.id = 'lm-arr-nav-btn';
+            var sidebar = document.querySelector('.mainDrawer, .navDrawer');
+            if (sidebar && !document.getElementById('lm-arr-nav-btn')) {
                 var a = document.createElement('a');
+                a.setAttribute('is', 'emby-linkbutton');
+                a.className = 'navMenuOption emby-button';
+                a.id = 'lm-arr-nav-btn';
                 a.href = '#/lm-arr-downloads';
-                a.className = 'navMenuOption-anchor emby-button';
-                a.innerHTML = '<span class="material-icons navMenuOption-icon">download</span><span class="navMenuOption-text">Active Downloads</span>';
-                li.appendChild(a);
-                nav.appendChild(li);
+                a.innerHTML = '<span class="material-icons navMenuOptionIcon" aria-hidden="true">download</span><span class="sectionName navMenuOptionText">Active Downloads</span>';
+                
+                var mediaSection = sidebar.querySelector('.libraryMenuOptions');
+                if (mediaSection && mediaSection.parentNode) {
+                    mediaSection.parentNode.insertBefore(a, mediaSection);
+                } else {
+                    var container = sidebar.querySelector('.mainDrawer-scrollContainer, .scrollSlider') || sidebar;
+                    container.appendChild(a);
+                }
             }
         });
         obs.observe(document.body, { childList: true, subtree: true });
