@@ -159,17 +159,10 @@
             imgContainer.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2em;opacity:0.3;">' + (mediaType === 'tv' ? '📺' : '🎬') + '</div>';
         }
 
-        // Overview Overlay (Hover) — Exact JE Clone
+        // Overview Overlay (Hover) — Only button, no dark tint or synopsis
         var overview = document.createElement('div');
         overview.className = 'jellyseerr-overview';
-        overview.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:15px;opacity:0;transition:opacity 0.25s;z-index:10;text-align:center;pointer-events:none;';
-        
-        var content = document.createElement('div');
-        content.className = 'content';
-        content.style.cssText = 'font-size:0.85em;opacity:0.85;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:12px;';
-        
-        // Very basic HTMLEscape for textContent
-        content.textContent = item.overview || 'No overview available.';
+        overview.style.cssText = 'position:absolute;inset:0;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:15px;opacity:0;transition:opacity 0.25s;z-index:10;text-align:center;pointer-events:none;';
         
         var reqBtn = document.createElement('button');
         reqBtn.className = 'jellyseerr-request-button lm-seerr-req-btn';
@@ -189,7 +182,6 @@
             });
         }
 
-        overview.appendChild(content);
         overview.appendChild(reqBtn);
         
         // Touch/Hover events to show overlay
@@ -499,19 +491,20 @@
 
         var modal = document.createElement('div');
         modal.id = 'lm-seerr-info-modal';
-        modal.className = 'lm-seerr-modal';
+        modal.className = 'lmSeerrModal';
         if (bPath) modal.style.backgroundImage = 'linear-gradient(to right, rgba(0,0,0,0.95) 40%, rgba(0,0,0,0.6) 100%), url("' + bPath + '")';
         modal.style.backgroundSize = 'cover';
         modal.style.backgroundPosition = 'center';
 
         var contentDiv = document.createElement('div');
-        contentDiv.className = 'lm-seerr-modal-box';
+        contentDiv.className = 'lmSeerrModalBox';
         contentDiv.style.maxWidth = '800px';
+        contentDiv.style.display = 'flex';
         contentDiv.style.flexDirection = 'row';
         contentDiv.style.justifyContent = 'space-between';
         contentDiv.style.alignItems = 'flex-start';
         contentDiv.style.gap = '30px';
-        contentDiv.style.background = 'rgba(20,20,30,0.75)';
+        contentDiv.style.padding = '30px';
 
         // Left Col (Text)
         var leftCol = document.createElement('div');
