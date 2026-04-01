@@ -2227,6 +2227,17 @@ async function tryInject(){
 
       // Feature 7: Star Ratings on Cards
       if (cfg.ShowStarRatingOnCards) {
+          ApiClient.ajax({
+              type: 'GET',
+              url: ApiClient.getUrl('/RatingsCache/Get'),
+              dataType: 'json'
+          }).then(function(dict) {
+              if (dict && typeof STAR_CACHE !== 'undefined') {
+                  Object.assign(STAR_CACHE, dict);
+                  sessionStorage.setItem('lmStarCache', JSON.stringify(STAR_CACHE));
+              }
+          }).catch(function(e) { console.debug('[LM] Failed to pull materialized rating cache:', e); });
+
           initStarRatings();
       }
     })();
