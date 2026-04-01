@@ -17,7 +17,13 @@
     if (!document.getElementById('lm-branding-fouc-blocker')) {
         var style = document.createElement('style');
         style.id = 'lm-branding-fouc-blocker';
-        style.textContent = '.pageTitleWithLogo { opacity: 0 !important; visibility: hidden !important; } .logonHeader-logo { opacity: 0 !important; visibility: hidden !important; }';
+        // Hide logo on non-home pages immediately (prevents 1s ghost).
+        // On home page, data-lm-home is set and the :not() rule is negated so logo shows.
+        style.textContent = [
+            '.pageTitleWithLogo { opacity: 0 !important; visibility: hidden !important; }',
+            'html:not([data-lm-home]) .pageTitleWithLogo { display: none !important; }',
+            '.logonHeader-logo { opacity: 0 !important; visibility: hidden !important; }'
+        ].join(' ');
         document.head.appendChild(style);
     }
 
@@ -146,9 +152,11 @@
         }
     }
 
-    // Run immediately and on every navigation
+    // Run immediately and on every navigation (hashchange + viewshow cover all Jellyfin SPA routes)
     updateHomeAttr();
     window.addEventListener('hashchange', updateHomeAttr);
+    // viewshow fires on Jellyfin soft-navigations that don't change the hash
+    document.addEventListener('viewshow', function() { setTimeout(updateHomeAttr, 50); });
 
     // ── Banner / Logo Images ──────────────────────────────────────────────────
 

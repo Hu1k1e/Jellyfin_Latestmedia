@@ -2334,102 +2334,127 @@ setInterval(()=>{
   if(S.ok) refreshAnnounceBadge();
 }, 4000);
 
-// --- Feature 7: Star Ratings ---
+// --- Feature 7: Star Ratings (JE ratingtags.js pattern) ---
 var _starRatingObserver = null;
-var _starQueue = new Set();
-var _starTimer = null;
+var _starProcessed = new WeakSet();
+var _starPendingQueue = [];
+var _starProcessing = false;
+var _starDebounceTimer = null;
+var STAR_DEBOUNCE_MS = 400;
+var STAR_TAGGED_ATTR = 'data-lm-star-checked';
+var STAR_MEDIA_TYPES = { Movie: true, Series: true, Episode: true, Season: true };
+var STAR_IGNORE_SELECTORS = [
+    '#itemDetailPage .infoWrapper .cardImageContainer',
+    '#itemDetailPage #castCollapsible .cardImageContainer',
+    '#indexPage .verticalSection.MyMedia .cardImageContainer',
+    '.formDialog .cardImageContainer',
+    '#pluginsPage .cardImageContainer',
+    '#pluginCatalogPage .cardImageContainer',
+    '#devicesPage .cardImageContainer',
+    '#mediaLibraryPage .cardImageContainer'
+];
+
+function _starShouldIgnore(el) {
+    return STAR_IGNORE_SELECTORS.some(function(sel) {
+        try { return el.matches(sel) || !!el.closest(sel); } catch(e) { return false; }
+    });
+}
+
+function _starApplyTag(el, rating) {
+    if (!rating) return;
+    var existing = el.querySelector('.lm-star-rating-badge');
+    if (existing) return; // already applied
+    var badge = document.createElement('div');
+    badge.className = 'lm-star-rating-badge';
+    badge.innerHTML = '<span class="material-icons">star</span><span class="lm-star-text">' + parseFloat(rating).toFixed(1) + '</span>';
+    el.appendChild(badge);
+}
+
+function _starProcessQueue() {
+    if (_starProcessing || _starPendingQueue.length === 0 || !window.ApiClient) return;
+    _starProcessing = true;
+    var batch = _starPendingQueue.splice(0, 5);
+    var userId = ApiClient.getCurrentUserId();
+    var ids = batch.map(function(item) { return item.id; }).join(',');
+    ApiClient.ajax({
+        type: 'GET',
+        url: ApiClient.getUrl('/Users/' + userId + '/Items', {
+            Ids: ids,
+            Fields: 'CommunityRating'
+        }),
+        dataType: 'json'
+    }).then(function(result) {
+        var ratings = {};
+        if (result && result.Items) {
+            result.Items.forEach(function(item) {
+                if (item.CommunityRating != null) ratings[item.Id] = item.CommunityRating;
+            });
+        }
+        batch.forEach(function(req) {
+            var r = ratings[req.id];
+            if (r) _starApplyTag(req.element, r);
+        });
+        _starProcessing = false;
+        if (_starPendingQueue.length > 0) setTimeout(_starProcessQueue, 100);
+    }).catch(function() {
+        _starProcessing = false;
+    });
+}
+
+function _starScanAndProcess() {
+    document.querySelectorAll('.cardImageContainer:not([' + STAR_TAGGED_ATTR + '])').forEach(function(el) {
+        if (_starProcessed.has(el)) return;
+        if (_starShouldIgnore(el)) { el.setAttribute(STAR_TAGGED_ATTR, 'skip'); return; }
+        el.setAttribute(STAR_TAGGED_ATTR, '1');
+        _starProcessed.add(el);
+        var idCard = el.closest('[data-id]');
+        var typeCard = el.closest('[data-type]');
+        var itemId = idCard ? idCard.getAttribute('data-id') : null;
+        var itemType = typeCard ? typeCard.getAttribute('data-type') : null;
+        if (!itemId || !itemType || !STAR_MEDIA_TYPES[itemType]) return;
+        _starPendingQueue.push({ id: itemId, element: el });
+    });
+    if (_starPendingQueue.length > 0 && !_starProcessing) _starProcessQueue();
+}
+
+function _starDebouncedScan() {
+    if (_starDebounceTimer) clearTimeout(_starDebounceTimer);
+    _starDebounceTimer = setTimeout(_starScanAndProcess, STAR_DEBOUNCE_MS);
+}
 
 function initStarRatings() {
     if (_starRatingObserver) return;
-    
-    // Inject CSS
+
+    // Inject CSS - .cardImageContainer already has position:relative in Jellyfin
+    var existingStyle = document.getElementById('lm-star-rating-css');
+    if (existingStyle) existingStyle.remove();
     var style = document.createElement('style');
-    style.innerHTML = `
-        .lm-star-rating-badge {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(0, 0, 0, 0.7);
-            color: #ffb400;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            z-index: 10;
-            pointer-events: none;
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .lm-star-rating-badge .material-icons {
-            font-size: 12px;
-        }
-    `;
+    style.id = 'lm-star-rating-css';
+    style.textContent = [
+        '.lm-star-rating-badge {',
+        '  position: absolute; top: 6px; right: 6px;',
+        '  display: inline-flex; align-items: center; gap: 4px;',
+        '  padding: 4px 8px; background: rgba(0,0,0,0.82); color: #ffc107;',
+        '  font-size: 12px; font-weight: 600; border-radius: 4px;',
+        '  backdrop-filter: blur(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.3);',
+        '  white-space: nowrap; line-height: 1; pointer-events: none; z-index: 10;',
+        '}',
+        '.lm-star-rating-badge .material-icons { color: #ffc107 !important; font-size: 13px; line-height: 1; }',
+        '.lm-star-text { line-height: 1; }',
+        '@media (max-width: 768px) {',
+        '  .lm-star-rating-badge { padding: 3px 5px; font-size: 11px; top: 4px; right: 4px; }',
+        '  .lm-star-rating-badge .material-icons { font-size: 11px !important; }',
+        '}'
+    ].join('\n');
     document.head.appendChild(style);
-    
-    _starRatingObserver = new MutationObserver(function() {
-        var cards = document.querySelectorAll('.card:not([data-lm-star-checked])');
-        if (cards.length === 0) return;
-        
-        cards.forEach(function(c) {
-            c.setAttribute('data-lm-star-checked', 'true');
-            var type = c.getAttribute('data-type');
-            if (type === 'Person' || type === 'Studio' || type === 'Genre' || type === 'Year') return;
-            
-            var id = c.getAttribute('data-itemid') || c.getAttribute('data-id');
-            if (id) {
-                _starQueue.add({id: id, element: c});
-            }
-        });
-        
-        if (_starQueue.size > 0) {
-            clearTimeout(_starTimer);
-            _starTimer = setTimeout(processStarQueue, 350);
-        }
-    });
-    
+
+    _starRatingObserver = new MutationObserver(_starDebouncedScan);
     _starRatingObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Initial scan after DOM settles
+    setTimeout(_starScanAndProcess, 500);
 }
 
-function processStarQueue() {
-    if (_starQueue.size === 0 || !window.ApiClient) return;
-    
-    var items = Array.from(_starQueue);
-    _starQueue.clear();
-    
-    // Batch requesting 50 items at a time max
-    var chunkSize = 50;
-    for (var i = 0; i < items.length; i += chunkSize) {
-        var chunk = items.slice(i, i + chunkSize);
-        var ids = chunk.map(function(item) { return item.id; }).join(',');
-        
-        ApiClient.getItems(ApiClient.getCurrentUserId(), {
-            Ids: ids,
-            Fields: 'CommunityRating'
-        }).then(function(res) {
-            if (!res || !res.Items) return;
-            var ratings = {};
-            res.Items.forEach(function(item) {
-                if (item.CommunityRating) ratings[item.Id] = item.CommunityRating;
-            });
-            
-            chunk.forEach(function(req) {
-                var rating = ratings[req.id];
-                if (rating) {
-                    var imgContainer = req.element.querySelector('.cardImageContainer') || req.element.querySelector('.cardBox');
-                    if (imgContainer) {
-                        var badge = document.createElement('div');
-                        badge.className = 'lm-star-rating-badge';
-                        badge.innerHTML = '<span class="material-icons">star</span> ' + rating.toFixed(1);
-                        imgContainer.appendChild(badge);
-                    }
-                }
-            });
-        }).catch(function() {});
-    }
-}
 
 tryInject();
 })();

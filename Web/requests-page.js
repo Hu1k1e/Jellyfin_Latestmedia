@@ -1942,7 +1942,7 @@
       page.id = "je-downloads-page";
       // Use Jellyfin's page classes for proper full-page integration
       page.className = "page type-interior mainAnimatedPage hide";
-      page.setAttribute("data-title", "Requests");
+      page.setAttribute("data-title", "Active Downloads");
       page.setAttribute("data-backbutton", "true");
       page.setAttribute("data-url", "#/downloads");
       page.setAttribute("data-type", "custom");
@@ -1986,7 +1986,7 @@
     }
 
     if (window.location.hash !== "#/downloads") {
-      history.pushState({ page: "downloads" }, "Requests", "#/downloads");
+      history.pushState({ page: "downloads" }, "Active Downloads", "#/downloads");
     }
 
     // Hide other Jellyfin pages - but track which one was active so we can restore it
@@ -2199,52 +2199,54 @@
   function injectNavigation() {
     const config = JE.pluginConfig || {};
     if (!config.DownloadsPageEnabled) return;
-    if (pluginPagesExists && config.DownloadsUsePluginPages) return;
-    if (config.DownloadsUseCustomTabs) return; // Skip sidebar injection if using custom tabs
+    if (config.DownloadsUseCustomTabs) return;
 
-    // Hide plugin page link if it exists
-    const pluginPageItem = sidebar?.querySelector(
-      'a[is="emby-linkbutton"][data-itemid="Jellyfin.Plugin.JellyfinEnhanced.DownloadsPage"]'
-    );
+    if (document.querySelector('.je-nav-downloads-item')) return;
 
-    if (pluginPageItem) {
-      pluginPageItem.style.setProperty('display', 'none', 'important');
-    }
+    // Find the sidebar using Jellyfin 10.9+ and legacy selectors
+    const sidebarContainer =
+      document.querySelector('.mainDrawer-scrollContainer') ||
+      document.querySelector('.navDrawer .scrollSlider') ||
+      document.querySelector('.navDrawer .scrollContainer') ||
+      document.querySelector('.navDrawer');
 
-    if (document.querySelector(".je-nav-downloads-item")) {
+    if (!sidebarContainer) {
+      console.log(`${logPrefix} Sidebar not found, will retry via observer`);
       return;
     }
 
-    const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollSlider') || document.querySelector('.navDrawer .scrollContainer');
+    // Find or create our dedicated plugin section (mirrors JE's jellyfinEnhancedSection)
+    let pluginSection = sidebarContainer.querySelector('.lm-downloads-section');
+    if (!pluginSection) {
+      pluginSection = document.createElement('div');
+      pluginSection.className = 'lm-downloads-section';
 
-    if (sidebarContainer) {
-      // Find or create our plugin section
-      let pluginSection = sidebarContainer.querySelector('.lm-downloads-section');
-      if (!pluginSection) {
-        pluginSection = document.createElement('div');
-        pluginSection.className = 'lm-downloads-section';
-        pluginSection.style.cssText = 'padding: 0;';
+      // Insert before the media library section, matching JE's position
+      const mediaSection = sidebarContainer.querySelector('.libraryMenuOptions');
+      if (mediaSection) {
+        sidebarContainer.insertBefore(pluginSection, mediaSection);
+      } else {
         sidebarContainer.appendChild(pluginSection);
       }
-      const navItem = document.createElement("a");
-      navItem.className = "navMenuOption emby-button je-nav-downloads-item";
-      navItem.setAttribute('role', 'menuitem');
-      const labelRequests = 'Active Downloads';
-      navItem.innerHTML = `
-        <span class="navMenuOptionIcon material-icons">download</span>
-        <span class="navMenuOptionText">${labelRequests}</span>
-      `;
-      navItem.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        showPage();
-      });
-
-      pluginSection.appendChild(navItem);
-      console.log(`${logPrefix} Navigation item injected under mainDrawer-scrollContainer`);
-    } else {
-      console.log(`${logPrefix} mainDrawer-scrollContainer not found, will retry`);
     }
+
+    // Build nav item with full Jellyfin classes (lnkMediaFolder for active-state highlighting)
+    const navItem = document.createElement('a');
+    navItem.setAttribute('is', 'emby-linkbutton');
+    navItem.className = 'navMenuOption lnkMediaFolder emby-button je-nav-downloads-item';
+    navItem.href = '#';
+    navItem.innerHTML = `
+      <span class="navMenuOptionIcon material-icons">download</span>
+      <span class="sectionName navMenuOptionText">Active Downloads</span>
+    `;
+    navItem.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      showPage();
+    });
+
+    pluginSection.appendChild(navItem);
+    console.log(`${logPrefix} Navigation item injected into sidebar`);
   }
 
   /**
@@ -2253,30 +2255,25 @@
   function setupNavigationWatcher() {
     const config = JE.pluginConfig || {};
     if (!config.DownloadsPageEnabled) return;
-    if (pluginPagesExists && config.DownloadsUsePluginPages) return;
-    if (config.DownloadsUseCustomTabs) return; // Don't watch if using custom tabs
+    if (config.DownloadsUseCustomTabs) return;
 
-    // Use MutationObserver to watch for sidebar changes, but disconnect after re-injection
+    // Watch document.body for any sidebar appear/rebuild events
+    // (querySelector with multi-selector is unreliable for observe targets)
     const observer = new MutationObserver(() => {
-      // Re-check config each time to avoid injecting when settings change
-      const currentConfig = JE.pluginConfig || {};
-      if (currentConfig.DownloadsUseCustomTabs) return;
-      if (pluginPagesExists && currentConfig.DownloadsUsePluginPages) return;
-
       if (!document.querySelector('.je-nav-downloads-item')) {
-        const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollSlider') || document.querySelector('.navDrawer .scrollContainer');
-        if (sidebarContainer) {
-          console.log(`${logPrefix} Sidebar rebuilt, re-injecting navigation`);
+        // Check if sidebar is now available
+        const sb = document.querySelector('.mainDrawer-scrollContainer') ||
+                    document.querySelector('.navDrawer .scrollSlider') ||
+                    document.querySelector('.navDrawer .scrollContainer') ||
+                    document.querySelector('.navDrawer');
+        if (sb) {
+          console.log(`${logPrefix} Sidebar appeared/rebuilt — re-injecting navigation`);
           injectNavigation();
         }
       }
     });
 
-    // Observe the main drawer scroll container
-    const navDrawer = document.querySelector('.mainDrawer-scrollContainer, .navDrawer .scrollSlider, .navDrawer .scrollContainer, .mainDrawer, body');
-    if (navDrawer) {
-      observer.observe(navDrawer, { childList: true, subtree: true });
-    }
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /**
