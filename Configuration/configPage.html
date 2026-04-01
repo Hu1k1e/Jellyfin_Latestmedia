@@ -892,8 +892,7 @@
                         var sonarrSel = document.getElementById('JellyseerrDefaultSonarrProfileId');
                         var radarrSel = document.getElementById('JellyseerrDefaultRadarrProfileId');
                         
-                        fetch(window.ApiClient.getUrl('Arr/SonarrProfiles'), { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
-                            .then(function(r) { return r.ok ? r.json() : []; })
+                        window.ApiClient.getJSON(window.ApiClient.getUrl('Arr/SonarrProfiles'))
                             .then(function(profiles) {
                                 var currentVal = sonarrSel.value;
                                 sonarrSel.innerHTML = '<option value="">Use Server Default</option>';
@@ -908,8 +907,7 @@
                                 sonarrSel.dispatchEvent(new Event('change', { bubbles: true }));
                             }).catch(function(e) { console.error('Sonarr Profile Fetch:', e); });
                             
-                        fetch(window.ApiClient.getUrl('Arr/RadarrProfiles'), { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
-                            .then(function(r) { return r.ok ? r.json() : []; })
+                        window.ApiClient.getJSON(window.ApiClient.getUrl('Arr/RadarrProfiles'))
                             .then(function(profiles) {
                                 var currentVal = radarrSel.value;
                                 radarrSel.innerHTML = '<option value="">Use Server Default</option>';

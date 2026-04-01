@@ -791,7 +791,7 @@ function refreshBadge(){
     })
   ]).then(([cs, pub]) => {
     const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
-    const pubUnread = (pub||[]).length;
+    const pubUnread = (pub||[]).filter(m => (m.SenderId||m.senderId||'').toLowerCase() !== (S.uid||'').toLowerCase()).length;
     const hasUnread = !fsMuted && (dmUnread > 0 || pubUnread > 0);
     const b=document.getElementById('lmChatBdg');
     if(b){ b.textContent=''; b.classList.toggle('on', hasUnread); }

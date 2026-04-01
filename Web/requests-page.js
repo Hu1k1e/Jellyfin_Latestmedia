@@ -2211,9 +2211,9 @@
       return;
     }
 
-    const jellyfinEnhancedSection = document.querySelector('.jellyfinEnhancedSection');
+    const sidebarSection = document.querySelector('.navDrawer .scrollSlider');
 
-    if (jellyfinEnhancedSection) {
+    if (sidebarSection) {
       const navItem = document.createElement("a");
       navItem.setAttribute('is', 'emby-linkbutton');
       navItem.className =
@@ -2229,10 +2229,10 @@
         showPage();
       });
 
-      jellyfinEnhancedSection.appendChild(navItem);
-      console.log(`${logPrefix} Navigation item injected`);
+      sidebarSection.appendChild(navItem);
+      console.log(`${logPrefix} Navigation item injected under scrollSlider`);
     } else {
-      console.log(`${logPrefix} jellyfinEnhancedSection not found, will wait for it`);
+      console.log(`${logPrefix} sidebarSection not found, will wait for it`);
     }
   }
 
@@ -2253,8 +2253,8 @@
       if (pluginPagesExists && currentConfig.DownloadsUsePluginPages) return;
 
       if (!document.querySelector('.je-nav-downloads-item')) {
-        const jellyfinEnhancedSection = document.querySelector('.jellyfinEnhancedSection');
-        if (jellyfinEnhancedSection) {
+        const sidebarSection = document.querySelector('.navDrawer .scrollSlider');
+        if (sidebarSection) {
           console.log(`${logPrefix} Sidebar rebuilt, re-injecting navigation`);
           injectNavigation();
         }
@@ -2324,6 +2324,17 @@
     // Listen for Jellyfin's viewshow events - hide our page when other pages show
     document.addEventListener("viewshow", (e) => {
       const targetPage = e.target;
+      const urlHash = window.location.hash;
+      const isOurHash = urlHash === "#/lm-arr-downloads" || urlHash.includes("!/lm-arr-downloads");
+      
+      // If Jellyfin's router fired a pageNotFound viewshow but the url is our hash,
+      // it means Jellyfin is rendering 404 because our hash isn't registered natively.
+      // We block hidePage() and manually hide Jellyfin's 404 container.
+      if (isOurHash && targetPage && targetPage.classList.contains("pageNotFound")) {
+         targetPage.classList.add("hide");
+         return; // Do not wipe our own Active Downloads page out!
+      }
+      
       if (
         state.pageVisible &&
         targetPage &&
