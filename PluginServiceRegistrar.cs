@@ -23,6 +23,7 @@ public class PluginServiceRegistrar : IPluginServiceRegistrator
         serviceCollection.AddSingleton<IScheduledTask, DeletionSchedulerService>();
         serviceCollection.AddSingleton<IScheduledTask, ChatCleanupService>();
         serviceCollection.AddSingleton<IScheduledTask, AnnouncementSchedulerService>();
+        serviceCollection.AddSingleton<IScheduledTask, CommunityRatingsCacheTask>();
 
         // Background service for synchronizing Jellyseerr requests
         serviceCollection.AddHostedService<WatchlistMonitor>();
