@@ -159,7 +159,8 @@ public class ScriptInjectionMiddleware
         // Serve latestmedia.js via the plugin page endpoint registered in Plugin.cs
         var safeBasePath = System.Net.WebUtility.HtmlEncode(basePath);
         var scriptTag = $"<script defer src=\"{safeBasePath}/web/ConfigurationPage?name=LatestMediaUI\"></script>";
-        scriptTag += $"\n<script defer src=\"{safeBasePath}/web/ConfigurationPage?name=requests-page.js\"></script>";
+        // NOTE: requests-page.js is loaded conditionally by latestmedia.js bootloader
+        // only when ArrDownloadsEnabled = true. Do NOT inject it here unconditionally.
         var injected = html.Insert(bodyCloseIndex, scriptTag + "\n");
 
         var headCloseIndex = injected.LastIndexOf("</head>", StringComparison.OrdinalIgnoreCase);

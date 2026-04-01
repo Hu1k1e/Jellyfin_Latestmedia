@@ -752,7 +752,10 @@
       );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const data = await response.json();
-      state.downloads = data.items || [];
+      // Backend returns { sonarr: [...], radarr: [...] } — flatten both arrays
+      const sonarrItems = (Array.isArray(data.sonarr) ? data.sonarr : []).map(item => ({ ...item, source: 'Sonarr' }));
+      const radarrItems = (Array.isArray(data.radarr) ? data.radarr : []).map(item => ({ ...item, source: 'Radarr' }));
+      state.downloads = [...sonarrItems, ...radarrItems];
       return data;
     } catch (error) {
       console.error(`${logPrefix} Failed to fetch downloads:`, error);
@@ -2223,10 +2226,8 @@
         sidebarContainer.appendChild(pluginSection);
       }
       const navItem = document.createElement("a");
-      navItem.setAttribute('is', 'emby-linkbutton');
-      navItem.className =
-        "navMenuOption emby-button je-nav-downloads-item";
-      navItem.href = "#";
+      navItem.className = "navMenuOption emby-button je-nav-downloads-item";
+      navItem.setAttribute('role', 'menuitem');
       const labelRequests = 'Active Downloads';
       navItem.innerHTML = `
         <span class="navMenuOptionIcon material-icons">download</span>
@@ -2330,14 +2331,13 @@
     document.addEventListener("viewshow", (e) => {
       const targetPage = e.target;
       const urlHash = window.location.hash;
-      const isOurHash = urlHash === "#/lm-arr-downloads" || urlHash.includes("!/lm-arr-downloads");
+      // #/downloads is what showPage() sets — intercept Jellyfin's 404 for it
+      const isOurHash = urlHash === "#/downloads" || urlHash.includes("!/downloads");
       
-      // If Jellyfin's router fired a pageNotFound viewshow but the url is our hash,
-      // it means Jellyfin is rendering 404 because our hash isn't registered natively.
-      // We block hidePage() and manually hide Jellyfin's 404 container.
+      // If Jellyfin's router fires pageNotFound for our hash, suppress it
       if (isOurHash && targetPage && targetPage.classList.contains("pageNotFound")) {
          targetPage.classList.add("hide");
-         return; // Do not wipe our own Active Downloads page out!
+         return;
       }
       
       if (
@@ -2393,8 +2393,8 @@
   function interceptNavigation(e) {
     const url = e?.newURL ? new URL(e.newURL) : window.location;
     const hash = url.hash;
-    const path = url.pathname;
-    const matches = hash === "#/lm-arr-downloads" || path === "/lm-arr-downloads" || hash.includes("!/lm-arr-downloads");
+    // Match #/downloads — same hash showPage() writes via history.pushState
+    const matches = hash === "#/downloads" || hash.includes("!/downloads");
     if (matches) {
       if (e?.stopImmediatePropagation) e.stopImmediatePropagation();
       if (e?.preventDefault) e.preventDefault();
@@ -2447,8 +2447,8 @@
 
   function handleNavigation() {
     const hash = window.location.hash;
-    const path = window.location.pathname;
-    if (hash === "#/lm-arr-downloads" || path === "/lm-arr-downloads" || hash.includes("!/lm-arr-downloads")) {
+    // showPage() sets history to #/downloads — match the same hash here
+    if (hash === "#/downloads" || hash.includes("!/downloads")) {
       showPage();
     } else {
       hidePage();
