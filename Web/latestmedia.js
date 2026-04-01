@@ -2474,7 +2474,7 @@ function initStarRatings() {
     style.id = 'lm-star-rating-css';
     style.textContent = [
         '.lm-star-rating-badge {',
-        '  position: absolute; top: 6px; right: 6px;',
+        '  position: absolute; top: 6px; left: 6px;',
         '  display: inline-flex; align-items: center; gap: 4px;',
         '  padding: 4px 8px; background: rgba(0,0,0,0.82); color: #ffc107;',
         '  font-size: 12px; font-weight: 600; border-radius: 4px;',
@@ -2484,7 +2484,7 @@ function initStarRatings() {
         '.lm-star-rating-badge .material-icons { color: #ffc107 !important; font-size: 13px; line-height: 1; }',
         '.lm-star-text { line-height: 1; }',
         '@media (max-width: 768px) {',
-        '  .lm-star-rating-badge { padding: 3px 5px; font-size: 11px; top: 4px; right: 4px; }',
+        '  .lm-star-rating-badge { padding: 3px 5px; font-size: 11px; top: 4px; left: 4px; }',
         '  .lm-star-rating-badge .material-icons { font-size: 11px !important; }',
         '}'
     ].join('\n');
