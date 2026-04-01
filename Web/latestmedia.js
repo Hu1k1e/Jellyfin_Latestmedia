@@ -2217,6 +2217,11 @@ async function tryInject(){
         }, 100);
         setTimeout(function() { clearInterval(downloadsInitPoll); }, 10000);
       }
+
+      // Feature 7: Star Ratings on Cards
+      if (cfg.ShowStarRatingOnCards) {
+          initStarRatings();
+      }
     })();
 
     const tId = cfg.PluginTheme || 'htv';
@@ -2321,5 +2326,98 @@ setInterval(()=>{
   if(S.ok && !document.getElementById('lmChat')) refreshBadge();
   if(S.ok) refreshAnnounceBadge();
 }, 4000);
+
+// --- Feature 7: Star Ratings ---
+var _starRatingObserver = null;
+var _starQueue = new Set();
+var _starTimer = null;
+
+function initStarRatings() {
+    if (_starRatingObserver) return;
+    
+    // Inject CSS
+    var style = document.createElement('style');
+    style.innerHTML = `
+        .lm-star-rating-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffb400;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            z-index: 10;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .lm-star-rating-badge .material-icons {
+            font-size: 12px;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    _starRatingObserver = new MutationObserver(function() {
+        var cards = document.querySelectorAll('.card:not([data-lm-star-checked])');
+        if (cards.length === 0) return;
+        
+        cards.forEach(function(c) {
+            c.setAttribute('data-lm-star-checked', 'true');
+            var id = c.getAttribute('data-id');
+            if (id) {
+                _starQueue.add({id: id, element: c});
+            }
+        });
+        
+        if (_starQueue.size > 0) {
+            clearTimeout(_starTimer);
+            _starTimer = setTimeout(processStarQueue, 350);
+        }
+    });
+    
+    _starRatingObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+function processStarQueue() {
+    if (_starQueue.size === 0 || !window.ApiClient) return;
+    
+    var items = Array.from(_starQueue);
+    _starQueue.clear();
+    
+    // Batch requesting 50 items at a time max
+    var chunkSize = 50;
+    for (var i = 0; i < items.length; i += chunkSize) {
+        var chunk = items.slice(i, i + chunkSize);
+        var ids = chunk.map(function(item) { return item.id; }).join(',');
+        var url = '/Items?Ids=' + ids + '&Fields=CommunityRating&UserId=' + ApiClient.getCurrentUserId();
+        
+        API.fetch(url, 'GET').then(function(res) {
+            if (!res || !res.Items) return;
+            var ratings = {};
+            res.Items.forEach(function(item) {
+                if (item.CommunityRating) ratings[item.Id] = item.CommunityRating;
+            });
+            
+            chunk.forEach(function(req) {
+                var rating = ratings[req.id];
+                if (rating) {
+                    var imgContainer = req.element.querySelector('.cardImageContainer') || req.element.querySelector('.cardBox');
+                    if (imgContainer) {
+                        var badge = document.createElement('div');
+                        badge.className = 'lm-star-rating-badge';
+                        badge.innerHTML = '<span class="material-icons">star</span> ' + rating.toFixed(1);
+                        imgContainer.appendChild(badge);
+                    }
+                }
+            });
+        }).catch(function() {});
+    }
+}
+
 tryInject();
 })();

@@ -15,6 +15,9 @@ namespace Jellyfin_Latestmedia.Configuration
         public int LatestMediaCount { get; set; } = 50;
         public string PluginTheme { get; set; } = "htv";
         public string AnnouncementHeading { get; set; } = "H-TV Announcements";
+        
+        // --- Star Ratings ---
+        public bool ShowStarRatingOnCards { get; set; } = false;
 
         // ── Feature 1: Playback Tab Controls (matches JE property names/defaults) ──
         public bool AutoPauseEnabled { get; set; } = true;
