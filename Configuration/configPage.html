@@ -882,8 +882,8 @@
                     });
                 }
 
-                makeArrTestBtn('btnTestSonarr', 'sonarrTestResult', 'SonarrUrl', 'SonarrApiKey', '/Arr/TestSonarr');
-                makeArrTestBtn('btnTestRadarr', 'radarrTestResult', 'RadarrUrl', 'RadarrApiKey', '/Arr/TestRadarr');
+                makeArrTestBtn('btnTestSonarr', 'sonarrTestResult', 'SonarrUrl', 'SonarrApiKey', window.ApiClient.getUrl('Arr/TestSonarr'));
+                makeArrTestBtn('btnTestRadarr', 'radarrTestResult', 'RadarrUrl', 'RadarrApiKey', window.ApiClient.getUrl('Arr/TestRadarr'));
 
                 // Init on page show
                 document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
@@ -892,7 +892,7 @@
                         var sonarrSel = document.getElementById('JellyseerrDefaultSonarrProfileId');
                         var radarrSel = document.getElementById('JellyseerrDefaultRadarrProfileId');
                         
-                        fetch('/Arr/SonarrProfiles', { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
+                        fetch(window.ApiClient.getUrl('Arr/SonarrProfiles'), { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
                             .then(function(r) { return r.ok ? r.json() : []; })
                             .then(function(profiles) {
                                 var currentVal = sonarrSel.value;
@@ -903,7 +903,7 @@
                                 }
                             }).catch(function() {});
                             
-                        fetch('/Arr/RadarrProfiles', { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
+                        fetch(window.ApiClient.getUrl('Arr/RadarrProfiles'), { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
                             .then(function(r) { return r.ok ? r.json() : []; })
                             .then(function(profiles) {
                                 var currentVal = radarrSel.value;

@@ -1398,9 +1398,12 @@ function renderMarkdown(raw) {
 
 function refreshAnnounceBadge() {
   if (!S.ok || S.cfg?.EnableAnnouncements === false) return;
-  api(`Announcement?_t=${Date.now()}`).then(list => {
+  Promise.all([
+    api(`Announcement?_t=${Date.now()}`),
+    api('Announcement/Read')
+  ]).then(([list, readRes]) => {
     if (!Array.isArray(list)) return;
-    const lastRead = localStorage.getItem(`lm_ann_last_read_str_${S.uid}`) || '';
+    const lastRead = readRes && readRes.date ? readRes.date : '';
     const unread = list.filter(a => (a.CreatedAt || '') > lastRead).length;
     const bdg = document.getElementById('lmAnnBdg');
     if (!bdg) return;
@@ -1506,8 +1509,7 @@ function loadAnnouncementList(body) {
     });
 
     const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
-    localStorage.setItem(`lm_ann_last_read_str_${S.uid}`, maxStr);
-    refreshAnnounceBadge();
+    api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: maxStr }) }).then(() => refreshAnnounceBadge());
 
     body.innerHTML = '';
     list.forEach(a => {

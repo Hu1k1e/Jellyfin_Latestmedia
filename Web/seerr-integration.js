@@ -522,9 +522,38 @@
         overviewP.textContent = item.overview || 'No overview available.';
         leftCol.appendChild(overviewP);
 
+        var status = (item.mediaInfo && item.mediaInfo.status) || 0;
+        var reqBtn = document.createElement('button');
+        reqBtn.className = 'lmSeerrModalBtn ' + ((status === 3 || status === 2) ? 'cancel' : 'primary');
+        reqBtn.style.marginTop = '10px';
+        if (status === 3 || status === 2) {
+            reqBtn.textContent = 'Requested';
+            reqBtn.disabled = true;
+        } else {
+            reqBtn.textContent = 'Request ' + (mediaType === 'movie' ? 'Movie' : 'Series');
+            reqBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                modal.remove();
+                showRequestModal(item);
+            });
+        }
+        leftCol.appendChild(reqBtn);
+
+        var actorsLabel = document.createElement('h3');
+        actorsLabel.textContent = 'Cast';
+        actorsLabel.style.marginTop = '25px';
+        actorsLabel.style.marginBottom = '10px';
+        actorsLabel.style.fontSize = '1em';
+        leftCol.appendChild(actorsLabel);
+
         var actorsEl = document.createElement('div');
-        actorsEl.style.marginTop = '20px';
-        actorsEl.innerHTML = '<span style="color:#00b35a;font-weight:bold;">Cast:</span> <span class="actor-list">Loading...</span>';
+        actorsEl.className = 'lmSeerrScroll';
+        actorsEl.style.display = 'flex';
+        actorsEl.style.flexDirection = 'row';
+        actorsEl.style.gap = '15px';
+        actorsEl.style.overflowX = 'auto';
+        actorsEl.style.paddingBottom = '10px';
+        actorsEl.innerHTML = '<span style="opacity:0.6;font-size:0.9em;">Loading cast...</span>';
         leftCol.appendChild(actorsEl);
         
         // Right Col (Poster + Close Btn)
@@ -563,10 +592,44 @@
             .then(function(fullData) {
                 var credits = fullData.credits || {};
                 var cast = credits.cast || [];
-                var topCast = cast.slice(0, 6).map(function(c) { return c.name; }).join(', ');
-                actorsEl.querySelector('.actor-list').textContent = topCast || 'Unknown';
+                actorsEl.innerHTML = '';
+                if(cast.length === 0) {
+                    actorsEl.innerHTML = '<span style="opacity:0.6;font-size:0.9em;">No cast information.</span>';
+                    return;
+                }
+                cast.slice(0, 12).forEach(function(c) {
+                    var actorBox = document.createElement('div');
+                    actorBox.style.display = 'flex';
+                    actorBox.style.flexDirection = 'column';
+                    actorBox.style.alignItems = 'center';
+                    actorBox.style.minWidth = '75px';
+                    
+                    var img = document.createElement('img');
+                    img.style.width = '64px';
+                    img.style.height = '64px';
+                    img.style.borderRadius = '50%';
+                    img.style.objectFit = 'cover';
+                    img.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                    if (c.profilePath) {
+                        img.src = 'https://image.tmdb.org/t/p/w185' + c.profilePath;
+                    } else {
+                        img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+                    }
+                    
+                    var name = document.createElement('div');
+                    name.style.fontSize = '0.75em';
+                    name.style.textAlign = 'center';
+                    name.style.lineHeight = '1.2';
+                    name.style.marginTop = '8px';
+                    name.style.opacity = '0.85';
+                    name.textContent = c.name;
+                    
+                    actorBox.appendChild(img);
+                    actorBox.appendChild(name);
+                    actorsEl.appendChild(actorBox);
+                });
             }).catch(function() {
-                actorsEl.querySelector('.actor-list').textContent = 'Could not load cast.';
+                actorsEl.innerHTML = '<span style="color:#ef5350;font-size:0.9em;">Could not load cast.</span>';
             });
     }
 

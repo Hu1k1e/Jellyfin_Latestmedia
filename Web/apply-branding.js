@@ -14,6 +14,13 @@
     var cfg = window.__latestMediaConfig || {};
     if (!cfg.EnableCustomBranding) return;
 
+    if (!document.getElementById('lm-branding-fouc-blocker')) {
+        var style = document.createElement('style');
+        style.id = 'lm-branding-fouc-blocker';
+        style.textContent = '.pageTitleWithLogo { opacity: 0 !important; visibility: hidden !important; } .logonHeader-logo { opacity: 0 !important; visibility: hidden !important; }';
+        document.head.appendChild(style);
+    }
+
     var BASE = '/Branding/';
 
     // Cache of what's available (populated by getStatus())
@@ -245,6 +252,9 @@
         if (status.iconTransparent) applyIconImages();
         // Start watching for dynamically rendered images (sidebar/drawer icons)
         startBodyIconObserver(status);
+
+        var blocker = document.getElementById('lm-branding-fouc-blocker');
+        if (blocker) blocker.remove();
     }
 
     // On SPA navigation: clear "already branded" markers so newly rendered elements get replaced
@@ -311,7 +321,14 @@
     // ── Initial Load ──────────────────────────────────────────────────────────
 
     function init() {
-        getStatus().then(applyBranding);
+        getStatus().then(status => {
+            if (!status || !status.enabled) {
+                var blocker = document.getElementById('lm-branding-fouc-blocker');
+                if (blocker) blocker.remove();
+            } else {
+                applyBranding(status);
+            }
+        });
     }
 
     if (document.readyState === 'loading') {

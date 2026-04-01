@@ -92,6 +92,34 @@ namespace Jellyfin_Latestmedia.Api
             return NoContent();
         }
 
+        /// <summary>GET /Announcement/Read — Get user's last read state.</summary>
+        [HttpGet("Read")]
+        public async Task<ActionResult> GetReadState()
+        {
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            if (userId == Guid.Empty) return BadRequest();
+            var dict = await _repository.ReadListAsync<Dictionary<string, string>>("announcement_read_states").ConfigureAwait(false);
+            var states = dict.FirstOrDefault() ?? new Dictionary<string, string>();
+            return Ok(new { date = states.TryGetValue(userId.ToString(), out var d) ? d : "" });
+        }
+
+        /// <summary>POST /Announcement/Read — Set user's last read state.</summary>
+        [HttpPost("Read")]
+        public async Task<ActionResult> SetReadState([FromBody] System.Text.Json.JsonElement payload)
+        {
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            if (userId == Guid.Empty) return BadRequest();
+            var date = payload.TryGetProperty("date", out var d) ? d.GetString() : "";
+            var dictList = await _repository.ReadListAsync<Dictionary<string, string>>("announcement_read_states").ConfigureAwait(false);
+            var states = dictList.FirstOrDefault() ?? new Dictionary<string, string>();
+            states[userId.ToString()] = date ?? "";
+            
+            dictList.Clear();
+            dictList.Add(states);
+            await _repository.WriteListAsync("announcement_read_states", dictList).ConfigureAwait(false);
+            return Ok();
+        }
+
         // ── Helpers (mirrored from ChatController) ──────────────────────────
 
         private async Task<Guid> GetUserIdAsync()

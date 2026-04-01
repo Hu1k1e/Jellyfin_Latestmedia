@@ -97,6 +97,18 @@ namespace Jellyfin_Latestmedia
                     Name = "apply-branding.js",
                     EmbeddedResourcePath = GetType().Namespace + ".Web.apply-branding.js",
                     EnableInMainMenu = false
+                },
+                new PluginPageInfo
+                {
+                    Name = "arr-integration.js",
+                    EmbeddedResourcePath = GetType().Namespace + ".Web.arr-integration.js",
+                    EnableInMainMenu = false
+                },
+                new PluginPageInfo
+                {
+                    Name = "requests-page.js",
+                    EmbeddedResourcePath = GetType().Namespace + ".Web.requests-page.js",
+                    EnableInMainMenu = false
                 }
             };
         }
