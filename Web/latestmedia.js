@@ -2375,7 +2375,10 @@ function initStarRatings() {
         
         cards.forEach(function(c) {
             c.setAttribute('data-lm-star-checked', 'true');
-            var id = c.getAttribute('data-id');
+            var type = c.getAttribute('data-type');
+            if (type === 'Person' || type === 'Studio' || type === 'Genre' || type === 'Year') return;
+            
+            var id = c.getAttribute('data-itemid') || c.getAttribute('data-id');
             if (id) {
                 _starQueue.add({id: id, element: c});
             }

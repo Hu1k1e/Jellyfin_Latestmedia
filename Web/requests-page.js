@@ -1991,7 +1991,7 @@
 
     // Hide other Jellyfin pages - but track which one was active so we can restore it
     const activePage = document.querySelector(
-      ".mainAnimatedPage:not(.hide):not(#je-downloads-page)",
+      ".mainAnimatedPage:not(.hide):not(#je-downloads-page), .pageNotFound:not(.hide), .page:not(.hide):not(#je-downloads-page)"
     );
     if (activePage) {
       state.previousPage = activePage;
@@ -2062,9 +2062,7 @@
     // But NOT when clicking header tabs (Jellyfin handles those via viewshow events)
     if (
       state.previousPage &&
-      !document.querySelector(
-        ".mainAnimatedPage:not(.hide):not(#je-downloads-page)",
-      )
+      !document.querySelector(".mainAnimatedPage:not(.hide):not(#je-downloads-page), .pageNotFound:not(.hide), .page:not(.hide):not(#je-downloads-page)")
     ) {
       state.previousPage.classList.remove("hide");
       // Dispatch viewshow so the page re-initializes properly
