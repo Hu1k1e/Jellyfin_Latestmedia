@@ -1,14 +1,12 @@
 /**
- * apply-branding.js — v3.0.2.0
+ * apply-branding.js — v3.1.0.0
  * Applies custom branding images (favicon, app icon, banner/logo) to the Jellyfin UI.
  * Lazy-loaded by latestmedia.js bootloader only when EnableCustomBranding is true.
  *
- * FIXES in v3.0.2:
- *  - Uses /Branding/Status endpoint (single authenticated fetch) to check all 4 types
- *    at once, instead of 3 separate uncoordinated XHR HEAD requests.
- *  - Added MutationObserver on <head> to re-apply favicon when Jellyfin's SPA
- *    restores its own icon links after navigation.
- *  - Properly waits for all status checks before deciding what to apply.
+ * FIXES in v3.1.0:
+ *  - .pageTitleWithLogo (header server logo) is now ONLY applied on the home page.
+ *    A hashchange listener sets data-lm-home on <html> for CSS scoping.
+ *    This prevents the logo from ghosting on movie/show detail pages.
  */
 (function () {
     'use strict';
@@ -119,11 +117,39 @@
         }
     }
 
+    // ── Home-page scoping for header logo ────────────────────────────────────
+    // .pageTitleWithLogo appears on ALL pages in Jellyfin's header.
+    // We only want our custom logo there on the home page, so we scope it via
+    // a data attribute on <html> that we toggle on every navigation.
+
+    var HOME_HASH_PATTERNS = ['', '#/home', '#/home.html', '#/home?', '#/home.html?'];
+
+    function isHomePage() {
+        var h = window.location.hash;
+        return HOME_HASH_PATTERNS.some(function (p) {
+            return h === p || (p.endsWith('?') && h.startsWith(p));
+        });
+    }
+
+    function updateHomeAttr() {
+        if (isHomePage()) {
+            document.documentElement.setAttribute('data-lm-home', '1');
+        } else {
+            document.documentElement.removeAttribute('data-lm-home');
+        }
+    }
+
+    // Run immediately and on every navigation
+    updateHomeAttr();
+    window.addEventListener('hashchange', updateHomeAttr);
+
     // ── Banner / Logo Images ──────────────────────────────────────────────────
 
     var LOGO_SELECTORS = [
         // Jellyfin's own banner/logo images
-        '.pageTitleWithLogo',
+        // NOTE: .pageTitleWithLogo is intentionally EXCLUDED here.
+        // It is handled via CSS scoping (html[data-lm-home] .pageTitleWithLogo)
+        // so it only shows on the home page. See ScriptInjectionMiddleware.cs.
         '.pageTitleWithDefaultLogo',
         'img[src*="banner-light"]',
         'img[src*="banner-dark"]',
@@ -294,5 +320,5 @@
         init();
     }
 
-    console.log('[LatestMedia] apply-branding loaded (v3.0.2)');
+    console.log('[LatestMedia] apply-branding loaded (v3.1.0)');
 })();

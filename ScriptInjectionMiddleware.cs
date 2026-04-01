@@ -169,7 +169,7 @@ public class ScriptInjectionMiddleware
             // Must recalculate index because we changed the length
             headCloseIndex = injected.LastIndexOf("</head>", StringComparison.OrdinalIgnoreCase);
 
-            var styleTag = $"<link rel=\"icon\" href=\"{safeBasePath}/Branding/favicon\"><style id=\"lm-branding-instant\">#splashscreen, .splashLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .pageTitleWithLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent); }} .customBannerLight {{ background-image: url({safeBasePath}/Branding/banner-light) !important; }} .customBannerDark {{ background-image: url({safeBasePath}/Branding/banner-dark) !important; }}</style>";
+            var styleTag = $"<link rel=\"icon\" href=\"{safeBasePath}/Branding/favicon\"><style id=\"lm-branding-instant\">#splashscreen, .splashLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} html[data-lm-home] .pageTitleWithLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .customBannerLight {{ background-image: url({safeBasePath}/Branding/banner-light) !important; }} .customBannerDark {{ background-image: url({safeBasePath}/Branding/banner-dark) !important; }}</style>";
             injected = injected.Insert(headCloseIndex, styleTag + "\n");
         }
 

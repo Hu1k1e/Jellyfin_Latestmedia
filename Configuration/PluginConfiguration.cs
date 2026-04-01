@@ -72,5 +72,21 @@ namespace Jellyfin_Latestmedia.Configuration
 
         // ── Feature 4: Custom Branding ──
         public bool EnableCustomBranding { get; set; } = false;
+
+        // ── Feature 5: *arr Integration ──
+        public bool ArrLinksEnabled { get; set; } = false;
+        public string SonarrUrl { get; set; } = "";
+        public string SonarrApiKey { get; set; } = "";
+        public string RadarrUrl { get; set; } = "";
+        public string RadarrApiKey { get; set; } = "";
+        public string BazarrUrl { get; set; } = "";
+
+        // Arr Quick Links (Sonarr/Radarr/Bazarr buttons on item detail pages)
+        public bool ArrTagsShowAsLinks { get; set; } = false;
+        public string ArrTagsPrefix { get; set; } = "arr:";
+
+        // Arr Active Downloads page (sidebar)
+        public bool ArrDownloadsEnabled { get; set; } = false;
+        public bool ArrDownloadsShowRequests { get; set; } = true;
     }
 }

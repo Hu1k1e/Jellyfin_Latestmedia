@@ -3,20 +3,38 @@
 <head>
     <title>Latest Media &amp; Management Configuration</title>
     <style>
-        .lm-section-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:28px 0 20px; }
-        .lm-section-title { font-size:1.05em; font-weight:700; margin-bottom:14px; opacity:0.9; letter-spacing:.01em; }
+        /* ── Tab Navigation ─────────────────────────────────────────── */
+        .lm-tabs { display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:24px; flex-wrap:wrap; }
+        .lm-tab-btn { padding:10px 18px; font-size:0.88em; font-weight:600; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; color:rgba(255,255,255,0.5); letter-spacing:.02em; transition:color .15s,border-color .15s; white-space:nowrap; }
+        .lm-tab-btn:hover { color:rgba(255,255,255,0.8); }
+        .lm-tab-btn.active { color:#fff; border-bottom-color:var(--lm-accent,#00b35a); }
+        .lm-tab-panel { display:none; }
+        .lm-tab-panel.active { display:block; }
+
+        /* ── Sections ───────────────────────────────────────────────── */
+        .lm-section-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:22px 0 18px; }
+        .lm-section-title { font-size:0.95em; font-weight:700; margin:0 0 14px; opacity:0.85; letter-spacing:.01em; text-transform:uppercase; font-size:0.8em; }
         .lm-indent { padding-left:1.5em; }
+
+        /* ── Layout helpers ─────────────────────────────────────────── */
         .lm-row { display:flex; gap:10px; align-items:flex-end; }
         .lm-row .inputContainer { flex:1; margin-bottom:0; }
         .lm-test-btn { height:36px; min-width:64px; flex-shrink:0; }
-        .lm-branding-note { background:rgba(33,150,243,0.12); border-left:3px solid #2196f3; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.83em; margin-bottom:16px; line-height:1.5; }
+        .lm-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        @media(max-width:600px){ .lm-grid-2 { grid-template-columns:1fr; } }
+
+        /* ── Info boxes ─────────────────────────────────────────────── */
+        .lm-note { background:rgba(33,150,243,0.1); border-left:3px solid #2196f3; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
+        .lm-note-warn { background:rgba(255,152,0,0.1); border-left:3px solid #ff9800; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
+
+        /* ── Branding upload zones ───────────────────────────────────── */
         .lm-branding-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px; }
         @media(max-width:600px){ .lm-branding-grid { grid-template-columns:1fr; } }
         .lm-upload-zone { display:block; }
         .lm-upload-zone h4 { font-size:0.88em; font-weight:700; margin:0 0 4px; }
-        .lm-upload-zone .lm-zone-desc { font-size:0.76em; opacity:0.6; margin-bottom:8px; }
+        .lm-zone-desc { font-size:0.76em; opacity:0.6; margin-bottom:8px; }
         .lm-upload-area { border:2px dashed rgba(255,255,255,0.2); border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); position:relative; transition:border-color .2s,background .2s; }
-        .lm-upload-area:hover, .lm-upload-area.lm-drag-over { border-color:var(--lm-accent,#00b35a); background:rgba(0,179,90,0.07); }
+        .lm-upload-area:hover,.lm-upload-area.lm-drag-over { border-color:var(--lm-accent,#00b35a); background:rgba(0,179,90,0.07); }
         .lm-upload-area.lm-has-image { border-style:solid; border-color:rgba(255,255,255,0.25); }
         .lm-upload-placeholder { display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; }
         .lm-upload-placeholder .material-icons { font-size:32px; opacity:0.35; }
@@ -36,497 +54,518 @@
         <div data-role="content">
             <div class="content-primary">
                 <h1>Latest Media &amp; Management Settings</h1>
+
+                <!-- ── Tab Bar ─────────────────────────────────────────── -->
+                <div class="lm-tabs" id="lmTabBar">
+                    <button class="lm-tab-btn active" data-tab="general">General</button>
+                    <button class="lm-tab-btn" data-tab="playback">Playback</button>
+                    <button class="lm-tab-btn" data-tab="jellyseerr">Jellyseerr</button>
+                    <button class="lm-tab-btn" data-tab="arr">*arr</button>
+                    <button class="lm-tab-btn" data-tab="branding">Branding</button>
+                </div>
+
                 <form id="LatestMediaConfigForm" class="pluginConfigurationForm">
 
-                    <!-- ── Core Features ──────────────────────────────────────── -->
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="EnableLatestMediaButton" />
-                            <span>Enable Latest Media Button</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Shows the Latest Media dropdown in the header.</div>
-                    </div>
+                    <!-- ════════════════════════════════════════════════ -->
+                    <!-- TAB: General                                     -->
+                    <!-- ════════════════════════════════════════════════ -->
+                    <div class="lm-tab-panel active" id="tab-general">
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="EnableMediaManagement" />
-                            <span>Enable Media Management Button (Admin Only)</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Shows the Media Management modal for admins.</div>
-                    </div>
+                        <div class="lm-section-title">Core Features</div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="EnableChat" />
-                            <span>Enable Chat System</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Enables the public chat and E2E encrypted DMs.</div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="EnableAnnouncements" />
-                            <span>Enable Server Announcements</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Shows the Announcements icon in the header.</div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="ShowOnMobile" />
-                            <span>Show Header Icons on Mobile</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Controls whether the plugin icons appear on small screens.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PublicChatRetentionHours">Public Chat Retention (Hours):</label>
-                        <input type="number" id="PublicChatRetentionHours" is="emby-input" step="1" min="1" />
-                        <div class="fieldDescription">How long public chat messages are kept before auto-deletion.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="DmRetentionDays">Private DM Retention (Days):</label>
-                        <input type="number" id="DmRetentionDays" is="emby-input" step="1" min="1" />
-                        <div class="fieldDescription">How long E2E encrypted private direct messages are kept.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="LatestMediaCount">Latest Media Items Count:</label>
-                        <input type="number" id="LatestMediaCount" is="emby-input" step="1" min="1" max="200" />
-                        <div class="fieldDescription">Number of items to show in the Latest Media dropdown.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PluginTheme">Plugin Theme:</label>
-                        <select is="emby-select" id="PluginTheme" class="emby-select-withcolor emby-select">
-                            <option value="htv">H-TV Theme (Default)</option>
-                            <option value="midnight">Midnight Blue</option>
-                            <option value="crimson">Crimson Dark</option>
-                            <option value="purple">Purple Haze</option>
-                            <option value="slate">Neutral Slate</option>
-                        </select>
-                        <div class="fieldDescription">Visual theme for plugin elements (Chat, Announcements, Modals).</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="AnnouncementHeading">Announcement Panel Heading:</label>
-                        <input type="text" id="AnnouncementHeading" is="emby-input" placeholder="H-TV Announcements" />
-                        <div class="fieldDescription">Text displayed at the top of the Announcements dropdown.</div>
-                    </div>
-
-                    <hr class="lm-section-divider" />
-
-                    <!-- ── Default User Settings ──────────────────────────────── -->
-                    <div class="lm-section-title">Default User Settings</div>
-
-                    <!-- Auto Pause -->
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="AutoPauseEnabled" />
-                            <span>Auto Pause on Tab Switch</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Automatically pause video playback when you switch to another browser tab.</div>
-                    </div>
-
-                    <!-- Auto Resume -->
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="AutoResumeEnabled" />
-                            <span>Auto Resume on Tab Switch</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Automatically resume video playback when you return to the tab (only if paused by Auto Pause).</div>
-                    </div>
-
-                    <!-- Auto PIP -->
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="AutoPipEnabled" />
-                            <span>Auto Picture-in-Picture on Tab Switch</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Enter Picture-in-Picture mode when switching tabs, exit when returning.</div>
-                    </div>
-
-                    <!-- Random Button -->
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="RandomButtonEnabled" />
-                            <span>Random Button</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Show a random item button (<span class="material-icons" style="font-size:14px;vertical-align:middle;">casino</span>) in the header. Click to navigate to a random movie or show.</div>
-                    </div>
-
-                    <div class="lm-indent">
-                        <div class="checkboxContainer">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="RandomIncludeMovies" />
-                                <span>Include Movies</span>
-                            </label>
-                        </div>
-                        <div class="checkboxContainer">
-                            <label>
-                                <input type="checkbox" is="emby-checkbox" id="RandomIncludeShows" />
-                                <span>Include Shows</span>
-                            </label>
-                        </div>
                         <div class="checkboxContainer checkboxContainer-withDescription">
                             <label>
-                                <input type="checkbox" is="emby-checkbox" id="RandomUnwatchedOnly" />
-                                <span>Unwatched Only</span>
+                                <input type="checkbox" is="emby-checkbox" id="EnableLatestMediaButton" />
+                                <span>Enable Latest Media Button</span>
                             </label>
-                            <div class="fieldDescription checkboxFieldDescription">Only include unwatched items in random selection.</div>
+                            <div class="fieldDescription checkboxFieldDescription">Shows the Latest Media dropdown in the header.</div>
                         </div>
-                    </div>
 
-                    <hr class="lm-section-divider" />
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="EnableMediaManagement" />
+                                <span>Enable Media Management Button (Admin Only)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Shows the Media Management modal for admins.</div>
+                        </div>
 
-                    <!-- ── Jellyseerr / Overseerr Setup ──────────────────────── -->
-                    <div class="lm-section-title">Jellyseerr / Overseerr Setup</div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="EnableChat" />
+                                <span>Enable Chat System</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Enables the public chat and E2E encrypted DMs.</div>
+                        </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrEnabled" />
-                            <span>Enable Jellyseerr / Overseerr Integration</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Shows request buttons, similar/recommended content, and discovery features powered by Jellyseerr.</div>
-                    </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="EnableAnnouncements" />
+                                <span>Enable Server Announcements</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Shows the Announcements icon in the header.</div>
+                        </div>
 
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="JellyseerrUrls">Jellyseerr URL(s)</label>
-                        <textarea id="JellyseerrUrls" is="emby-textarea" rows="2" placeholder="https://your-seerr-instance.com" style="width:100%;box-sizing:border-box;"></textarea>
-                        <div class="fieldDescription">Enter your Jellyseerr/Overseerr URL. One per line if multiple instances.</div>
-                    </div>
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ShowOnMobile" />
+                                <span>Show Header Icons on Mobile</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Controls whether the plugin icons appear on small screens.</div>
+                        </div>
 
-                    <div class="lm-row">
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Appearance</div>
+
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="JellyseerrApiKey">Jellyseerr API Key</label>
-                            <input type="password" id="JellyseerrApiKey" is="emby-input" />
-                            <div class="fieldDescription">Found in Jellyseerr Settings → General → API Key.</div>
+                            <label class="inputLabel inputLabelUnfocused" for="PluginTheme">Plugin Theme:</label>
+                            <select is="emby-select" id="PluginTheme" class="emby-select-withcolor emby-select">
+                                <option value="htv">H-TV Theme (Default)</option>
+                                <option value="midnight">Midnight Blue</option>
+                                <option value="crimson">Crimson Dark</option>
+                                <option value="purple">Purple Haze</option>
+                                <option value="slate">Neutral Slate</option>
+                            </select>
+                            <div class="fieldDescription">Visual theme for plugin elements (Chat, Announcements, Modals).</div>
                         </div>
-                        <button type="button" id="btnTestSeerr" is="emby-button" class="raised button-submit lm-test-btn emby-button">Test</button>
-                    </div>
-                    <div id="seerrTestResult" style="font-size:0.82em;margin:4px 0 12px;"></div>
 
-                    <div class="lm-row">
                         <div class="inputContainer">
-                            <label class="inputLabel inputLabelUnfocused" for="TMDB_API_KEY">TMDB API Key (v3 auth)</label>
-                            <input type="password" id="TMDB_API_KEY" is="emby-input" />
-                            <div class="fieldDescription">Required for collection search results. <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">How to get one?</a></div>
+                            <label class="inputLabel inputLabelUnfocused" for="AnnouncementHeading">Announcement Panel Heading:</label>
+                            <input type="text" id="AnnouncementHeading" is="emby-input" placeholder="H-TV Announcements" />
+                            <div class="fieldDescription">Text displayed at the top of the Announcements dropdown.</div>
                         </div>
-                        <button type="button" id="btnTestTmdb" is="emby-button" class="raised button-submit lm-test-btn emby-button">Test</button>
-                    </div>
-                    <div id="tmdbTestResult" style="font-size:0.82em;margin:4px 0 12px;"></div>
 
-                    <details>
-                        <summary>Advanced: URL Mappings (for reverse proxy setups)</summary>
-                        <div class="inputContainer" style="margin-top:8px;">
-                            <textarea id="JellyseerrUrlMappings" is="emby-textarea" rows="3" style="width:100%;box-sizing:border-box;"
-                                placeholder="JellyfinURL|SeerrURL&#10;https://jellyfin.mydomain.com|https://jellyseerr.mydomain.com"></textarea>
-                            <div class="fieldDescription">Use if your Jellyfin URL differs from what Jellyseerr sees. Format: <code>JellyfinURL|SeerrURL</code></div>
-                        </div>
-                    </details>
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Retention</div>
 
-                    <!-- ── Jellyseerr Search &amp; Request Settings ─────────────── -->
-                    <div class="lm-section-title" style="margin-top:20px;">Jellyseerr Search &amp; Request Settings</div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowSearchResults" />
-                            <span>Show Jellyseerr results in search</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Display Jellyseerr search results alongside Jellyfin results with Request buttons.</div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="ShowCollectionsInSearch" />
-                            <span>Show collections in search results</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Requires a TMDB API Key to be configured above.</div>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrEnable4KRequests" />
-                            <span>Enable 4K movie requests</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrEnable4KTvRequests" />
-                            <span>Enable 4K TV requests</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowAdvanced" />
-                            <span>Show advanced request options</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Show server, quality profile, and root folder selection when requesting.</div>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowReportButton" />
-                            <span>Show report issue button</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowIssueIndicator" />
-                            <span>Show issue indicator on items</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrExcludeLibraryItems" />
-                            <span>Exclude items already in library from search results</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Hide Jellyseerr results for media already available on your server.</div>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrExcludeBlocklistedItems" />
-                            <span>Exclude blocklisted items from search results</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrUseMoreInfoModal" />
-                            <span>Use More Info modal for Jellyseerr results</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Open a detailed info modal instead of navigating to the Jellyfin details page when clicking a result.</div>
-                    </div>
-
-                    <!-- ── Jellyseerr Discovery ───────────────────────────────── -->
-                    <div class="lm-section-title" style="margin-top:20px;">Jellyseerr Discovery</div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowSimilar" />
-                            <span>Show similar items on detail pages</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Adds a "More Like This" carousel below the item's detail page.</div>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowRecommended" />
-                            <span>Show recommended items on detail pages</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Adds a "Recommended" carousel below the item's detail page.</div>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowNetworkDiscovery" />
-                            <span>Enable network / studio discovery</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowGenreDiscovery" />
-                            <span>Enable genre discovery</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowTagDiscovery" />
-                            <span>Enable tag discovery</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowPersonDiscovery" />
-                            <span>Enable person discovery</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrShowCollectionDiscovery" />
-                            <span>Enable collection discovery</span>
-                        </label>
-                    </div>
-
-                    <!-- ── Watchlist Integration ─────────────────────────────── -->
-                    <div class="lm-section-title" style="margin-top:20px;">Watchlist Integration</div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="AddRequestedMediaToWatchlist" />
-                            <span>Add requested media to watchlist</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Automatically add media to your Jellyfin watchlist when requesting via Jellyseerr.</div>
-                    </div>
-
-                    <div class="checkboxContainer">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="SyncJellyseerrWatchlist" />
-                            <span>Sync Jellyseerr watchlist</span>
-                        </label>
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="PreventWatchlistReAddition" />
-                            <span>Prevent re-adding previously removed items</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Remember removed watchlist items to prevent them from being re-added automatically.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="WatchlistMemoryRetentionDays">Watchlist Memory Retention</label>
-                        <select is="emby-select" id="WatchlistMemoryRetentionDays" class="emby-select-withcolor emby-select">
-                            <option value="30">30 days — Short memory, items can be re-added after 1 month</option>
-                            <option value="365">365 days — Remember for 1 year (recommended)</option>
-                            <option value="3650">3650 days — Remember for 10 years (nearly permanent)</option>
-                        </select>
-                    </div>
-
-                    <!-- ── Jellyseerr Performance ─────────────────────────────── -->
-                    <div class="lm-section-title" style="margin-top:20px;">Jellyseerr Performance</div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="JellyseerrDisableCache" />
-                            <span>Disable response caching</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Always fetch fresh data from Jellyseerr (not recommended — may cause slow responses).</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="JellyseerrResponseCacheTtlMinutes">Response Cache TTL (minutes)</label>
-                        <input type="number" id="JellyseerrResponseCacheTtlMinutes" is="emby-input" min="1" max="60" />
-                        <div class="fieldDescription">How long to cache Jellyseerr API responses server-side. Default: 10 minutes.</div>
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="JellyseerrUserIdCacheTtlMinutes">User ID Cache TTL (minutes)</label>
-                        <input type="number" id="JellyseerrUserIdCacheTtlMinutes" is="emby-input" min="5" max="120" />
-                        <div class="fieldDescription">How long to cache the Jellyfin → Jellyseerr user ID mapping. Default: 30 minutes.</div>
-                    </div>
-
-                    <hr class="lm-section-divider" />
-
-                    <!-- ── Custom Branding ─────────────────────────────────────── -->
-                    <div class="lm-section-title">Custom Branding</div>
-
-                    <div class="lm-branding-note">
-                        Requires the <a href="https://github.com/IAmParadox27/jellyfin-plugin-file-transformation" target="_blank" rel="noopener">File Transformation Plugin</a> to be installed.
-                        Upload custom images to replace Jellyfin's default web logos and icons.
-                        Also works with <a href="https://github.com/IAmParadox27/jellyfin-plugin-media-bar" target="_blank" rel="noopener">jellyfin-plugin-media-bar</a>.
-                    </div>
-
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input type="checkbox" is="emby-checkbox" id="EnableCustomBranding" />
-                            <span>Enable Custom Branding</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">Serve uploaded branding images via the plugin API.</div>
-                    </div>
-
-                    <!-- 2x2 Upload Grid -->
-                    <div class="lm-branding-grid" id="lmBrandingGrid">
-
-                        <!-- Icon Transparent -->
-                        <div class="lm-upload-zone" data-branding-type="icon-transparent">
-                            <h4>Icon (Transparent)</h4>
-                            <div class="lm-zone-desc">Replaces Jellyfin's default logo icon. Recommended: 536×536px PNG with transparent background.</div>
-                            <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
-                                <button type="button" class="lm-upload-delete" title="Delete branding image">
-                                    <span class="material-icons">delete</span>
-                                </button>
-                                <div class="lm-upload-placeholder">
-                                    <span class="material-icons">cloud_upload</span>
-                                    <div class="lm-up-label">Drop image here or click to upload</div>
-                                    <div class="lm-up-hint">Max 10MB · PNG</div>
-                                </div>
-                                <div class="lm-upload-preview">
-                                    <img src="" alt="Icon Transparent preview" />
-                                    <div class="lm-upload-dims"></div>
-                                </div>
-                                <input type="file" accept=".png" style="display:none;" />
+                        <div class="lm-grid-2">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="PublicChatRetentionHours">Public Chat Retention (Hours)</label>
+                                <input type="number" id="PublicChatRetentionHours" is="emby-input" step="1" min="1" />
+                                <div class="fieldDescription">How long public chat messages are kept before auto-deletion.</div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="DmRetentionDays">Private DM Retention (Days)</label>
+                                <input type="number" id="DmRetentionDays" is="emby-input" step="1" min="1" />
+                                <div class="fieldDescription">How long E2E encrypted private direct messages are kept.</div>
                             </div>
                         </div>
 
-                        <!-- Favicon -->
-                        <div class="lm-upload-zone" data-branding-type="favicon">
-                            <h4>Favicon</h4>
-                            <div class="lm-zone-desc">Browser tab icon. Recommended: 32×32px or 48×48px. Accepts ICO, PNG, or SVG.</div>
-                            <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
-                                <button type="button" class="lm-upload-delete" title="Delete branding image">
-                                    <span class="material-icons">delete</span>
-                                </button>
-                                <div class="lm-upload-placeholder">
-                                    <span class="material-icons">cloud_upload</span>
-                                    <div class="lm-up-label">Drop image here or click to upload</div>
-                                    <div class="lm-up-hint">Max 10MB · ICO, PNG, SVG</div>
-                                </div>
-                                <div class="lm-upload-preview">
-                                    <img src="" alt="Favicon preview" />
-                                    <div class="lm-upload-dims"></div>
-                                </div>
-                                <input type="file" accept=".ico,.png,.svg" style="display:none;" />
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="LatestMediaCount">Latest Media Items Count:</label>
+                            <input type="number" id="LatestMediaCount" is="emby-input" step="1" min="1" max="200" />
+                            <div class="fieldDescription">Number of items to show in the Latest Media dropdown.</div>
+                        </div>
+                    </div>
+
+                    <!-- ════════════════════════════════════════════════ -->
+                    <!-- TAB: Playback                                    -->
+                    <!-- ════════════════════════════════════════════════ -->
+                    <div class="lm-tab-panel" id="tab-playback">
+
+                        <div class="lm-section-title">Tab Switch Behaviour</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="AutoPauseEnabled" />
+                                <span>Auto Pause on Tab Switch</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Automatically pause video playback when you switch to another browser tab.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="AutoResumeEnabled" />
+                                <span>Auto Resume on Tab Return</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Automatically resume playback when you return to the tab (only if paused by Auto Pause).</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="AutoPipEnabled" />
+                                <span>Auto Picture-in-Picture on Tab Switch</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Enter Picture-in-Picture mode when switching tabs. Exit PiP when returning. Works in Chrome/Edge.</div>
+                        </div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Random Button</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="RandomButtonEnabled" />
+                                <span>Enable Random Button</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Show a random item button (<span class="material-icons" style="font-size:14px;vertical-align:middle;">casino</span>) in the header.</div>
+                        </div>
+
+                        <div class="lm-indent">
+                            <div class="checkboxContainer">
+                                <label>
+                                    <input type="checkbox" is="emby-checkbox" id="RandomIncludeMovies" />
+                                    <span>Include Movies</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer">
+                                <label>
+                                    <input type="checkbox" is="emby-checkbox" id="RandomIncludeShows" />
+                                    <span>Include Shows</span>
+                                </label>
+                            </div>
+                            <div class="checkboxContainer checkboxContainer-withDescription">
+                                <label>
+                                    <input type="checkbox" is="emby-checkbox" id="RandomUnwatchedOnly" />
+                                    <span>Unwatched Only</span>
+                                </label>
+                                <div class="fieldDescription checkboxFieldDescription">Only include unwatched items in random selection.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ════════════════════════════════════════════════ -->
+                    <!-- TAB: Jellyseerr                                  -->
+                    <!-- ════════════════════════════════════════════════ -->
+                    <div class="lm-tab-panel" id="tab-jellyseerr">
+
+                        <div class="lm-section-title">Connection</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="JellyseerrEnabled" />
+                                <span>Enable Jellyseerr / Overseerr Integration</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Shows request buttons and discovery features powered by Jellyseerr.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="JellyseerrUrls">Jellyseerr URL(s)</label>
+                            <textarea id="JellyseerrUrls" is="emby-textarea" rows="2" placeholder="https://your-seerr-instance.com" style="width:100%;box-sizing:border-box;"></textarea>
+                            <div class="fieldDescription">Enter your Jellyseerr/Overseerr URL. One per line if multiple instances.</div>
+                        </div>
+
+                        <div class="lm-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="JellyseerrApiKey">Jellyseerr API Key</label>
+                                <input type="password" id="JellyseerrApiKey" is="emby-input" />
+                                <div class="fieldDescription">Found in Jellyseerr Settings → General → API Key.</div>
+                            </div>
+                            <button type="button" id="btnTestSeerr" is="emby-button" class="raised button-submit lm-test-btn emby-button">Test</button>
+                        </div>
+                        <div id="seerrTestResult" style="font-size:0.82em;margin:4px 0 12px;"></div>
+
+                        <div class="lm-row">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="TMDB_API_KEY">TMDB API Key (v3 auth)</label>
+                                <input type="password" id="TMDB_API_KEY" is="emby-input" />
+                                <div class="fieldDescription">Required for collection search results. <a href="https://www.themoviedb.org/settings/api" target="_blank" rel="noopener">How to get one?</a></div>
+                            </div>
+                            <button type="button" id="btnTestTmdb" is="emby-button" class="raised button-submit lm-test-btn emby-button">Test</button>
+                        </div>
+                        <div id="tmdbTestResult" style="font-size:0.82em;margin:4px 0 12px;"></div>
+
+                        <details>
+                            <summary>Advanced: URL Mappings (for reverse proxy setups)</summary>
+                            <div class="inputContainer" style="margin-top:8px;">
+                                <textarea id="JellyseerrUrlMappings" is="emby-textarea" rows="3" style="width:100%;box-sizing:border-box;"
+                                    placeholder="JellyfinURL|SeerrURL&#10;https://jellyfin.mydomain.com|https://jellyseerr.mydomain.com"></textarea>
+                                <div class="fieldDescription">Format: <code>JellyfinURL|SeerrURL</code></div>
+                            </div>
+                        </details>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Search &amp; Requests</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="JellyseerrShowSearchResults" />
+                                <span>Show Jellyseerr results in search</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Display Jellyseerr search results alongside Jellyfin results with Request buttons.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ShowCollectionsInSearch" />
+                                <span>Show collections in search results</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Requires a TMDB API Key configured above.</div>
+                        </div>
+
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrEnable4KRequests" /><span>Enable 4K movie requests</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrEnable4KTvRequests" /><span>Enable 4K TV requests</span></label></div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="JellyseerrShowAdvanced" />
+                                <span>Show advanced request options</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Show server, quality profile, and root folder selection when requesting.</div>
+                        </div>
+
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowReportButton" /><span>Show report issue button</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowIssueIndicator" /><span>Show issue indicator on items</span></label></div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="JellyseerrExcludeLibraryItems" />
+                                <span>Exclude items already in library from search results</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Hide Jellyseerr results for media already available on your server.</div>
+                        </div>
+
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrExcludeBlocklistedItems" /><span>Exclude blocklisted items from search results</span></label></div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="JellyseerrUseMoreInfoModal" />
+                                <span>Use More Info modal for Jellyseerr results</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Open a detailed info modal instead of navigating to the Jellyfin details page.</div>
+                        </div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Discovery</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowSimilar" /><span>Show similar items on detail pages</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Adds a "More Like This" carousel below item detail pages.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowRecommended" /><span>Show recommended items on detail pages</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Adds a "Recommended" carousel below item detail pages.</div>
+                        </div>
+
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowNetworkDiscovery" /><span>Enable network / studio discovery</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowGenreDiscovery" /><span>Enable genre discovery</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowTagDiscovery" /><span>Enable tag discovery</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowPersonDiscovery" /><span>Enable person discovery</span></label></div>
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="JellyseerrShowCollectionDiscovery" /><span>Enable collection discovery</span></label></div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Watchlist</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label><input type="checkbox" is="emby-checkbox" id="AddRequestedMediaToWatchlist" /><span>Add requested media to watchlist</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Automatically add media to your Jellyfin watchlist when requesting via Jellyseerr.</div>
+                        </div>
+
+                        <div class="checkboxContainer"><label><input type="checkbox" is="emby-checkbox" id="SyncJellyseerrWatchlist" /><span>Sync Jellyseerr watchlist</span></label></div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label><input type="checkbox" is="emby-checkbox" id="PreventWatchlistReAddition" /><span>Prevent re-adding previously removed items</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Remember removed watchlist items to prevent them from being re-added automatically.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="WatchlistMemoryRetentionDays">Watchlist Memory Retention</label>
+                            <select is="emby-select" id="WatchlistMemoryRetentionDays" class="emby-select-withcolor emby-select">
+                                <option value="30">30 days</option>
+                                <option value="365">365 days (recommended)</option>
+                                <option value="3650">3650 days (nearly permanent)</option>
+                            </select>
+                        </div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Performance / Cache</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label><input type="checkbox" is="emby-checkbox" id="JellyseerrDisableCache" /><span>Disable response caching</span></label>
+                            <div class="fieldDescription checkboxFieldDescription">Always fetch fresh data from Jellyseerr. Not recommended — may cause slow responses.</div>
+                        </div>
+
+                        <div class="lm-grid-2">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="JellyseerrResponseCacheTtlMinutes">Response Cache TTL (minutes)</label>
+                                <input type="number" id="JellyseerrResponseCacheTtlMinutes" is="emby-input" min="1" max="60" />
+                                <div class="fieldDescription">How long to cache Jellyseerr API responses. Default: 10 min.</div>
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="JellyseerrUserIdCacheTtlMinutes">User ID Cache TTL (minutes)</label>
+                                <input type="number" id="JellyseerrUserIdCacheTtlMinutes" is="emby-input" min="5" max="120" />
+                                <div class="fieldDescription">How long to cache Jellyfin → Jellyseerr user mapping. Default: 30 min.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ════════════════════════════════════════════════ -->
+                    <!-- TAB: *arr                                        -->
+                    <!-- ════════════════════════════════════════════════ -->
+                    <div class="lm-tab-panel" id="tab-arr">
+
+                        <div class="lm-section-title">Sonarr</div>
+
+                        <div class="lm-grid-2">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="SonarrUrl">Sonarr URL</label>
+                                <input type="text" id="SonarrUrl" is="emby-input" placeholder="http://localhost:8989" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="SonarrApiKey">Sonarr API Key</label>
+                                <input type="password" id="SonarrApiKey" is="emby-input" />
+                                <div class="fieldDescription">Found in Sonarr → Settings → General → API Key.</div>
                             </div>
                         </div>
 
-                        <!-- Banner Light -->
-                        <div class="lm-upload-zone" data-branding-type="banner-light">
-                            <h4>Banner (Light)</h4>
-                            <div class="lm-zone-desc">Splash screen banner for dark mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
-                            <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
-                                <button type="button" class="lm-upload-delete" title="Delete branding image">
-                                    <span class="material-icons">delete</span>
-                                </button>
-                                <div class="lm-upload-placeholder">
-                                    <span class="material-icons">cloud_upload</span>
-                                    <div class="lm-up-label">Drop image here or click to upload</div>
-                                    <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
-                                </div>
-                                <div class="lm-upload-preview">
-                                    <img src="" alt="Banner Light preview" />
-                                    <div class="lm-upload-dims"></div>
-                                </div>
-                                <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Radarr</div>
+
+                        <div class="lm-grid-2">
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="RadarrUrl">Radarr URL</label>
+                                <input type="text" id="RadarrUrl" is="emby-input" placeholder="http://localhost:7878" />
+                            </div>
+                            <div class="inputContainer">
+                                <label class="inputLabel inputLabelUnfocused" for="RadarrApiKey">Radarr API Key</label>
+                                <input type="password" id="RadarrApiKey" is="emby-input" />
+                                <div class="fieldDescription">Found in Radarr → Settings → General → API Key.</div>
                             </div>
                         </div>
 
-                        <!-- Banner Dark -->
-                        <div class="lm-upload-zone" data-branding-type="banner-dark">
-                            <h4>Banner (Dark)</h4>
-                            <div class="lm-zone-desc">Splash screen banner for light mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
-                            <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
-                                <button type="button" class="lm-upload-delete" title="Delete branding image">
-                                    <span class="material-icons">delete</span>
-                                </button>
-                                <div class="lm-upload-placeholder">
-                                    <span class="material-icons">cloud_upload</span>
-                                    <div class="lm-up-label">Drop image here or click to upload</div>
-                                    <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
-                                </div>
-                                <div class="lm-upload-preview">
-                                    <img src="" alt="Banner Dark preview" />
-                                    <div class="lm-upload-dims"></div>
-                                </div>
-                                <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
-                            </div>
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Bazarr</div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="BazarrUrl">Bazarr URL</label>
+                            <input type="text" id="BazarrUrl" is="emby-input" placeholder="http://localhost:6767" />
+                            <div class="fieldDescription">Used for quick-link buttons on item detail pages.</div>
                         </div>
 
-                    </div><!-- /lmBrandingGrid -->
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Quick Links</div>
 
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ArrLinksEnabled" />
+                                <span>Enable Quick Links (Admin Only)</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Adds Sonarr / Radarr / Bazarr deep-link buttons to movie and series detail pages. Visible to admins only.</div>
+                        </div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Tag Links</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ArrTagsShowAsLinks" />
+                                <span>Show *arr tags as filter links</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Displays Jellyfin tags with the prefix below as clickable filter links on item detail pages.</div>
+                        </div>
+
+                        <div class="inputContainer">
+                            <label class="inputLabel inputLabelUnfocused" for="ArrTagsPrefix">Tag Prefix</label>
+                            <input type="text" id="ArrTagsPrefix" is="emby-input" placeholder="arr:" />
+                            <div class="fieldDescription">Only tags starting with this prefix are shown as links. Default: <code>arr:</code></div>
+                        </div>
+
+                        <hr class="lm-section-divider" />
+                        <div class="lm-section-title">Active Downloads Page</div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ArrDownloadsEnabled" />
+                                <span>Enable Active Downloads Page</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Adds an "Active Downloads" entry to the sidebar showing the combined Sonarr + Radarr download queue.</div>
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="ArrDownloadsShowRequests" />
+                                <span>Show Jellyseerr Pending Requests section</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Adds a pending requests list from Jellyseerr below the download queue. Requires Jellyseerr tab to be configured.</div>
+                        </div>
+                    </div>
+
+                    <!-- ════════════════════════════════════════════════ -->
+                    <!-- TAB: Branding                                    -->
+                    <!-- ════════════════════════════════════════════════ -->
+                    <div class="lm-tab-panel" id="tab-branding">
+
+                        <div class="lm-note">
+                            Requires the <a href="https://github.com/IAmParadox27/jellyfin-plugin-file-transformation" target="_blank" rel="noopener">File Transformation Plugin</a> to be installed.
+                            Upload custom images to replace Jellyfin's default web logos and icons.
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input type="checkbox" is="emby-checkbox" id="EnableCustomBranding" />
+                                <span>Enable Custom Branding</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">Serve uploaded branding images via the plugin API and inject them at page load with zero-latency CSS.</div>
+                        </div>
+
+                        <!-- 2×2 Upload Grid -->
+                        <div class="lm-branding-grid" id="lmBrandingGrid">
+
+                            <div class="lm-upload-zone" data-branding-type="icon-transparent">
+                                <h4>Icon (Transparent)</h4>
+                                <div class="lm-zone-desc">Main app logo. Recommended: 536×536px PNG with transparent background.</div>
+                                <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
+                                    <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
+                                    <div class="lm-upload-placeholder">
+                                        <span class="material-icons">cloud_upload</span>
+                                        <div class="lm-up-label">Drop image here or click to upload</div>
+                                        <div class="lm-up-hint">Max 10MB · PNG</div>
+                                    </div>
+                                    <div class="lm-upload-preview"><img src="" alt="Icon Transparent preview" /><div class="lm-upload-dims"></div></div>
+                                    <input type="file" accept=".png" style="display:none;" />
+                                </div>
+                            </div>
+
+                            <div class="lm-upload-zone" data-branding-type="favicon">
+                                <h4>Favicon</h4>
+                                <div class="lm-zone-desc">Browser tab icon. Recommended: 32×32px or 48×48px. ICO, PNG, or SVG.</div>
+                                <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
+                                    <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
+                                    <div class="lm-upload-placeholder">
+                                        <span class="material-icons">cloud_upload</span>
+                                        <div class="lm-up-label">Drop image here or click to upload</div>
+                                        <div class="lm-up-hint">Max 10MB · ICO, PNG, SVG</div>
+                                    </div>
+                                    <div class="lm-upload-preview"><img src="" alt="Favicon preview" /><div class="lm-upload-dims"></div></div>
+                                    <input type="file" accept=".ico,.png,.svg" style="display:none;" />
+                                </div>
+                            </div>
+
+                            <div class="lm-upload-zone" data-branding-type="banner-light">
+                                <h4>Banner (Light)</h4>
+                                <div class="lm-zone-desc">Splash/login banner for dark mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
+                                <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
+                                    <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
+                                    <div class="lm-upload-placeholder">
+                                        <span class="material-icons">cloud_upload</span>
+                                        <div class="lm-up-label">Drop image here or click to upload</div>
+                                        <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
+                                    </div>
+                                    <div class="lm-upload-preview"><img src="" alt="Banner Light preview" /><div class="lm-upload-dims"></div></div>
+                                    <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
+                                </div>
+                            </div>
+
+                            <div class="lm-upload-zone" data-branding-type="banner-dark">
+                                <h4>Banner (Dark)</h4>
+                                <div class="lm-zone-desc">Splash/login banner for light mode. Recommended: 1302×378px PNG, JPG, or WebP.</div>
+                                <div class="lm-upload-area" title="Click or drag &amp; drop to upload">
+                                    <button type="button" class="lm-upload-delete" title="Delete branding image"><span class="material-icons">delete</span></button>
+                                    <div class="lm-upload-placeholder">
+                                        <span class="material-icons">cloud_upload</span>
+                                        <div class="lm-up-label">Drop image here or click to upload</div>
+                                        <div class="lm-up-hint">Max 10MB · PNG, JPG, WebP</div>
+                                    </div>
+                                    <div class="lm-upload-preview"><img src="" alt="Banner Dark preview" /><div class="lm-upload-dims"></div></div>
+                                    <input type="file" accept=".png,.jpg,.jpeg,.webp" style="display:none;" />
+                                </div>
+                            </div>
+                        </div><!-- /lmBrandingGrid -->
+                    </div>
+
+                    <!-- ── Global Save ──────────────────────────────── -->
                     <br/>
                     <button is="emby-button" type="submit" class="raised button-submit block emby-button">
-                        <span>Save</span>
+                        <span>Save Settings</span>
                     </button>
                 </form>
             </div>
@@ -536,24 +575,40 @@
             (function () {
                 var pluginId = 'f94d6caf-2a62-4dd7-9f64-684ce8efff43';
 
+                // ── Tab switching ─────────────────────────────────────────────
+                var tabBar = document.getElementById('lmTabBar');
+                tabBar.addEventListener('click', function (e) {
+                    var btn = e.target.closest('.lm-tab-btn');
+                    if (!btn) return;
+                    var tab = btn.dataset.tab;
+                    document.querySelectorAll('.lm-tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+                    document.querySelectorAll('.lm-tab-panel').forEach(function (p) { p.classList.toggle('active', p.id === 'tab-' + tab); });
+                    try { sessionStorage.setItem('lm-cfg-tab', tab); } catch(e){}
+                });
+                // Restore last tab
+                try {
+                    var saved = sessionStorage.getItem('lm-cfg-tab');
+                    if (saved) { var b = tabBar.querySelector('[data-tab="' + saved + '"]'); if (b) b.click(); }
+                } catch(e){}
+
+                // ── Load config ───────────────────────────────────────────────
                 function loadConfig() {
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        // Core
+                        // General
                         document.getElementById('EnableLatestMediaButton').checked = !!config.EnableLatestMediaButton;
                         document.getElementById('EnableMediaManagement').checked = !!config.EnableMediaManagement;
                         document.getElementById('EnableChat').checked = !!config.EnableChat;
                         document.getElementById('EnableAnnouncements').checked = !!config.EnableAnnouncements;
                         document.getElementById('ShowOnMobile').checked = !!config.ShowOnMobile;
+                        document.getElementById('PluginTheme').value = config.PluginTheme || 'htv';
+                        document.getElementById('AnnouncementHeading').value = config.AnnouncementHeading || 'H-TV Announcements';
                         document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
                         document.getElementById('DmRetentionDays').value = config.DmRetentionDays || 7;
                         document.getElementById('LatestMediaCount').value = config.LatestMediaCount || 50;
-                        document.getElementById('PluginTheme').value = config.PluginTheme || 'htv';
-                        document.getElementById('AnnouncementHeading').value = config.AnnouncementHeading || 'H-TV Announcements';
                         // Playback
                         document.getElementById('AutoPauseEnabled').checked = config.AutoPauseEnabled !== false;
                         document.getElementById('AutoResumeEnabled').checked = !!config.AutoResumeEnabled;
                         document.getElementById('AutoPipEnabled').checked = !!config.AutoPipEnabled;
-                        // Random
                         document.getElementById('RandomButtonEnabled').checked = config.RandomButtonEnabled !== false;
                         document.getElementById('RandomIncludeMovies').checked = config.RandomIncludeMovies !== false;
                         document.getElementById('RandomIncludeShows').checked = config.RandomIncludeShows !== false;
@@ -574,7 +629,6 @@
                         document.getElementById('JellyseerrExcludeLibraryItems').checked = config.JellyseerrExcludeLibraryItems !== false;
                         document.getElementById('JellyseerrExcludeBlocklistedItems').checked = !!config.JellyseerrExcludeBlocklistedItems;
                         document.getElementById('JellyseerrUseMoreInfoModal').checked = !!config.JellyseerrUseMoreInfoModal;
-                        // Discovery
                         document.getElementById('JellyseerrShowSimilar').checked = config.JellyseerrShowSimilar !== false;
                         document.getElementById('JellyseerrShowRecommended').checked = config.JellyseerrShowRecommended !== false;
                         document.getElementById('JellyseerrShowNetworkDiscovery').checked = config.JellyseerrShowNetworkDiscovery !== false;
@@ -582,16 +636,24 @@
                         document.getElementById('JellyseerrShowTagDiscovery').checked = config.JellyseerrShowTagDiscovery !== false;
                         document.getElementById('JellyseerrShowPersonDiscovery').checked = config.JellyseerrShowPersonDiscovery !== false;
                         document.getElementById('JellyseerrShowCollectionDiscovery').checked = config.JellyseerrShowCollectionDiscovery !== false;
-                        // Watchlist
                         document.getElementById('AddRequestedMediaToWatchlist').checked = !!config.AddRequestedMediaToWatchlist;
                         document.getElementById('SyncJellyseerrWatchlist').checked = !!config.SyncJellyseerrWatchlist;
                         document.getElementById('PreventWatchlistReAddition').checked = config.PreventWatchlistReAddition !== false;
-                        var retDays = config.WatchlistMemoryRetentionDays || 365;
-                        document.getElementById('WatchlistMemoryRetentionDays').value = retDays.toString();
-                        // Performance
+                        document.getElementById('WatchlistMemoryRetentionDays').value = String(config.WatchlistMemoryRetentionDays || 365);
                         document.getElementById('JellyseerrDisableCache').checked = !!config.JellyseerrDisableCache;
                         document.getElementById('JellyseerrResponseCacheTtlMinutes').value = config.JellyseerrResponseCacheTtlMinutes || 10;
                         document.getElementById('JellyseerrUserIdCacheTtlMinutes').value = config.JellyseerrUserIdCacheTtlMinutes || 30;
+                        // *arr
+                        document.getElementById('SonarrUrl').value = config.SonarrUrl || '';
+                        document.getElementById('SonarrApiKey').value = config.SonarrApiKey || '';
+                        document.getElementById('RadarrUrl').value = config.RadarrUrl || '';
+                        document.getElementById('RadarrApiKey').value = config.RadarrApiKey || '';
+                        document.getElementById('BazarrUrl').value = config.BazarrUrl || '';
+                        document.getElementById('ArrLinksEnabled').checked = !!config.ArrLinksEnabled;
+                        document.getElementById('ArrTagsShowAsLinks').checked = !!config.ArrTagsShowAsLinks;
+                        document.getElementById('ArrTagsPrefix').value = config.ArrTagsPrefix || 'arr:';
+                        document.getElementById('ArrDownloadsEnabled').checked = !!config.ArrDownloadsEnabled;
+                        document.getElementById('ArrDownloadsShowRequests').checked = config.ArrDownloadsShowRequests !== false;
                         // Branding
                         document.getElementById('EnableCustomBranding').checked = !!config.EnableCustomBranding;
                     }).catch(function (err) {
@@ -599,27 +661,27 @@
                     });
                 }
 
+                // ── Save config ───────────────────────────────────────────────
                 function saveConfig(e) {
                     e.preventDefault();
                     Dashboard.showLoadingMsg();
 
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        // Core
+                        // General
                         config.EnableLatestMediaButton = document.getElementById('EnableLatestMediaButton').checked;
                         config.EnableMediaManagement = document.getElementById('EnableMediaManagement').checked;
                         config.EnableChat = document.getElementById('EnableChat').checked;
                         config.EnableAnnouncements = document.getElementById('EnableAnnouncements').checked;
                         config.ShowOnMobile = document.getElementById('ShowOnMobile').checked;
+                        config.PluginTheme = document.getElementById('PluginTheme').value || 'htv';
+                        config.AnnouncementHeading = document.getElementById('AnnouncementHeading').value || 'H-TV Announcements';
                         config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
                         config.DmRetentionDays = parseInt(document.getElementById('DmRetentionDays').value) || 7;
                         config.LatestMediaCount = parseInt(document.getElementById('LatestMediaCount').value) || 50;
-                        config.PluginTheme = document.getElementById('PluginTheme').value || 'htv';
-                        config.AnnouncementHeading = document.getElementById('AnnouncementHeading').value || 'H-TV Announcements';
                         // Playback
                         config.AutoPauseEnabled = document.getElementById('AutoPauseEnabled').checked;
                         config.AutoResumeEnabled = document.getElementById('AutoResumeEnabled').checked;
                         config.AutoPipEnabled = document.getElementById('AutoPipEnabled').checked;
-                        // Random
                         config.RandomButtonEnabled = document.getElementById('RandomButtonEnabled').checked;
                         config.RandomIncludeMovies = document.getElementById('RandomIncludeMovies').checked;
                         config.RandomIncludeShows = document.getElementById('RandomIncludeShows').checked;
@@ -640,7 +702,6 @@
                         config.JellyseerrExcludeLibraryItems = document.getElementById('JellyseerrExcludeLibraryItems').checked;
                         config.JellyseerrExcludeBlocklistedItems = document.getElementById('JellyseerrExcludeBlocklistedItems').checked;
                         config.JellyseerrUseMoreInfoModal = document.getElementById('JellyseerrUseMoreInfoModal').checked;
-                        // Discovery
                         config.JellyseerrShowSimilar = document.getElementById('JellyseerrShowSimilar').checked;
                         config.JellyseerrShowRecommended = document.getElementById('JellyseerrShowRecommended').checked;
                         config.JellyseerrShowNetworkDiscovery = document.getElementById('JellyseerrShowNetworkDiscovery').checked;
@@ -648,15 +709,24 @@
                         config.JellyseerrShowTagDiscovery = document.getElementById('JellyseerrShowTagDiscovery').checked;
                         config.JellyseerrShowPersonDiscovery = document.getElementById('JellyseerrShowPersonDiscovery').checked;
                         config.JellyseerrShowCollectionDiscovery = document.getElementById('JellyseerrShowCollectionDiscovery').checked;
-                        // Watchlist
                         config.AddRequestedMediaToWatchlist = document.getElementById('AddRequestedMediaToWatchlist').checked;
                         config.SyncJellyseerrWatchlist = document.getElementById('SyncJellyseerrWatchlist').checked;
                         config.PreventWatchlistReAddition = document.getElementById('PreventWatchlistReAddition').checked;
                         config.WatchlistMemoryRetentionDays = parseInt(document.getElementById('WatchlistMemoryRetentionDays').value) || 365;
-                        // Performance
                         config.JellyseerrDisableCache = document.getElementById('JellyseerrDisableCache').checked;
                         config.JellyseerrResponseCacheTtlMinutes = parseInt(document.getElementById('JellyseerrResponseCacheTtlMinutes').value) || 10;
                         config.JellyseerrUserIdCacheTtlMinutes = parseInt(document.getElementById('JellyseerrUserIdCacheTtlMinutes').value) || 30;
+                        // *arr
+                        config.SonarrUrl = document.getElementById('SonarrUrl').value;
+                        config.SonarrApiKey = document.getElementById('SonarrApiKey').value;
+                        config.RadarrUrl = document.getElementById('RadarrUrl').value;
+                        config.RadarrApiKey = document.getElementById('RadarrApiKey').value;
+                        config.BazarrUrl = document.getElementById('BazarrUrl').value;
+                        config.ArrLinksEnabled = document.getElementById('ArrLinksEnabled').checked;
+                        config.ArrTagsShowAsLinks = document.getElementById('ArrTagsShowAsLinks').checked;
+                        config.ArrTagsPrefix = document.getElementById('ArrTagsPrefix').value || 'arr:';
+                        config.ArrDownloadsEnabled = document.getElementById('ArrDownloadsEnabled').checked;
+                        config.ArrDownloadsShowRequests = document.getElementById('ArrDownloadsShowRequests').checked;
                         // Branding
                         config.EnableCustomBranding = document.getElementById('EnableCustomBranding').checked;
 
@@ -672,9 +742,8 @@
                     return false;
                 }
 
-                // Test buttons
+                // ── Test buttons ──────────────────────────────────────────────
                 function getAuthHeader() {
-                    // Build proper Jellyfin auth header using accessToken (getAuthorizationHeader does not exist in 10.x)
                     var token = ApiClient.accessToken ? ApiClient.accessToken() : '';
                     return 'MediaBrowser Client="Jellyfin Web", Device="Dashboard", DeviceId="LatestMediaCfg", Version="1.0.0", Token="' + token + '"';
                 }
@@ -687,7 +756,6 @@
                         result.textContent = 'Testing...';
                         result.style.color = 'rgba(255,255,255,0.5)';
                         btn.disabled = true;
-                        // Save first so the server has the latest key
                         ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                             if (btnId === 'btnTestSeerr') {
                                 config.JellyseerrApiKey = document.getElementById('JellyseerrApiKey').value;
@@ -700,26 +768,14 @@
                             var authHdr = getAuthHeader();
                             return fetch(url, {
                                 method: 'POST',
-                                headers: {
-                                    'Authorization': authHdr,
-                                    'X-Emby-Authorization': authHdr
-                                }
+                                headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr }
                             });
                         }).then(function (r) {
-                            // Safe JSON parse — prevent "Unexpected end of JSON input" errors
                             return r.text().then(function (text) {
-                                if (!text || !text.trim()) {
-                                    // Empty body (likely 401/403) — treat as failure
-                                    return { success: false, statusCode: r.status };
-                                }
-                                try {
-                                    return JSON.parse(text);
-                                } catch (e) {
-                                    return { success: false, error: 'Invalid server response: ' + text.substring(0, 100) };
-                                }
+                                if (!text || !text.trim()) return { success: false, statusCode: r.status };
+                                try { return JSON.parse(text); } catch (e) { return { success: false, error: 'Invalid response: ' + text.substring(0, 100) }; }
                             });
-                        })
-                        .then(function (data) {
+                        }).then(function (data) {
                             if (data.success) {
                                 result.textContent = 'Connected successfully';
                                 result.style.color = '#00b35a';
@@ -730,9 +786,7 @@
                         }).catch(function (err) {
                             result.textContent = 'Error: ' + err.message;
                             result.style.color = '#ef5350';
-                        }).finally(function () {
-                            btn.disabled = false;
-                        });
+                        }).finally(function () { btn.disabled = false; });
                     });
                 }
 
@@ -742,7 +796,6 @@
                 // Init on page show
                 document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
                     loadConfig();
-                    // Load branding.js
                     if (!document.getElementById('lm-branding-script')) {
                         var s = document.createElement('script');
                         s.id = 'lm-branding-script';
@@ -751,7 +804,6 @@
                     }
                 });
                 document.getElementById('LatestMediaConfigForm').addEventListener('submit', saveConfig);
-
             })();
         </script>
     </div>

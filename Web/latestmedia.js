@@ -2168,6 +2168,11 @@ async function tryInject(){
         loadModule('apply-branding.js');
       }
       // Note: branding.js (upload UI) is loaded by configPage.html only (admin settings page)
+
+      // Feature 5: *arr Integration (Quick Links, Tag Links, Active Downloads)
+      if (cfg.ArrLinksEnabled || cfg.ArrTagsShowAsLinks || cfg.ArrDownloadsEnabled) {
+        loadModule('arr-integration.js');
+      }
     })();
 
     const tId = cfg.PluginTheme || 'htv';
