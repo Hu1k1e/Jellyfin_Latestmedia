@@ -75,9 +75,7 @@
             /* Search page structural overrides */
             '#searchPage .padded-top.padded-bottom-page { display: flex; flex-direction: column; }',
             /* Search section wrapper — matches Jellyfin's .verticalSection */
-            '#lm-seerr-search-section.lm-seerr-section { padding: 0 0 24px; order: 9999; }',
-            '#lm-seerr-search-section .lm-seerr-heading { font-size:1.1em; font-weight:600; padding: 4px 24px 12px; }',
-            '#lm-seerr-search-section .itemsContainer { padding: 0 16px; display: flex; flex-wrap: wrap; gap: 4px; }',
+            '#lm-seerr-search-section { order: 9999; }',
             /* Detail page scroll sections */
             '.lm-seerr-detail-section { padding-bottom: 16px; }',
             '.lm-seerr-detail-section .lm-seerr-heading { font-size:1.1em; font-weight:600; padding: 16px 24px 8px; }',
@@ -263,16 +261,15 @@
 
                 var section = document.createElement('div');
                 section.id = 'lm-seerr-search-section';
-                section.className = 'lm-seerr-section verticalSection';
+                section.className = 'verticalSection lm-seerr-section';
 
                 var h2 = document.createElement('h2');
-                h2.className = 'sectionTitle lm-seerr-heading';
-                h2.textContent = 'Request'; // was "Request via Jellyseerr"
+                h2.className = 'sectionTitle sectionTitle-cards padded-left';
+                h2.textContent = 'Request';
                 section.appendChild(h2);
 
                 var container = document.createElement('div');
-                container.className = 'itemsContainer vertical-wrap';
-                container.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;';
+                container.className = 'itemsContainer vertical-wrap padded-left padded-right';
 
                 results.slice(0, 20).forEach(function (item) {
                     container.appendChild(buildSeerrCard(item));
@@ -343,9 +340,13 @@
         }
     }
 
+    var _searchInitDebounce = null;
     function initSearchObserver() {
         if (_searchObserver) return;
-        _searchObserver = new MutationObserver(function () { tryAttachSearchListener(); });
+        _searchObserver = new MutationObserver(function () { 
+            clearTimeout(_searchInitDebounce);
+            _searchInitDebounce = setTimeout(tryAttachSearchListener, 300);
+        });
         _searchObserver.observe(document.body, { childList: true, subtree: true });
         tryAttachSearchListener();
     }

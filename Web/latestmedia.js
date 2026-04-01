@@ -2290,24 +2290,28 @@ function tryInjectPlayerChat(){
   // Polling is now managed by the video lifecycle observer
 }
 
+let _mainObsTimeout = null;
 const obs=new MutationObserver(()=>{
-  if(!document.getElementById('lm-btn-latest'))S.ok=false;
-  tryInject();
-  tryInjectPlayerChat();
-  // Notify feature modules registered with the shared observer
-  if(window.__latestMediaObserver) window.__latestMediaObserver._notify();
+  clearTimeout(_mainObsTimeout);
+  _mainObsTimeout = setTimeout(()=>{
+    if(!document.getElementById('lm-btn-latest'))S.ok=false;
+    tryInject();
+    tryInjectPlayerChat();
+    // Notify feature modules registered with the shared observer
+    if(window.__latestMediaObserver) window.__latestMediaObserver._notify();
 
-  // Video lifecycle: inject/destroy toast container based on <video> presence
-  const videoEl = document.querySelector('video');
-  if (videoEl && !window._lmVideoActive) {
-    window._lmVideoActive = true;
-    injectToastContainer();
-    startNotificationPolling();
-  }
-  if (!videoEl && window._lmVideoActive) {
-    window._lmVideoActive = false;
-    destroyToastContainer();
-  }
+    // Video lifecycle: inject/destroy toast container based on <video> presence
+    const videoEl = document.querySelector('video');
+    if (videoEl && !window._lmVideoActive) {
+      window._lmVideoActive = true;
+      injectToastContainer();
+      startNotificationPolling();
+    }
+    if (!videoEl && window._lmVideoActive) {
+      window._lmVideoActive = false;
+      destroyToastContainer();
+    }
+  }, 150);
 });
 obs.observe(document.body,{childList:true,subtree:true});
 setInterval(()=>{

@@ -2264,18 +2264,22 @@
 
     // Watch document.body for any sidebar appear/rebuild events
     // (querySelector with multi-selector is unreliable for observe targets)
+    let _observerTimeout = null;
     const observer = new MutationObserver(() => {
-      if (!document.querySelector('.je-nav-downloads-item')) {
-        // Check if sidebar is now available
-        const sb = document.querySelector('.mainDrawer-scrollContainer') ||
-                    document.querySelector('.navDrawer .scrollSlider') ||
-                    document.querySelector('.navDrawer .scrollContainer') ||
-                    document.querySelector('.navDrawer');
-        if (sb) {
-          console.log(`${logPrefix} Sidebar appeared/rebuilt — re-injecting navigation`);
-          injectNavigation();
-        }
-      }
+      clearTimeout(_observerTimeout);
+      _observerTimeout = setTimeout(() => {
+          if (!document.querySelector('.je-nav-downloads-item')) {
+            // Check if sidebar is now available
+            const sb = document.querySelector('.mainDrawer-scrollContainer') ||
+                        document.querySelector('.navDrawer .scrollSlider') ||
+                        document.querySelector('.navDrawer .scrollContainer') ||
+                        document.querySelector('.navDrawer');
+            if (sb) {
+              console.log(`${logPrefix} Sidebar appeared/rebuilt — re-injecting navigation`);
+              injectNavigation();
+            }
+          }
+      }, 500);
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
