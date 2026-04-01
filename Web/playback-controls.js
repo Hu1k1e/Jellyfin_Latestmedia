@@ -69,36 +69,36 @@
 
         if (document.hidden) {
             // ── Tab is now hidden ──
-
-            // Auto Pause FIRST (this matches JE's logic exactly)
-            if (cfg.AutoPauseEnabled && !video.paused) {
+            
+            if (cfg.AutoPipEnabled && document.pictureInPictureEnabled && !document.pictureInPictureElement) {
+                // If PiP is enabled, request it FIRST so the browser allows it (video must be actively playing).
+                video.requestPictureInPicture().catch(function (err) {
+                    console.debug('[LatestMedia] PIP request blocked:', err.name, err.message);
+                    // Fallback to auto-pause if PiP fails
+                    if (cfg.AutoPauseEnabled && !video.paused) {
+                        video.pause();
+                        video.dataset[DATA_KEY] = 'true';
+                    }
+                });
+            } else if (cfg.AutoPauseEnabled && !video.paused) {
+                // If PiP is disabled (or already in PiP), and auto-pause is enabled, pause the video.
                 video.pause();
                 video.dataset[DATA_KEY] = 'true';
             }
 
-            // Auto PIP AFTER pause (synchronous call after pause matches JE's expected browser state handling)
-            if (cfg.AutoPipEnabled &&
-                document.pictureInPictureEnabled &&
-                !document.pictureInPictureElement) {
-
-                video.requestPictureInPicture().catch(function (err) {
-                    console.debug('[LatestMedia] PIP request blocked:', err.name, err.message);
-                });
-            }
-
         } else {
             // ── Tab is visible again ──
+
+            // Exit PIP when tab becomes visible again
+            if (document.pictureInPictureElement) {
+                document.exitPictureInPicture().catch(function () {});
+            }
 
             // Auto Resume
             if (cfg.AutoResumeEnabled && video.paused && video.dataset[DATA_KEY] === 'true') {
                 video.play().catch(function () {});
             }
             delete video.dataset[DATA_KEY];
-
-            // Exit PIP when tab becomes visible again
-            if (document.pictureInPictureElement) {
-                document.exitPictureInPicture().catch(function () {});
-            }
         }
     }
 
