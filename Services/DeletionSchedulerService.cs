@@ -117,7 +117,7 @@ namespace Jellyfin_Latestmedia.Services
         /// <summary>
         /// Deletes a movie from Radarr using its TMDB ID so it won't be re-imported.
         /// </summary>
-        private async Task DeleteFromRadarr(string name, System.Collections.IDictionary<string, string> providerIds)
+        private async Task DeleteFromRadarr(string name, IReadOnlyDictionary<string, string> providerIds)
         {
             try
             {
@@ -170,7 +170,7 @@ namespace Jellyfin_Latestmedia.Services
         /// <summary>
         /// Deletes a series from Sonarr using its TVDB ID so it won't be re-imported.
         /// </summary>
-        private async Task DeleteFromSonarr(string name, System.Collections.IDictionary<string, string> providerIds)
+        private async Task DeleteFromSonarr(string name, IReadOnlyDictionary<string, string> providerIds)
         {
             try
             {
