@@ -3,7 +3,13 @@
 (function () {
   "use strict";
 
-  const JE = window.JellyfinEnhanced;
+  const JE = window.JellyfinEnhanced || {
+    themer: { getThemeVariables: () => ({ primaryAccent: '#00a4dc' }) },
+    escapeHtml: (unsafe) => (unsafe||'').toString().replace(/[&<"'>]/g, function (m) {
+      switch (m) { case '&': return '&amp;'; case '<': return '&lt;'; case '>': return '&gt;'; case '"': return '&quot;'; default: return '&#039;'; }
+    }),
+    helpers: { onNavigate: null }
+  };
   const sidebar = document.querySelector('.mainDrawer-scrollContainer');
   const pluginPagesExists = !!sidebar?.querySelector(
     'a[is="emby-linkbutton"][data-itemid="Jellyfin.Plugin.JellyfinEnhanced.DownloadsPage"]',
@@ -741,7 +747,7 @@
   async function fetchDownloads() {
     try {
       const response = await fetch(
-        ApiClient.getUrl("/JellyfinEnhanced/arr/queue"),
+        ApiClient.getUrl("/Arr/Queue"),
         { headers: getAuthHeaders() },
       );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -763,7 +769,7 @@
       const skip = (state.requestsPage - 1) * 20;
       const filter = state.requestsFilter !== "all" ? state.requestsFilter : "";
 
-      const url = ApiClient.getUrl("/JellyfinEnhanced/arr/requests", {
+      const url = ApiClient.getUrl("/Arr/Requests", {
         take: 20,
         skip: skip,
         filter: filter,
@@ -2372,7 +2378,7 @@
     const url = e?.newURL ? new URL(e.newURL) : window.location;
     const hash = url.hash;
     const path = url.pathname;
-    const matches = hash === "#/downloads" || path === "/downloads";
+    const matches = hash === "#/lm-arr-downloads" || path === "/lm-arr-downloads" || hash.includes("!/lm-arr-downloads");
     if (matches) {
       if (e?.stopImmediatePropagation) e.stopImmediatePropagation();
       if (e?.preventDefault) e.preventDefault();
@@ -2423,6 +2429,16 @@
     startPolling();
   }
 
+  function handleNavigation() {
+    const hash = window.location.hash;
+    const path = window.location.pathname;
+    if (hash === "#/lm-arr-downloads" || path === "/lm-arr-downloads" || hash.includes("!/lm-arr-downloads")) {
+      showPage();
+    } else {
+      hidePage();
+    }
+  }
+
   // Export to JE namespace
   JE.downloadsPage = {
     initialize,
@@ -2445,4 +2461,7 @@
   };
 
   JE.initializeDownloadsPage = initialize;
+  
+  // Auto-init for LatestMedia plugin
+  setTimeout(initialize, 500);
 })();

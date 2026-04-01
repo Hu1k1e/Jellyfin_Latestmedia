@@ -202,6 +202,31 @@ namespace Jellyfin_Latestmedia.Api
             return Ok();
         }
 
+        [HttpGet("Read")]
+        public async Task<ActionResult<object>> GetPublicRead()
+        {
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            var path = $"chat_pub_read_{userId:N}";
+            var readState = await _repository.ReadItemAsync<dynamic>(path).ConfigureAwait(false);
+            
+            var date = string.Empty;
+            if (readState != null)
+            {
+                try { date = (string)readState.date; } 
+                catch { try { date = ((System.Text.Json.JsonElement)readState).GetProperty("date").GetString(); } catch {} }
+            }
+            return Ok(new { date = date ?? string.Empty });
+        }
+
+        [HttpPost("Read")]
+        public async Task<ActionResult> SetPublicRead()
+        {
+            var userId = await GetUserIdAsync().ConfigureAwait(false);
+            var path = $"chat_pub_read_{userId:N}";
+            await _repository.WriteItemAsync(path, new { date = DateTime.UtcNow.ToString("O") }).ConfigureAwait(false);
+            return Ok();
+        }
+
         // --- BROADCAST ---
 
         [HttpPost("Broadcast")]

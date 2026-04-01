@@ -163,6 +163,7 @@
         'img.imgLogoHeader',
         'img.headerLogo',
         '.headerLogoImage',
+        '.logonHeader-logo',
         '.splash img',
         '.splashLogo',
         '.loginDisclaimer img',

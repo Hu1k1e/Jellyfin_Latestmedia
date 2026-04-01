@@ -313,14 +313,14 @@
                                 <select id="JellyseerrDefaultSonarrProfileId" is="emby-select" class="emby-select-withcolor">
                                     <option value="">Use Server Default</option>
                                 </select>
-                                <div class="fieldDescription">Select a globally enforced Sonarr Quality profile for TV Requests.</div>
+                                <div class="fieldDescription">This will be the default selected profile when someone requests a show. It does not force the profile.</div>
                             </div>
                             <div class="inputContainer" style="margin-top: 10px;">
                                 <label class="inputLabel inputLabelUnfocused" for="JellyseerrDefaultRadarrProfileId">Default Radarr Quality Profile</label>
                                 <select id="JellyseerrDefaultRadarrProfileId" is="emby-select" class="emby-select-withcolor">
                                     <option value="">Use Server Default</option>
                                 </select>
-                                <div class="fieldDescription">Select a globally enforced Radarr Quality profile for Movie Requests.</div>
+                                <div class="fieldDescription">This will be the default selected profile when someone requests a movie. It does not force the profile.</div>
                             </div>
                         </div>
 
@@ -897,22 +897,32 @@
                             .then(function(profiles) {
                                 var currentVal = sonarrSel.value;
                                 sonarrSel.innerHTML = '<option value="">Use Server Default</option>';
-                                if(profiles && profiles.length) {
-                                    profiles.forEach(function(p) { sonarrSel.appendChild(new Option(p.name, p.id)); });
-                                    sonarrSel.value = currentVal || '';
+                                if(profiles && Array.isArray(profiles)) {
+                                    profiles.forEach(function(p) {
+                                        if (p && p.name && p.id !== undefined) {
+                                            sonarrSel.appendChild(new Option(p.name, p.id));
+                                        }
+                                    });
                                 }
-                            }).catch(function() {});
+                                sonarrSel.value = currentVal || '';
+                                sonarrSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }).catch(function(e) { console.error('Sonarr Profile Fetch:', e); });
                             
                         fetch(window.ApiClient.getUrl('Arr/RadarrProfiles'), { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
                             .then(function(r) { return r.ok ? r.json() : []; })
                             .then(function(profiles) {
                                 var currentVal = radarrSel.value;
                                 radarrSel.innerHTML = '<option value="">Use Server Default</option>';
-                                if(profiles && profiles.length) {
-                                    profiles.forEach(function(p) { radarrSel.appendChild(new Option(p.name, p.id)); });
-                                    radarrSel.value = currentVal || '';
+                                if(profiles && Array.isArray(profiles)) {
+                                    profiles.forEach(function(p) {
+                                        if (p && p.name && p.id !== undefined) {
+                                            radarrSel.appendChild(new Option(p.name, p.id));
+                                        }
+                                    });
                                 }
-                            }).catch(function() {});
+                                radarrSel.value = currentVal || '';
+                                radarrSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }).catch(function(e) { console.error('Radarr Profile Fetch:', e); });
                     });
                     if (!document.getElementById('lm-branding-script')) {
                         var s = document.createElement('script');
