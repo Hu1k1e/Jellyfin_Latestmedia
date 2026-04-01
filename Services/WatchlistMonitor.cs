@@ -108,9 +108,9 @@ namespace Jellyfin_Latestmedia.Services
                             if (user != null)
                             {
                                 var userData = _userDataManager.GetUserData(user, item);
-                                if (userData != null && userData.Likes != true)
+                                if (userData != null && !userData.IsFavorite)
                                 {
-                                    userData.Likes = true;
+                                    userData.IsFavorite = true;
                                     _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.UpdateUserRating, default);
                                     addedCount++;
                                     _logger.LogInformation("[WatchlistMonitor] Added {Title} to watchlist for {User}", item.Name, user.Username);

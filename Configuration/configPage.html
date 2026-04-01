@@ -888,39 +888,38 @@
                 // Init on page show
                 document.querySelector('.pluginConfigurationPage').addEventListener('viewshow', function () {
                     loadConfig().then(function() {
-                        var authHdr = getAuthHeader();
+                    var authHdr = getAuthHeader();
                         var sonarrSel = document.getElementById('JellyseerrDefaultSonarrProfileId');
                         var radarrSel = document.getElementById('JellyseerrDefaultRadarrProfileId');
-                        
-                        window.ApiClient.getJSON(window.ApiClient.getUrl('Arr/SonarrProfiles'))
-                            .then(function(profiles) {
-                                var currentVal = sonarrSel.value;
-                                sonarrSel.innerHTML = '<option value="">Use Server Default</option>';
-                                if(profiles && Array.isArray(profiles)) {
-                                    profiles.forEach(function(p) {
-                                        if (p && p.name && p.id !== undefined) {
-                                            sonarrSel.appendChild(new Option(p.name, p.id));
-                                        }
-                                    });
-                                }
-                                sonarrSel.value = currentVal || '';
-                                sonarrSel.dispatchEvent(new Event('change', { bubbles: true }));
-                            }).catch(function(e) { console.error('Sonarr Profile Fetch:', e); });
-                            
-                        window.ApiClient.getJSON(window.ApiClient.getUrl('Arr/RadarrProfiles'))
-                            .then(function(profiles) {
-                                var currentVal = radarrSel.value;
-                                radarrSel.innerHTML = '<option value="">Use Server Default</option>';
-                                if(profiles && Array.isArray(profiles)) {
-                                    profiles.forEach(function(p) {
-                                        if (p && p.name && p.id !== undefined) {
-                                            radarrSel.appendChild(new Option(p.name, p.id));
-                                        }
-                                    });
-                                }
-                                radarrSel.value = currentVal || '';
-                                radarrSel.dispatchEvent(new Event('change', { bubbles: true }));
-                            }).catch(function(e) { console.error('Radarr Profile Fetch:', e); });
+
+                        function populateProfileSelect(sel, url) {
+                            if (!sel) return;
+                            fetch(url, { method: 'GET', headers: { 'Authorization': authHdr, 'X-Emby-Authorization': authHdr } })
+                                .then(function(r) {
+                                    if (!r.ok) { console.warn('[LM] Profile fetch returned HTTP ' + r.status + ' for ' + url); return []; }
+                                    return r.json();
+                                })
+                                .then(function(profiles) {
+                                    var currentVal = sel.value;
+                                    // Wipe and reset so we never accumulate duplicates
+                                    while (sel.options.length > 1) sel.remove(1);
+                                    if (Array.isArray(profiles)) {
+                                        profiles.forEach(function(p) {
+                                            if (p && p.name && (p.id !== undefined && p.id !== null)) {
+                                                var opt = document.createElement('option');
+                                                opt.value = String(p.id);
+                                                opt.textContent = p.name;
+                                                sel.appendChild(opt);
+                                            }
+                                        });
+                                    }
+                                    sel.value = currentVal || '';
+                                })
+                                .catch(function(e) { console.error('[LM] Profile fetch error:', e); });
+                        }
+
+                        populateProfileSelect(sonarrSel, window.ApiClient.getUrl('Arr/SonarrProfiles'));
+                        populateProfileSelect(radarrSel, window.ApiClient.getUrl('Arr/RadarrProfiles'));
                     });
                     if (!document.getElementById('lm-branding-script')) {
                         var s = document.createElement('script');

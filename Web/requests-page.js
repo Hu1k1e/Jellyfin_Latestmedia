@@ -2211,28 +2211,37 @@
       return;
     }
 
-    const sidebarSection = document.querySelector('.navDrawer .scrollSlider');
+    const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer');
 
-    if (sidebarSection) {
+    if (sidebarContainer) {
+      // Find or create our plugin section
+      let pluginSection = sidebarContainer.querySelector('.lm-downloads-section');
+      if (!pluginSection) {
+        pluginSection = document.createElement('div');
+        pluginSection.className = 'lm-downloads-section';
+        pluginSection.style.cssText = 'padding: 0;';
+        sidebarContainer.appendChild(pluginSection);
+      }
       const navItem = document.createElement("a");
       navItem.setAttribute('is', 'emby-linkbutton');
       navItem.className =
-        "navMenuOption lnkMediaFolder emby-button je-nav-downloads-item";
+        "navMenuOption emby-button je-nav-downloads-item";
       navItem.href = "#";
-      const labelRequests = (JE.t && JE.t('requests_requests')) || 'Requests';
+      const labelRequests = 'Active Downloads';
       navItem.innerHTML = `
         <span class="navMenuOptionIcon material-icons">download</span>
-        <span class="sectionName navMenuOptionText">${labelRequests}</span>
+        <span class="navMenuOptionText">${labelRequests}</span>
       `;
       navItem.addEventListener("click", (e) => {
         e.preventDefault();
+        e.stopPropagation();
         showPage();
       });
 
-      sidebarSection.appendChild(navItem);
-      console.log(`${logPrefix} Navigation item injected under scrollSlider`);
+      pluginSection.appendChild(navItem);
+      console.log(`${logPrefix} Navigation item injected under mainDrawer-scrollContainer`);
     } else {
-      console.log(`${logPrefix} sidebarSection not found, will wait for it`);
+      console.log(`${logPrefix} mainDrawer-scrollContainer not found, will retry`);
     }
   }
 
@@ -2253,16 +2262,16 @@
       if (pluginPagesExists && currentConfig.DownloadsUsePluginPages) return;
 
       if (!document.querySelector('.je-nav-downloads-item')) {
-        const sidebarSection = document.querySelector('.navDrawer .scrollSlider');
-        if (sidebarSection) {
+        const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer');
+        if (sidebarContainer) {
           console.log(`${logPrefix} Sidebar rebuilt, re-injecting navigation`);
           injectNavigation();
         }
       }
     });
 
-    // Observe the main drawer
-    const navDrawer = document.querySelector('.mainDrawer, .navDrawer, body');
+    // Observe the main drawer scroll container
+    const navDrawer = document.querySelector('.mainDrawer-scrollContainer, .mainDrawer, body');
     if (navDrawer) {
       observer.observe(navDrawer, { childList: true, subtree: true });
     }
@@ -2290,19 +2299,15 @@
   function initialize() {
     console.log(`${logPrefix} Initializing downloads page module`);
 
+    // Use our plugin config first, fall back to JE config
+    const lmCfg = window.__latestMediaConfig || {};
     const config = JE.pluginConfig || {};
-    if (!config.DownloadsPageEnabled) {
+    if (!lmCfg.ArrDownloadsEnabled && !config.DownloadsPageEnabled) {
       console.log(`${logPrefix} Downloads page is disabled`);
       return;
     }
 
     injectStyles();
-
-    const usingPluginPages = pluginPagesExists && config.DownloadsUsePluginPages;
-    if (usingPluginPages) {
-      console.log(`${logPrefix} Downloads page is injected via Plugin Pages`);
-      return;
-    }
 
     // Page-specific setup for custom tabs or dedicated page mode
     createPageContainer();
@@ -2471,8 +2476,8 @@
     injectStyles
   };
 
+  // Export to window for LatestMedia plugin and to JE namespace for compatibility
   JE.initializeDownloadsPage = initialize;
-  
-  // Auto-init for LatestMedia plugin
-  setTimeout(initialize, 500);
+  // Expose globally so latestmedia.js bootloader can call it after script loads
+  window.lmInitDownloadsPage = initialize;
 })();
