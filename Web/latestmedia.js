@@ -2148,7 +2148,8 @@ async function tryInject(){
       }
 
       // Feature 1: Auto PIP / Pause / Resume
-      if (cfg.AutoPauseEnabled !== false || cfg.AutoResumeEnabled || cfg.AutoPipEnabled) {
+      // Load if ANY of the 3 features is explicitly enabled
+      if (cfg.AutoPauseEnabled || cfg.AutoResumeEnabled || cfg.AutoPipEnabled) {
         loadModule('playback-controls.js');
       }
 
@@ -2162,7 +2163,11 @@ async function tryInject(){
         loadModule('seerr-integration.js');
       }
 
-      // Feature 4: branding.js is loaded by configPage.html only (admin settings page)
+      // Feature 4: Custom Branding (apply to Jellyfin UI pages)
+      if (cfg.EnableCustomBranding) {
+        loadModule('apply-branding.js');
+      }
+      // Note: branding.js (upload UI) is loaded by configPage.html only (admin settings page)
     })();
 
     const tId = cfg.PluginTheme || 'htv';

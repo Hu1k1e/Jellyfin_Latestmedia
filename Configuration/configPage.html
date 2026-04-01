@@ -673,6 +673,12 @@
                 }
 
                 // Test buttons
+                function getAuthHeader() {
+                    // Build proper Jellyfin auth header using accessToken (getAuthorizationHeader does not exist in 10.x)
+                    var token = ApiClient.accessToken ? ApiClient.accessToken() : '';
+                    return 'MediaBrowser Client="Jellyfin Web", Device="Dashboard", DeviceId="LatestMediaCfg", Version="1.0.0", Token="' + token + '"';
+                }
+
                 function makeTestBtn(btnId, resultId, url) {
                     var btn = document.getElementById(btnId);
                     var result = document.getElementById(resultId);
@@ -691,20 +697,34 @@
                             }
                             return ApiClient.updatePluginConfiguration(pluginId, config);
                         }).then(function () {
+                            var authHdr = getAuthHeader();
                             return fetch(url, {
                                 method: 'POST',
                                 headers: {
-                                    'Authorization': ApiClient.getAuthorizationHeader ? ApiClient.getAuthorizationHeader() : '',
-                                    'X-Emby-Authorization': ApiClient.getAuthorizationHeader ? ApiClient.getAuthorizationHeader() : ''
+                                    'Authorization': authHdr,
+                                    'X-Emby-Authorization': authHdr
                                 }
                             });
-                        }).then(function (r) { return r.json(); })
+                        }).then(function (r) {
+                            // Safe JSON parse — prevent "Unexpected end of JSON input" errors
+                            return r.text().then(function (text) {
+                                if (!text || !text.trim()) {
+                                    // Empty body (likely 401/403) — treat as failure
+                                    return { success: false, statusCode: r.status };
+                                }
+                                try {
+                                    return JSON.parse(text);
+                                } catch (e) {
+                                    return { success: false, error: 'Invalid server response: ' + text.substring(0, 100) };
+                                }
+                            });
+                        })
                         .then(function (data) {
                             if (data.success) {
                                 result.textContent = 'Connected successfully';
                                 result.style.color = '#00b35a';
                             } else {
-                                result.textContent = 'Connection failed (HTTP ' + (data.statusCode || '?') + ')';
+                                result.textContent = 'Connection failed' + (data.statusCode ? ' (HTTP ' + data.statusCode + ')' : '') + (data.error ? ': ' + data.error : '');
                                 result.style.color = '#ef5350';
                             }
                         }).catch(function (err) {
