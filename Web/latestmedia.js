@@ -782,7 +782,13 @@ function refreshOnline(){
 function refreshBadge(){
   Promise.all([
     api('Chat/DM/Conversations').catch(()=>[]),
-    api(`Chat/Messages?since=${encodeURIComponent(getPubRead())}`).catch(()=>[])
+    api('Chat/Read').catch(()=>({date:''})).then(r => {
+      const lastRead = (r && r.date) ? r.date : new Date(0).toISOString();
+      if (!localStorage.getItem('lm_last_pub_read') || lastRead > localStorage.getItem('lm_last_pub_read')) {
+        localStorage.setItem('lm_last_pub_read', lastRead);
+      }
+      return api(`Chat/Messages?since=${encodeURIComponent(localStorage.getItem('lm_last_pub_read'))}`).catch(()=>[]);
+    })
   ]).then(([cs, pub]) => {
     const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
     const pubUnread = (pub||[]).length;
@@ -1134,7 +1140,10 @@ function toggleCodePop(panel){
 }
 
 function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new Date(0).toISOString(); }
-function setPubRead() { localStorage.setItem('lm_last_pub_read', new Date().toISOString()); }
+function setPubRead() { 
+  localStorage.setItem('lm_last_pub_read', new Date().toISOString()); 
+  api('Chat/Read', {method:'POST'}).catch(()=>{});
+}
 
 async function drawBubbles(container,msgs,silent=false){
   if(!Array.isArray(msgs)||!msgs.length){

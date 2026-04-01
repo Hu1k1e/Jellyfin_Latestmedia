@@ -498,34 +498,63 @@
 
         var contentDiv = document.createElement('div');
         contentDiv.className = 'lmSeerrModalBox';
-        contentDiv.style.maxWidth = '800px';
+        contentDiv.style.maxWidth = '900px';
         contentDiv.style.display = 'flex';
         contentDiv.style.flexDirection = 'row';
-        contentDiv.style.justifyContent = 'space-between';
+        contentDiv.style.justifyContent = 'flex-start';
         contentDiv.style.alignItems = 'flex-start';
         contentDiv.style.gap = '30px';
         contentDiv.style.padding = '30px';
+        contentDiv.style.position = 'relative';
 
-        // Left Col (Text)
+        var closeBtn = document.createElement('button');
+        closeBtn.innerHTML = '✕';
+        closeBtn.style.cssText = 'position:absolute;top:15px;right:15px;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;line-height:1;margin:0;padding:5px;z-index:10;';
+        closeBtn.addEventListener('click', function() { modal.remove(); });
+        contentDiv.appendChild(closeBtn);
+
+        // Left Col (Poster)
         var leftCol = document.createElement('div');
-        leftCol.style.flex = '1';
+        leftCol.style.width = '240px';
+        leftCol.style.flexShrink = '0';
+        
+        if (pPath) {
+            var img = document.createElement('img');
+            img.src = pPath;
+            img.style.width = '100%';
+            img.style.borderRadius = '8px';
+            img.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)';
+            img.style.display = 'block';
+            leftCol.appendChild(img);
+        }
+
+        // Right Col (Text & Actors)
+        var rightCol = document.createElement('div');
+        rightCol.style.flex = '1';
+        rightCol.style.minWidth = '0';
+        rightCol.style.display = 'flex';
+        rightCol.style.flexDirection = 'column';
 
         var h3 = document.createElement('h2');
         h3.style.marginTop = '0';
-        h3.style.marginBottom = '5px';
+        h3.style.marginBottom = '10px';
+        h3.style.paddingRight = '30px'; // make room for close btn
         h3.textContent = title + (year ? ' (' + year + ')' : '');
-        leftCol.appendChild(h3);
+        rightCol.appendChild(h3);
 
         var overviewP = document.createElement('p');
         overviewP.style.lineHeight = '1.6';
         overviewP.style.color = '#ccc';
         overviewP.textContent = item.overview || 'No overview available.';
-        leftCol.appendChild(overviewP);
+        rightCol.appendChild(overviewP);
 
         var status = (item.mediaInfo && item.mediaInfo.status) || 0;
+        var btnContainer = document.createElement('div');
+        btnContainer.style.marginTop = '15px';
+        btnContainer.style.marginBottom = '15px';
+
         var reqBtn = document.createElement('button');
         reqBtn.className = 'lmSeerrModalBtn ' + ((status === 3 || status === 2) ? 'cancel' : 'primary');
-        reqBtn.style.marginTop = '10px';
         if (status === 3 || status === 2) {
             reqBtn.textContent = 'Requested';
             reqBtn.disabled = true;
@@ -537,14 +566,15 @@
                 showRequestModal(item);
             });
         }
-        leftCol.appendChild(reqBtn);
+        btnContainer.appendChild(reqBtn);
+        rightCol.appendChild(btnContainer);
 
         var actorsLabel = document.createElement('h3');
         actorsLabel.textContent = 'Cast';
-        actorsLabel.style.marginTop = '25px';
+        actorsLabel.style.marginTop = '15px';
         actorsLabel.style.marginBottom = '10px';
         actorsLabel.style.fontSize = '1em';
-        leftCol.appendChild(actorsLabel);
+        rightCol.appendChild(actorsLabel);
 
         var actorsEl = document.createElement('div');
         actorsEl.className = 'lmSeerrScroll';
@@ -554,32 +584,7 @@
         actorsEl.style.overflowX = 'auto';
         actorsEl.style.paddingBottom = '10px';
         actorsEl.innerHTML = '<span style="opacity:0.6;font-size:0.9em;">Loading cast...</span>';
-        leftCol.appendChild(actorsEl);
-        
-        // Right Col (Poster + Close Btn)
-        var rightCol = document.createElement('div');
-        rightCol.style.width = '200px';
-        rightCol.style.flexShrink = '0';
-        rightCol.style.textAlign = 'right';
-
-        var closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '✕';
-        closeBtn.style.cssText = 'background:none;border:none;color:#fff;font-size:24px;cursor:pointer;margin-bottom:15px;float:right;';
-        closeBtn.addEventListener('click', function() { modal.remove(); });
-        rightCol.appendChild(closeBtn);
-        
-        var clearDiv = document.createElement('div');
-        clearDiv.style.clear = 'both';
-        rightCol.appendChild(clearDiv);
-
-        if (pPath) {
-            var img = document.createElement('img');
-            img.src = pPath;
-            img.style.width = '100%';
-            img.style.borderRadius = '8px';
-            img.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)';
-            rightCol.appendChild(img);
-        }
+        rightCol.appendChild(actorsEl);
 
         contentDiv.appendChild(leftCol);
         contentDiv.appendChild(rightCol);
