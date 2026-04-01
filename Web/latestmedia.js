@@ -2207,6 +2207,13 @@ async function tryInject(){
       // Feature 6: Active Downloads page (requests-page.js) – load separately so it can
       // self-initialize with our config keys even without the JellyfinEnhanced namespace.
       if (cfg.ArrDownloadsEnabled) {
+        window.JE = window.JE || {};
+        window.JE.pluginConfig = window.JE.pluginConfig || {};
+        window.JE.pluginConfig.DownloadsPageEnabled = true;
+        window.JE.pluginConfig.DownloadsPagePollingEnabled = true;
+        window.JE.pluginConfig.DownloadsUsePluginPages = false;
+        window.JE.pluginConfig.DownloadsUseCustomTabs = false;
+        
         loadModule('requests-page.js');
         // Once the module registers JE.initializeDownloadsPage, call it.
         var downloadsInitPoll = setInterval(function() {
@@ -2394,9 +2401,11 @@ function processStarQueue() {
     for (var i = 0; i < items.length; i += chunkSize) {
         var chunk = items.slice(i, i + chunkSize);
         var ids = chunk.map(function(item) { return item.id; }).join(',');
-        var url = '/Items?Ids=' + ids + '&Fields=CommunityRating&UserId=' + ApiClient.getCurrentUserId();
         
-        API.fetch(url, 'GET').then(function(res) {
+        ApiClient.getItems(ApiClient.getCurrentUserId(), {
+            Ids: ids,
+            Fields: 'CommunityRating'
+        }).then(function(res) {
             if (!res || !res.Items) return;
             var ratings = {};
             res.Items.forEach(function(item) {
