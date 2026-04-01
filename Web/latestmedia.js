@@ -2115,6 +2115,56 @@ async function tryInject(){
     let cfg={};try{cfg=await api(`Plugins/${PID}/Configuration`)}catch(e){}
     S.cfg=cfg;
 
+    // ── Expose shared globals for feature modules ──
+    window.__latestMediaConfig = cfg;
+    window.__latestMediaState = S;
+
+    // ── Shared observer registration system ──
+    if (!window.__latestMediaObserver) {
+      window.__latestMediaObserver = {
+        _cbs: {},
+        register(name, cb) { this._cbs[name] = cb; },
+        unregister(name) { delete this._cbs[name]; },
+        _notify() {
+          for (const cb of Object.values(this._cbs)) {
+            try { cb(); } catch (e) { console.debug('[LM] observer cb error', e); }
+          }
+        }
+      };
+    }
+
+    // ── Feature Module Bootloader (v3.0.0.0) ──
+    // Modules are lazy-loaded only when their toggle is enabled.
+    // This prevents any JS execution for disabled features.
+    (function bootloadFeatureModules() {
+      // Resolve base URL for feature JS files (served by Jellyfin as plugin pages)
+      function loadModule(name) {
+        if (document.querySelector(`script[data-lm-module="${name}"]`)) return;
+        const s = document.createElement('script');
+        s.src = `/web/configurationpage?name=${name}`;
+        s.setAttribute('data-lm-module', name);
+        s.onerror = () => console.warn(`[LM] Failed to load module: ${name}`);
+        document.head.appendChild(s);
+      }
+
+      // Feature 1: Auto PIP / Pause / Resume
+      if (cfg.AutoPauseEnabled !== false || cfg.AutoResumeEnabled || cfg.AutoPipEnabled) {
+        loadModule('playback-controls.js');
+      }
+
+      // Feature 2: Random Button
+      if (cfg.RandomButtonEnabled !== false) {
+        loadModule('random-button.js');
+      }
+
+      // Feature 3: Seerr Integration
+      if (cfg.JellyseerrEnabled) {
+        loadModule('seerr-integration.js');
+      }
+
+      // Feature 4: branding.js is loaded by configPage.html only (admin settings page)
+    })();
+
     const tId = cfg.PluginTheme || 'htv';
     const th = THEMES[tId] || THEMES.htv;
     const root = document.documentElement.style;
@@ -2167,6 +2217,8 @@ const obs=new MutationObserver(()=>{
   if(!document.getElementById('lm-btn-latest'))S.ok=false;
   tryInject();
   tryInjectPlayerChat();
+  // Notify feature modules registered with the shared observer
+  if(window.__latestMediaObserver) window.__latestMediaObserver._notify();
 
   // Video lifecycle: inject/destroy toast container based on <video> presence
   const videoEl = document.querySelector('video');
