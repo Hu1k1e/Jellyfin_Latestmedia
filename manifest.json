@@ -12,6 +12,14 @@
         "changelog": "Release 3.4.6.0. See GitHub for details.",
         "targetAbi": "10.11.0.0",
         "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.0/jellyfin_latestmedia_v3.4.6.0.zip",
+        "checksum": "a2c660924eba529af446a47877e94445",
+        "timestamp": "2026-04-01T11:30:16Z"
+      },
+      {
+        "version": "3.4.6.0",
+        "changelog": "Release 3.4.6.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.0/jellyfin_latestmedia_v3.4.6.0.zip",
         "checksum": "3d2d99d0db0c906d72dde580202703ee",
         "timestamp": "2026-04-01T11:28:25Z"
       },
