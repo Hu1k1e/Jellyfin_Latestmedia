@@ -48,7 +48,7 @@
      */
     function getStatus() {
         if (_status) return Promise.resolve(_status);
-        return fetch('/Branding/Status', { headers: getAuthHeaders() })
+        return fetch('/Branding/Status')
             .then(function (r) {
                 if (!r.ok) throw new Error('HTTP ' + r.status);
                 return r.text().then(function (t) { return t ? JSON.parse(t) : null; });
@@ -285,19 +285,7 @@
     // ── Initial Load ──────────────────────────────────────────────────────────
 
     function init() {
-        // Wait for latestMediaState to be ready (it holds the auth token)
-        // Retry up to 5 seconds
-        var retries = 0;
-        function tryInit() {
-            var headers = getAuthHeaders();
-            if (Object.keys(headers).length === 0 && retries < 50) {
-                retries++;
-                setTimeout(tryInit, 100);
-                return;
-            }
-            getStatus().then(applyBranding);
-        }
-        tryInit();
+        getStatus().then(applyBranding);
     }
 
     if (document.readyState === 'loading') {

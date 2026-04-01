@@ -147,6 +147,10 @@
         cardScalable.className = 'cardScalable';
         cardScalable.style.contain = 'paint';
 
+        var padder = document.createElement('div');
+        padder.className = 'cardPadder cardPadder-overflowPortrait';
+        cardScalable.appendChild(padder);
+
         var imgContainer = document.createElement('div');
         imgContainer.className = 'cardImageContainer coveredImage cardContent jellyseerr-poster-image';
         imgContainer.style.backgroundImage = posterPath ? 'url("' + posterPath + '")' : 'none';
@@ -212,7 +216,16 @@
         // Footer texts
         var footerFirst = document.createElement('div');
         footerFirst.className = 'cardText cardTextCentered cardText-first';
-        footerFirst.innerHTML = '<a href="javascript:void(0)" style="cursor:default;text-decoration:none;color:inherit;"><bdi>' + title.replace(/</g, "&lt;") + '</bdi></a>';
+        var titleLink = document.createElement('a');
+        titleLink.href = '#';
+        titleLink.style.cssText = 'cursor:pointer;text-decoration:none;color:inherit;';
+        titleLink.innerHTML = '<bdi>' + title.replace(/</g, "&lt;") + '</bdi>';
+        titleLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (status !== 5) showRequestModal(item);
+        });
+        footerFirst.appendChild(titleLink);
 
         var footerSecond = document.createElement('div');
         footerSecond.className = 'cardText cardTextCentered cardText-secondary jellyseerr-meta';

@@ -138,7 +138,7 @@ namespace Jellyfin_Latestmedia.Api
         /// GET /Branding/Status — Returns which branding images exist. Requires login.
         /// </summary>
         [HttpGet("Status")]
-        [Authorize]
+        [AllowAnonymous]
         public IActionResult GetBrandingStatus()
         {
             var brandingDir = Plugin.BrandingDirectory;
