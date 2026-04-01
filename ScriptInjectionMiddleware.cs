@@ -164,7 +164,12 @@ public class ScriptInjectionMiddleware
         var headCloseIndex = injected.LastIndexOf("</head>", StringComparison.OrdinalIgnoreCase);
         if (headCloseIndex != -1 && Plugin.Instance?.Configuration?.EnableCustomBranding == true)
         {
-            var styleTag = $"<style id=\"lm-branding-instant\">#splashscreen {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .pageTitleWithLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .customBannerLight {{ background-image: url({safeBasePath}/Branding/banner-light) !important; }} .customBannerDark {{ background-image: url({safeBasePath}/Branding/banner-dark) !important; }} link[rel=\"shortcut icon\"] {{ href: {safeBasePath}/Branding/favicon !important; }}</style>";
+            // Regex strip old Jellyfin favicons to prevent browser load race conditions against new headers
+            injected = System.Text.RegularExpressions.Regex.Replace(injected, @"<link[^>]*rel=[""'][^""']*icon[^""']*[""'][^>]*>", "");
+            // Must recalculate index because we changed the length
+            headCloseIndex = injected.LastIndexOf("</head>", StringComparison.OrdinalIgnoreCase);
+
+            var styleTag = $"<link rel=\"icon\" href=\"{safeBasePath}/Branding/favicon\"><style id=\"lm-branding-instant\">#splashscreen, .splashLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .pageTitleWithLogo {{ background-image: url({safeBasePath}/Branding/icon-transparent) !important; }} .customBannerLight {{ background-image: url({safeBasePath}/Branding/banner-light) !important; }} .customBannerDark {{ background-image: url({safeBasePath}/Branding/banner-dark) !important; }}</style>";
             injected = injected.Insert(headCloseIndex, styleTag + "\n");
         }
 

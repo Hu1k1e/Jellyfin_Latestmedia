@@ -148,30 +148,30 @@ namespace Jellyfin_Latestmedia.Api
             => ProxyDelete($"api/v1/request/{requestId}");
 
         // ── Advanced Request Options (Radarr / Sonarr) ────────────────────────
-
+        
         /// <summary>GET /Seerr/Radarr — List all configured Radarr servers.</summary>
         [HttpGet("Radarr")]
         [Authorize]
         public Task<IActionResult> GetRadarrServers()
-            => ProxyGet("api/v1/radarr");
-
+            => ProxyGet("api/v1/service/radarr");
+            
         /// <summary>GET /Seerr/Radarr/{serverId} — Radarr server details (profiles + root folders).</summary>
         [HttpGet("Radarr/{serverId}")]
         [Authorize]
         public Task<IActionResult> GetRadarrServerDetails(int serverId)
-            => ProxyGet($"api/v1/radarr/{serverId}");
-
+            => ProxyGet($"api/v1/service/radarr/{serverId}");
+            
         /// <summary>GET /Seerr/Sonarr — List all configured Sonarr servers.</summary>
         [HttpGet("Sonarr")]
         [Authorize]
         public Task<IActionResult> GetSonarrServers()
-            => ProxyGet("api/v1/sonarr");
-
+            => ProxyGet("api/v1/service/sonarr");
+            
         /// <summary>GET /Seerr/Sonarr/{serverId} — Sonarr server details (profiles + root folders).</summary>
         [HttpGet("Sonarr/{serverId}")]
         [Authorize]
         public Task<IActionResult> GetSonarrServerDetails(int serverId)
-            => ProxyGet($"api/v1/sonarr/{serverId}");
+            => ProxyGet($"api/v1/service/sonarr/{serverId}");
 
         // ── User ─────────────────────────────────────────────────────────────
 

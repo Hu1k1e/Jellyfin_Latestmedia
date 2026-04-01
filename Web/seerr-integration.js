@@ -1,12 +1,9 @@
 /**
- * seerr-integration.js — v3.0.6.0
+ * seerr-integration.js — v3.0.7.0
  * Full Jellyseerr/Overseerr frontend integration.
  *
- * Changes in v3.0.6:
- *  - Added dynamic Season fetching and parsing functionality for TV Shows.
- *  - Stripped conditional gatekeeping around Advanced Settings UI rendering.
- *  - Refactored .jellyseerr-overview layout wrapper to align elements to the bottom properly and updated to the correct green branding hash.
- *  - CSS flex column sorting enforced on primary search container, ensuring requested elements are anchored.
+ * Changes in v3.0.7:
+ *  - Properly corrected the Radarr/Sonarr advanced options proxy API from `/api/v1/radarr` to `/api/v1/service/radarr`, resolving the silent JSON failure that caused options blanks.
  */
 (function () {
     'use strict';
