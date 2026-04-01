@@ -477,21 +477,20 @@
         if (!cfg.ArrDownloadsEnabled) return;
 
         var obs = new MutationObserver(function () {
-            var sidebar = document.querySelector('.mainDrawer, .navDrawer');
-            if (!sidebar || document.getElementById('lm-arr-nav-btn')) return;
+            var scrollContainer = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollContainer') || document.querySelector('.mainDrawer, .navDrawer');
+            if (!scrollContainer || document.getElementById('lm-arr-nav-btn')) return;
 
-            var jellyfinEnhancedSection = sidebar.querySelector('.jellyfinEnhancedSection');
+            var jellyfinEnhancedSection = scrollContainer.querySelector('.jellyfinEnhancedSection');
             if (!jellyfinEnhancedSection) {
                 jellyfinEnhancedSection = document.createElement('div');
                 jellyfinEnhancedSection.className = 'jellyfinEnhancedSection';
                 jellyfinEnhancedSection.innerHTML = '<h3 class="sidebarHeader">Jellyfin Enhanced</h3>';
 
-                var mediaSection = sidebar.querySelector('.libraryMenuOptions');
+                var mediaSection = scrollContainer.querySelector('.libraryMenuOptions');
                 if (mediaSection && mediaSection.parentNode) {
                     mediaSection.parentNode.insertBefore(jellyfinEnhancedSection, mediaSection);
                 } else {
-                    var container = sidebar.querySelector('.mainDrawer-scrollContainer, .scrollSlider') || sidebar;
-                    container.appendChild(jellyfinEnhancedSection);
+                    scrollContainer.appendChild(jellyfinEnhancedSection);
                 }
             }
 
