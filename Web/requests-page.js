@@ -1940,10 +1940,9 @@
     if (!page) {
       page = document.createElement("div");
       page.id = "je-downloads-page";
-      // Use Jellyfin's page classes for proper integration
+      // Use Jellyfin's page classes for proper full-page integration
       page.className = "page type-interior mainAnimatedPage hide";
-      // Data attributes for header/back button integration
-      page.setAttribute("data-title", JE.t?.("requests_requests") || "Requests");
+      page.setAttribute("data-title", "Requests");
       page.setAttribute("data-backbutton", "true");
       page.setAttribute("data-url", "#/downloads");
       page.setAttribute("data-type", "custom");
@@ -1955,11 +1954,16 @@
         </div>
       `;
 
+      // CRITICAL: must append to .mainAnimatedPages for Jellyfin's SPA to treat
+      // our page as a real page (full-page, not a floating overlay on body)
       const mainContent = document.querySelector(".mainAnimatedPages");
       if (mainContent) {
         mainContent.appendChild(page);
       } else {
+        // Fallback: append to body only if mainAnimatedPages truly doesn't exist yet
+        // This shouldn't happen since we defer initialization until DOM is ready
         document.body.appendChild(page);
+        console.warn(`${logPrefix} .mainAnimatedPages not found — page appended to body as fallback`);
       }
     }
     return page;
@@ -2310,81 +2314,97 @@
 
     injectStyles();
 
-    // Page-specific setup for custom tabs or dedicated page mode
-    createPageContainer();
+    // Defer createPageContainer until .mainAnimatedPages exists in the DOM.
+    // If we call it too early (before Jellyfin's SPA mounts its page container),
+    // the div gets appended to document.body and renders as a floating popup overlay.
+    function deferredInit() {
+      if (document.querySelector('.mainAnimatedPages')) {
+        // DOM is ready — create the page container now so it goes into the right parent
+        createPageContainer();
 
-    // Inject navigation and set up one-time re-injection on sidebar rebuild
-    injectNavigation();
-    setupNavigationWatcher();
+        // Inject navigation and set up one-time re-injection on sidebar rebuild
+        injectNavigation();
+        setupNavigationWatcher();
 
-    // Intercept router changes before Jellyfin handles them
-    window.addEventListener("hashchange", interceptNavigation, true);
-    window.addEventListener("popstate", interceptNavigation, true);
+        // Intercept router changes before Jellyfin handles them
+        window.addEventListener("hashchange", interceptNavigation, true);
+        window.addEventListener("popstate", interceptNavigation, true);
 
-    // Listen for hash changes - handles browser back/forward and direct URL changes
-    window.addEventListener("hashchange", handleNavigation);
-    window.addEventListener("popstate", handleNavigation);
+        // Listen for hash changes - handles browser back/forward and direct URL changes
+        window.addEventListener("hashchange", handleNavigation);
+        window.addEventListener("popstate", handleNavigation);
 
-    startLocationWatcher();
+        startLocationWatcher();
 
-    // Listen for Jellyfin's viewshow events - hide our page when other pages show
-    document.addEventListener("viewshow", (e) => {
-      const targetPage = e.target;
-      const urlHash = window.location.hash;
-      // #/downloads is what showPage() sets — intercept Jellyfin's 404 for it
-      const isOurHash = urlHash === "#/downloads" || urlHash.includes("!/downloads");
-      
-      // If Jellyfin's router fires pageNotFound for our hash, suppress it
-      if (isOurHash && targetPage && targetPage.classList.contains("pageNotFound")) {
-         targetPage.classList.add("hide");
-         return;
-      }
-      
-      if (
-        state.pageVisible &&
-        targetPage &&
-        targetPage.id !== "je-downloads-page"
-      ) {
-        hidePage();
-      }
-    });
+        // Listen for Jellyfin's viewshow events - hide our page when other pages show
+        document.addEventListener("viewshow", (e) => {
+          const targetPage = e.target;
+          const urlHash = window.location.hash;
+          // #/downloads is what showPage() sets — intercept Jellyfin's 404 for it
+          const isOurHash = urlHash === "#/downloads" || urlHash.includes("!/downloads");
 
-    // Listen for clicks on header navigation buttons (Home, Favorites, etc.)
-    // These buttons use Jellyfin's internal router and may not change the hash immediately
-    document.addEventListener(
-      "click",
-      (e) => {
-        if (!state.pageVisible) return;
-
-        // Handle play button clicks
-        const playBtn = e.target.closest(".je-request-watch-btn");
-        if (playBtn) {
-          e.preventDefault();
-          e.stopPropagation();
-          e.stopImmediatePropagation();
-          const mediaId = playBtn.getAttribute("data-media-id");
-          if (mediaId && window.Emby?.Page?.showItem) {
-            window.Emby.Page.showItem(mediaId);
+          // If Jellyfin's router fires pageNotFound for our hash, suppress it
+          if (isOurHash && targetPage && targetPage.classList.contains("pageNotFound")) {
+            targetPage.classList.add("hide");
+            return;
           }
-          return;
-        }
 
-        const btn = e.target.closest(
-          ".headerTabs button, .navMenuOption, .headerButton",
+          if (
+            state.pageVisible &&
+            targetPage &&
+            targetPage.id !== "je-downloads-page"
+          ) {
+            hidePage();
+          }
+        });
+
+        // Listen for clicks on header navigation buttons (Home, Favorites, etc.)
+        document.addEventListener(
+          "click",
+          (e) => {
+            if (!state.pageVisible) return;
+
+            // Handle play button clicks
+            const playBtn = e.target.closest(".je-request-watch-btn");
+            if (playBtn) {
+              e.preventDefault();
+              e.stopPropagation();
+              e.stopImmediatePropagation();
+              const mediaId = playBtn.getAttribute("data-media-id");
+              if (mediaId && window.Emby?.Page?.showItem) {
+                window.Emby.Page.showItem(mediaId);
+              }
+              return;
+            }
+
+            const btn = e.target.closest(
+              ".headerTabs button, .navMenuOption, .headerButton",
+            );
+            if (btn && !btn.classList.contains("je-nav-downloads-item")) {
+              hidePage();
+            }
+          },
+          true,
         );
-        if (btn && !btn.classList.contains("je-nav-downloads-item")) {
-          // Hide our page immediately - don't try to manage other pages
-          // Jellyfin's router will handle showing the correct page
-          hidePage();
-        }
-      },
-      true,
-    );
 
-    // Check current URL on init
-    handleNavigation();
+        // Check current URL on init — handles direct navigation to #/downloads
+        handleNavigation();
 
-    console.log(`${logPrefix} Downloads page module initialized`);
+        console.log(`${logPrefix} Downloads page module initialized`);
+      } else {
+        // .mainAnimatedPages not ready yet — wait for it
+        const obs = new MutationObserver(() => {
+          if (document.querySelector('.mainAnimatedPages')) {
+            obs.disconnect();
+            deferredInit();
+          }
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        console.log(`${logPrefix} Waiting for .mainAnimatedPages...`);
+      }
+    }
+
+    deferredInit();
   }
 
   /**

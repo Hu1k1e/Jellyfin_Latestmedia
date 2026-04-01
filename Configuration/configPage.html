@@ -2,55 +2,55 @@
 <html>
 <head>
     <title>Latest Media &amp; Management Configuration</title>
-    <style>
-        /* ── Tab Navigation ─────────────────────────────────────────── */
-        .lm-tabs { display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:24px; flex-wrap:wrap; }
-        .lm-tab-btn { padding:10px 18px; font-size:0.88em; font-weight:600; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; color:rgba(255,255,255,0.5); letter-spacing:.02em; transition:color .15s,border-color .15s; white-space:nowrap; }
-        .lm-tab-btn:hover { color:rgba(255,255,255,0.8); }
-        .lm-tab-btn.active { color:#fff; border-bottom-color:var(--lm-accent,#00b35a); }
-        .lm-tab-panel { display:none; }
-        .lm-tab-panel.active { display:block; }
-
-        /* ── Sections ───────────────────────────────────────────────── */
-        .lm-section-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:22px 0 18px; }
-        .lm-section-title { font-size:0.95em; font-weight:700; margin:0 0 14px; opacity:0.85; letter-spacing:.01em; text-transform:uppercase; font-size:0.8em; }
-        .lm-indent { padding-left:1.5em; }
-
-        /* ── Layout helpers ─────────────────────────────────────────── */
-        .lm-row { display:flex; gap:10px; align-items:flex-end; }
-        .lm-row .inputContainer { flex:1; margin-bottom:0; }
-        .lm-test-btn { height:36px; min-width:64px; flex-shrink:0; }
-        .lm-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-        @media(max-width:600px){ .lm-grid-2 { grid-template-columns:1fr; } }
-
-        /* ── Info boxes ─────────────────────────────────────────────── */
-        .lm-note { background:rgba(33,150,243,0.1); border-left:3px solid #2196f3; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
-        .lm-note-warn { background:rgba(255,152,0,0.1); border-left:3px solid #ff9800; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
-
-        /* ── Branding upload zones ───────────────────────────────────── */
-        .lm-branding-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px; }
-        @media(max-width:600px){ .lm-branding-grid { grid-template-columns:1fr; } }
-        .lm-upload-zone { display:block; }
-        .lm-upload-zone h4 { font-size:0.88em; font-weight:700; margin:0 0 4px; }
-        .lm-zone-desc { font-size:0.76em; opacity:0.6; margin-bottom:8px; }
-        .lm-upload-area { border:2px dashed rgba(255,255,255,0.2); border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); position:relative; transition:border-color .2s,background .2s; }
-        .lm-upload-area:hover,.lm-upload-area.lm-drag-over { border-color:var(--lm-accent,#00b35a); background:rgba(0,179,90,0.07); }
-        .lm-upload-area.lm-has-image { border-style:solid; border-color:rgba(255,255,255,0.25); }
-        .lm-upload-placeholder { display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; }
-        .lm-upload-placeholder .material-icons { font-size:32px; opacity:0.35; }
-        .lm-upload-placeholder .lm-up-label { font-size:0.78em; opacity:0.55; }
-        .lm-upload-placeholder .lm-up-hint { font-size:0.68em; opacity:0.4; }
-        .lm-upload-preview { display:none; flex-direction:column; align-items:center; gap:6px; }
-        .lm-upload-preview img { max-width:100%; max-height:120px; object-fit:contain; border-radius:4px; }
-        .lm-upload-dims { font-size:0.7em; opacity:0.5; }
-        .lm-upload-delete { position:absolute; top:4px; right:4px; background:rgba(239,83,80,0.75); border:none; border-radius:50%; width:24px; height:24px; display:none; align-items:center; justify-content:center; cursor:pointer; padding:0; color:#fff; }
-        .lm-upload-delete .material-icons { font-size:15px; }
-        details > summary { cursor:pointer; font-size:0.85em; opacity:0.7; margin-bottom:6px; user-select:none; }
-        details > summary:hover { opacity:1; }
-    </style>
 </head>
 <body>
     <div data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
+        <style>
+            /* ── Tab Navigation ─────────────────────────────────────────── */
+            .lm-tabs { display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:24px; flex-wrap:wrap; }
+            .lm-tab-btn { padding:10px 18px; font-size:0.88em; font-weight:600; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; color:rgba(255,255,255,0.5); letter-spacing:.02em; transition:color .15s,border-color .15s; white-space:nowrap; }
+            .lm-tab-btn:hover { color:rgba(255,255,255,0.8); }
+            .lm-tab-btn.active { color:#fff; border-bottom-color:var(--lm-accent,#00b35a); }
+            .lm-tab-panel { display:none; }
+            .lm-tab-panel.active { display:block; }
+
+            /* ── Sections ───────────────────────────────────────────────── */
+            .lm-section-divider { border:none; border-top:1px solid rgba(255,255,255,0.1); margin:22px 0 18px; }
+            .lm-section-title { font-size:0.95em; font-weight:700; margin:0 0 14px; opacity:0.85; letter-spacing:.01em; text-transform:uppercase; font-size:0.8em; }
+            .lm-indent { padding-left:1.5em; }
+
+            /* ── Layout helpers ─────────────────────────────────────────── */
+            .lm-row { display:flex; gap:10px; align-items:flex-end; }
+            .lm-row .inputContainer { flex:1; margin-bottom:0; }
+            .lm-test-btn { height:36px; min-width:64px; flex-shrink:0; }
+            .lm-grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+            @media(max-width:600px){ .lm-grid-2 { grid-template-columns:1fr; } }
+
+            /* ── Info boxes ─────────────────────────────────────────────── */
+            .lm-note { background:rgba(33,150,243,0.1); border-left:3px solid #2196f3; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
+            .lm-note-warn { background:rgba(255,152,0,0.1); border-left:3px solid #ff9800; padding:10px 14px; border-radius:0 6px 6px 0; font-size:0.82em; margin-bottom:16px; line-height:1.5; }
+
+            /* ── Branding upload zones ───────────────────────────────────── */
+            .lm-branding-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:12px; }
+            @media(max-width:600px){ .lm-branding-grid { grid-template-columns:1fr; } }
+            .lm-upload-zone { display:block; }
+            .lm-upload-zone h4 { font-size:0.88em; font-weight:700; margin:0 0 4px; }
+            .lm-zone-desc { font-size:0.76em; opacity:0.6; margin-bottom:8px; }
+            .lm-upload-area { border:2px dashed rgba(255,255,255,0.2); border-radius:8px; padding:20px 12px; text-align:center; cursor:pointer; min-height:110px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,0.2); position:relative; transition:border-color .2s,background .2s; }
+            .lm-upload-area:hover,.lm-upload-area.lm-drag-over { border-color:var(--lm-accent,#00b35a); background:rgba(0,179,90,0.07); }
+            .lm-upload-area.lm-has-image { border-style:solid; border-color:rgba(255,255,255,0.25); }
+            .lm-upload-placeholder { display:flex; flex-direction:column; align-items:center; gap:4px; pointer-events:none; }
+            .lm-upload-placeholder .material-icons { font-size:32px; opacity:0.35; }
+            .lm-upload-placeholder .lm-up-label { font-size:0.78em; opacity:0.55; }
+            .lm-upload-placeholder .lm-up-hint { font-size:0.68em; opacity:0.4; }
+            .lm-upload-preview { display:none; flex-direction:column; align-items:center; gap:6px; }
+            .lm-upload-preview img { max-width:100%; max-height:120px; object-fit:contain; border-radius:4px; }
+            .lm-upload-dims { font-size:0.7em; opacity:0.5; }
+            .lm-upload-delete { position:absolute; top:4px; right:4px; background:rgba(239,83,80,0.75); border:none; border-radius:50%; width:24px; height:24px; display:none; align-items:center; justify-content:center; cursor:pointer; padding:0; color:#fff; }
+            .lm-upload-delete .material-icons { font-size:15px; }
+            details > summary { cursor:pointer; font-size:0.85em; opacity:0.7; margin-bottom:6px; user-select:none; }
+            details > summary:hover { opacity:1; }
+        </style>
         <div data-role="content">
             <div class="content-primary">
                 <h1>Latest Media &amp; Management Settings</h1>
