@@ -10,7 +10,7 @@
     }),
     helpers: { onNavigate: null }
   };
-  const sidebar = document.querySelector('.mainDrawer-scrollContainer');
+  const sidebar = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollSlider') || document.querySelector('.navDrawer .scrollContainer');
   const pluginPagesExists = !!sidebar?.querySelector(
     'a[is="emby-linkbutton"][data-itemid="Jellyfin.Plugin.JellyfinEnhanced.DownloadsPage"]',
   );
@@ -2211,12 +2211,11 @@
       pluginPageItem.style.setProperty('display', 'none', 'important');
     }
 
-    // Check if already exists
     if (document.querySelector(".je-nav-downloads-item")) {
       return;
     }
 
-    const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer');
+    const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollSlider') || document.querySelector('.navDrawer .scrollContainer');
 
     if (sidebarContainer) {
       // Find or create our plugin section
@@ -2265,7 +2264,7 @@
       if (pluginPagesExists && currentConfig.DownloadsUsePluginPages) return;
 
       if (!document.querySelector('.je-nav-downloads-item')) {
-        const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer');
+        const sidebarContainer = document.querySelector('.mainDrawer-scrollContainer') || document.querySelector('.navDrawer .scrollSlider') || document.querySelector('.navDrawer .scrollContainer');
         if (sidebarContainer) {
           console.log(`${logPrefix} Sidebar rebuilt, re-injecting navigation`);
           injectNavigation();
@@ -2274,7 +2273,7 @@
     });
 
     // Observe the main drawer scroll container
-    const navDrawer = document.querySelector('.mainDrawer-scrollContainer, .mainDrawer, body');
+    const navDrawer = document.querySelector('.mainDrawer-scrollContainer, .navDrawer .scrollSlider, .navDrawer .scrollContainer, .mainDrawer, body');
     if (navDrawer) {
       observer.observe(navDrawer, { childList: true, subtree: true });
     }

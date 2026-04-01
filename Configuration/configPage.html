@@ -656,6 +656,7 @@
                         document.getElementById('EnableChat').checked = !!config.EnableChat;
                         document.getElementById('EnableAnnouncements').checked = !!config.EnableAnnouncements;
                         document.getElementById('ShowOnMobile').checked = !!config.ShowOnMobile;
+                        document.getElementById('ShowStarRatingOnCards').checked = !!config.ShowStarRatingOnCards;
                         document.getElementById('PluginTheme').value = config.PluginTheme || 'htv';
                         document.getElementById('AnnouncementHeading').value = config.AnnouncementHeading || 'H-TV Announcements';
                         document.getElementById('PublicChatRetentionHours').value = config.PublicChatRetentionHours || 24;
@@ -731,6 +732,7 @@
                         config.EnableChat = document.getElementById('EnableChat').checked;
                         config.EnableAnnouncements = document.getElementById('EnableAnnouncements').checked;
                         config.ShowOnMobile = document.getElementById('ShowOnMobile').checked;
+                        config.ShowStarRatingOnCards = document.getElementById('ShowStarRatingOnCards').checked;
                         config.PluginTheme = document.getElementById('PluginTheme').value || 'htv';
                         config.AnnouncementHeading = document.getElementById('AnnouncementHeading').value || 'H-TV Announcements';
                         config.PublicChatRetentionHours = parseInt(document.getElementById('PublicChatRetentionHours').value) || 24;
