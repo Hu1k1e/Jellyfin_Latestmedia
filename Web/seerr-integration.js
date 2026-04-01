@@ -1,15 +1,12 @@
 /**
- * seerr-integration.js — v3.0.3.0
+ * seerr-integration.js — v3.0.6.0
  * Full Jellyseerr/Overseerr frontend integration.
  *
- * Changes in v3.0.3:
- *  - Cards now use Jellyfin's native .card structure to blend with existing results
- *  - Fixed request type detection: properly reads item.mediaType from Seerr response
- *    instead of guessing movie vs TV from numberOfSeasons
- *  - Advanced request modal: fetches Radarr/Sonarr servers, quality profiles, root
- *    folders when JellyseerrShowAdvanced is enabled (matches JE behaviour)
- *  - Section titles: "Request via Jellyseerr" → "Request", "More Like This (Seerr)" → "More Like This"
- *  - Request failure: was sending wrong mediaType for TV shows → fixed
+ * Changes in v3.0.6:
+ *  - Added dynamic Season fetching and parsing functionality for TV Shows.
+ *  - Stripped conditional gatekeeping around Advanced Settings UI rendering.
+ *  - Refactored .jellyseerr-overview layout wrapper to align elements to the bottom properly and updated to the correct green branding hash.
+ *  - CSS flex column sorting enforced on primary search container, ensuring requested elements are anchored.
  */
 (function () {
     'use strict';
@@ -78,10 +75,12 @@
         var s = document.createElement('style');
         s.id = 'lm-seerr-style';
         s.textContent = [
+            /* Search page structural overrides */
+            '#searchPage .padded-top.padded-bottom-page { display: flex; flex-direction: column; }',
             /* Search section wrapper — matches Jellyfin's .verticalSection */
-            '#lm-seerr-search-section.lm-seerr-section { padding: 0 0 24px; }',
+            '#lm-seerr-search-section.lm-seerr-section { padding: 0 0 24px; order: 9999; }',
             '#lm-seerr-search-section .lm-seerr-heading { font-size:1.1em; font-weight:600; padding: 4px 24px 12px; }',
-            '#lm-seerr-search-section .itemsContainer { padding: 0 16px; }',
+            '#lm-seerr-search-section .itemsContainer { padding: 0 16px; display: flex; flex-wrap: wrap; gap: 4px; }',
             /* Detail page scroll sections */
             '.lm-seerr-detail-section { padding-bottom: 16px; }',
             '.lm-seerr-detail-section .lm-seerr-heading { font-size:1.1em; font-weight:600; padding: 16px 24px 8px; }',
@@ -163,7 +162,7 @@
         // Overview Overlay (Hover) — Exact JE Clone
         var overview = document.createElement('div');
         overview.className = 'jellyseerr-overview';
-        overview.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:15px;opacity:0;transition:opacity 0.25s;z-index:10;text-align:center;pointer-events:none;';
+        overview.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.85);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:15px;opacity:0;transition:opacity 0.25s;z-index:10;text-align:center;pointer-events:none;';
         
         var content = document.createElement('div');
         content.className = 'content';
@@ -186,7 +185,7 @@
             reqBtn.disabled = true;
         } else {
             reqBtn.textContent = 'Request';
-            reqBtn.style.background = '#0061e0';
+            reqBtn.style.background = '#4CAF50';
             reqBtn.addEventListener('click', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -517,34 +516,63 @@
         // Season list (TV only)
         var checkboxes = [];
         if (!isMovie) {
-            var numSeasons = item.numberOfSeasons || 1;
             var seasonHeading = document.createElement('div');
             seasonHeading.style.cssText = 'font-size:0.9em;font-weight:600;margin-bottom:8px;';
-            seasonHeading.textContent = 'Select Seasons:';
+            seasonHeading.textContent = 'Loading seasons...';
             body.appendChild(seasonHeading);
 
             var seasonList = document.createElement('div');
             seasonList.className = 'lmSeerrSeasonList';
-            for (var i = 1; i <= numSeasons; i++) {
-                (function (sn) {
+            body.appendChild(seasonList);
+
+            seerrGet('Tv/' + tmdbId).then(function(tvDetails) {
+                seasonHeading.textContent = 'Select Seasons:';
+                var seasons = (tvDetails && tvDetails.seasons) || [];
+                // Filter out season 0 (Specials) by default unless requested, but let's just show all available
+                if (seasons.length === 0) {
+                    var fallbackSeasons = item.numberOfSeasons || 1;
+                    for (var j = 1; j <= fallbackSeasons; j++) {
+                        seasons.push({ seasonNumber: j, name: 'Season ' + j });
+                    }
+                }
+
+                seasons.forEach(function(season) {
+                    // Do not auto-select season 0 (Specials) to prevent Seerr errors on unsupported specials
+                    var isSpecial = season.seasonNumber === 0;
                     var label = document.createElement('label');
                     label.className = 'lmSeerrSeasonItem';
                     var cb = document.createElement('input');
-                    cb.type = 'checkbox'; cb.value = sn; cb.checked = true;
+                    cb.type = 'checkbox'; 
+                    cb.value = season.seasonNumber; 
+                    cb.checked = !isSpecial;  // Auto-check normal seasons
                     checkboxes.push(cb);
                     label.appendChild(cb);
-                    label.appendChild(document.createTextNode(' Season ' + sn));
+                    label.appendChild(document.createTextNode(' ' + (season.name || 'Season ' + season.seasonNumber)));
                     seasonList.appendChild(label);
-                })(i);
-            }
-            body.appendChild(seasonList);
+                });
+            }).catch(function() {
+                seasonHeading.textContent = 'Select Seasons (details failed to load):';
+                var fallbackCount = item.numberOfSeasons || 1;
+                for (var i = 1; i <= fallbackCount; i++) {
+                    var label = document.createElement('label');
+                    label.className = 'lmSeerrSeasonItem';
+                    var cb = document.createElement('input');
+                    cb.type = 'checkbox'; cb.value = i; cb.checked = true;
+                    checkboxes.push(cb);
+                    label.appendChild(cb);
+                    label.appendChild(document.createTextNode(' Season ' + i));
+                    seasonList.appendChild(label);
+                }
+            });
         }
 
-        // Advanced options section (loaded asynchronously if enabled)
+        // Advanced options section (loaded asynchronously)
         var advancedState = { serverId: null, profileId: null, rootFolder: null };
         var serverSelect = null, qualitySelect = null, folderSelect = null;
+        var advParent = document.createElement('div');
+        body.appendChild(advParent);
 
-        if (cfg.JellyseerrShowAdvanced) {
+        var loadAdvancedOptions = function() {
             var advDiv = document.createElement('div');
             advDiv.className = 'lm-adv-options';
             advDiv.innerHTML = '<h4>Advanced Options</h4>' +
@@ -558,8 +586,7 @@
                 '<div class="lm-adv-group"><label>Root Folder</label>' +
                 '<select class="lm-adv-folder" disabled><option>Select server first</option></select></div>' +
                 '</div>';
-            body.appendChild(advDiv);
-
+            
             serverSelect = advDiv.querySelector('.lm-adv-server');
             qualitySelect = advDiv.querySelector('.lm-adv-quality');
             folderSelect = advDiv.querySelector('.lm-adv-folder');
@@ -595,10 +622,10 @@
             seerrGet(serverEndpoint)
                 .then(function (servers) {
                     var list = Array.isArray(servers) ? servers : [];
-                    if (list.length === 0) {
-                        serverSelect.innerHTML = '<option value="">No servers configured</option>';
-                        return;
-                    }
+                    if (list.length === 0) return; // Hide advanced options if no servers
+                    
+                    advParent.appendChild(advDiv); // Only append if servers exist
+                    
                     serverSelect.innerHTML = '<option value="">Default</option>';
                     serverSelect._servers = [];
                     var fetches = list.map(function (srv) {
@@ -621,9 +648,13 @@
                     });
                 })
                 .catch(function () {
-                    serverSelect.innerHTML = '<option value="">Failed to load servers</option>';
+                    // Fail silently, hide advanced options
                 });
-        }
+        };
+        
+        loadAdvancedOptions();
+
+
 
         // Footer buttons
         var footer = document.createElement('div');
@@ -635,11 +666,10 @@
         var reqBtn = makeMBtn('Request', 'primary');
         reqBtn.addEventListener('click', function () {
             var adv = {};
-            if (cfg.JellyseerrShowAdvanced) {
-                if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
-                if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
-                if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
-            }
+            if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
+            if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+            if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
+            
             if (!isMovie) {
                 var selectedSeasons = checkboxes.filter(function (c) { return c.checked; })
                     .map(function (c) { return parseInt(c.value); });
@@ -656,7 +686,11 @@
         if (isMovie && cfg.JellyseerrEnable4KRequests) {
             var req4kBtn = makeMBtn('Request 4K', 'primary4k');
             req4kBtn.addEventListener('click', function () {
-                submitRequest(modal, req4kBtn, { mediaType: 'movie', mediaId: tmdbId, is4k: true });
+                var adv = {};
+                if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
+                if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+                if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
+                submitRequest(modal, req4kBtn, Object.assign({ mediaType: 'movie', mediaId: tmdbId, is4k: true }, adv));
             });
             footer.appendChild(req4kBtn);
         }
@@ -666,7 +700,13 @@
                 var selectedSeasons = checkboxes.filter(function (c) { return c.checked; })
                     .map(function (c) { return parseInt(c.value); });
                 if (selectedSeasons.length === 0) { alert('Select at least one season.'); return; }
-                submitRequest(modal, req4kTvBtn, { mediaType: 'tv', mediaId: tmdbId, is4k: true, seasons: selectedSeasons });
+                
+                var adv = {};
+                if (advancedState.serverId) adv.serverId = parseInt(advancedState.serverId);
+                if (advancedState.profileId) adv.profileId = parseInt(advancedState.profileId);
+                if (advancedState.rootFolder) adv.rootFolder = advancedState.rootFolder;
+                
+                submitRequest(modal, req4kTvBtn, Object.assign({ mediaType: 'tv', mediaId: tmdbId, is4k: true, seasons: selectedSeasons }, adv));
             });
             footer.appendChild(req4kTvBtn);
         }
