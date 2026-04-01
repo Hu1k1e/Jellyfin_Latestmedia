@@ -147,6 +147,32 @@ namespace Jellyfin_Latestmedia.Api
         public Task<IActionResult> DeleteRequest(int requestId)
             => ProxyDelete($"api/v1/request/{requestId}");
 
+        // ── Advanced Request Options (Radarr / Sonarr) ────────────────────────
+
+        /// <summary>GET /Seerr/Radarr — List all configured Radarr servers.</summary>
+        [HttpGet("Radarr")]
+        [Authorize]
+        public Task<IActionResult> GetRadarrServers()
+            => ProxyGet("api/v1/radarr");
+
+        /// <summary>GET /Seerr/Radarr/{serverId} — Radarr server details (profiles + root folders).</summary>
+        [HttpGet("Radarr/{serverId}")]
+        [Authorize]
+        public Task<IActionResult> GetRadarrServerDetails(int serverId)
+            => ProxyGet($"api/v1/radarr/{serverId}");
+
+        /// <summary>GET /Seerr/Sonarr — List all configured Sonarr servers.</summary>
+        [HttpGet("Sonarr")]
+        [Authorize]
+        public Task<IActionResult> GetSonarrServers()
+            => ProxyGet("api/v1/sonarr");
+
+        /// <summary>GET /Seerr/Sonarr/{serverId} — Sonarr server details (profiles + root folders).</summary>
+        [HttpGet("Sonarr/{serverId}")]
+        [Authorize]
+        public Task<IActionResult> GetSonarrServerDetails(int serverId)
+            => ProxyGet($"api/v1/sonarr/{serverId}");
+
         // ── User ─────────────────────────────────────────────────────────────
 
         /// <summary>GET /Seerr/User — Gets Seerr user corresponding to current Jellyfin session.</summary>
