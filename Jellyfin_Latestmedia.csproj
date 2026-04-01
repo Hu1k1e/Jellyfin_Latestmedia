@@ -47,6 +47,9 @@
 
     <None Remove="Web\branding.js" />
     <EmbeddedResource Include="Web\branding.js" />
+
+    <None Remove="Web\apply-branding.js" />
+    <EmbeddedResource Include="Web\apply-branding.js" />
   </ItemGroup>
 
 </Project>
