@@ -122,14 +122,22 @@
     // ── Banner / Logo Images ──────────────────────────────────────────────────
 
     var LOGO_SELECTORS = [
+        // Jellyfin's own banner/logo images
         'img[src*="banner-light"]',
         'img[src*="banner-dark"]',
         'img.imgLogoHeader',
+        'img.headerLogo',
+        '.headerLogoImage',
+        '.splash img',
         '.loginDisclaimer img',
         '.readUserName img',
-        '.mainDrawer-scrollContainer img[src*="logo"]',
-        '.splash img',
+        // Drawer / sidebar logo
+        '.mainDrawer-scrollContainer img',
+        '.drawerLogo img',
+        '.headerUserButton img',
+        // Generic Jellyfin asset paths
         'img[src*="/web/assets/img/banner"]',
+        'img[src*="/web/assets/img/logo"]',
     ];
 
     function getBannerType() {
@@ -162,10 +170,19 @@
     // ── App Icon Images ───────────────────────────────────────────────────────
 
     var ICON_SELECTORS = [
+        // Jellyfin's server icon — appears in sidebar, login, dashboard header
         'img[src*="icon-transparent"]',
+        'img[src*="icon.svg"]',
+        // The circular server icon badge in the drawer / top-left header
+        '.serverLogoImage',
         '.appIconContainer img',
         'img.appIcon',
         '.loginLogo img',
+        // Login page logo (if custom icon set)
+        '.imgLogoIcon',
+        // Dashboard header icon (Jellyfin >= 10.9)
+        '.headerLogo[src*="icon"]',
+        'img[src*="/web/assets/img/icon"]',
     ];
 
     function applyIconImages() {
@@ -185,8 +202,10 @@
     function applyBranding(status) {
         if (!status || !status.enabled) return;
         if (status.favicon) applyFavicon();
-        applyBannerImages(status); // internally checks status.bannerDark/Light
+        applyBannerImages(status);
         if (status.iconTransparent) applyIconImages();
+        // Start watching for dynamically rendered images (sidebar/drawer icons)
+        startBodyIconObserver(status);
     }
 
     // On SPA navigation: clear "already branded" markers so newly rendered elements get replaced
@@ -217,6 +236,38 @@
     window.addEventListener('hashchange', function () {
         setTimeout(onNavigate, 200);
     });
+
+    // ── Body image observer (catches SPA-rendered icons) ──────────────────────
+    // When Jellyfin renders the sidebar/header after navigation it creates new
+    // <img> elements that need to be caught and branded immediately.
+    var _bodyIconObs = null;
+    function startBodyIconObserver(status) {
+        if (_bodyIconObs) return;
+        _bodyIconObs = new MutationObserver(function (mutations) {
+            var needsApply = false;
+            mutations.forEach(function (m) {
+                m.addedNodes.forEach(function (node) {
+                    if (node.nodeType !== 1) return; // Element nodes only
+                    // Check if the added node itself or its children match our selectors
+                    var allSelectors = LOGO_SELECTORS.concat(ICON_SELECTORS);
+                    var combined = allSelectors.join(',');
+                    if (node.matches && (node.matches(combined) || node.querySelector(combined))) {
+                        needsApply = true;
+                    }
+                });
+            });
+            if (needsApply && _status) {
+                if (!_rAfPending) {
+                    _rAfPending = true;
+                    requestAnimationFrame(function () {
+                        _rAfPending = false;
+                        applyBranding(_status);
+                    });
+                }
+            }
+        });
+        _bodyIconObs.observe(document.body, { childList: true, subtree: true });
+    }
 
     // ── Initial Load ──────────────────────────────────────────────────────────
 

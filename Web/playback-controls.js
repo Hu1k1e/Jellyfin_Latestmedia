@@ -64,42 +64,29 @@
         var video = document.querySelector('video');
         if (!video) return;
 
-        // Pick up gesture flag from video dataset (persists if video element is same)
-        if (video.dataset.lmHasGesture === 'true') _hasUserGesture = true;
-
-        // Watch for gestures on new video elements
+        // Watch for gestures on this video
         watchForUserGesture(video);
 
         if (document.hidden) {
             // ── Tab is now hidden ──
 
-            // Auto Pause
-            if (cfg.AutoPauseEnabled && !video.paused) {
-                video.pause();
-                video.dataset[DATA_KEY] = 'true';
-            }
-
-            // Auto PIP — only if:
-            // 1. Feature is enabled
-            // 2. Browser supports PIP (secure context, API available)
-            // 3. Not already in PIP
-            // 4. User has previously interacted with the video (Chrome requirement)
+            // Auto PIP FIRST (before pausing) — Chrome requires video to be PLAYING
+            // when requestPictureInPicture() is called from visibilitychange.
+            // If we pause first, Chrome blocks PIP with NotAllowedError.
             if (cfg.AutoPipEnabled &&
                 document.pictureInPictureEnabled &&
                 !document.pictureInPictureElement &&
-                (_hasUserGesture || !video.paused)) {
+                !video.paused) {
 
-                // Small delay for Chrome — ensures visibilitychange has fully fired
-                // and the video state has settled
-                setTimeout(function () {
-                    var v = document.querySelector('video');
-                    if (!v || document.pictureInPictureElement) return;
-                    v.requestPictureInPicture().catch(function (err) {
-                        // NotAllowedError = browser policy, ignore silently
-                        // InvalidStateError = video not loaded, ignore
-                        console.debug('[LatestMedia] PIP request blocked:', err.message);
-                    });
-                }, 50);
+                video.requestPictureInPicture().catch(function (err) {
+                    console.debug('[LatestMedia] PIP request blocked:', err.name, err.message);
+                });
+            }
+
+            // Auto Pause AFTER PIP attempt
+            if (cfg.AutoPauseEnabled && !video.paused) {
+                video.pause();
+                video.dataset[DATA_KEY] = 'true';
             }
 
         } else {
