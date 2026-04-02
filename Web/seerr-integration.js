@@ -85,9 +85,8 @@
             '.lm-seerr-arrow-btn { background:transparent; border:none; cursor:pointer; color:rgba(255,255,255,0.7); padding:4px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:color 0.15s,background 0.15s; }',
             '.lm-seerr-arrow-btn:hover { color:#fff; background:rgba(255,255,255,0.1); }',
             '.lm-seerr-arrow-btn .material-icons { font-size:22px; line-height:1; }',
-            '.lmSeerrScroll { display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; padding: 0 8px 8px; scrollbar-width:thin; }',
-            '.lmSeerrScroll::-webkit-scrollbar { height:4px; }',
-            '.lmSeerrScroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:4px; }',
+            '.lmSeerrScroll { display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; padding: 0 8px 8px; scrollbar-width:none; }',
+            '.lmSeerrScroll::-webkit-scrollbar { display:none; }',
             /* Seerr badge overlay on cards */
             '.lm-seerr-badge-wrap { position:absolute; top:4px; right:4px; }',
             '.lm-seerr-status { padding:2px 6px; border-radius:4px; font-size:0.65em; font-weight:700; display:inline-block; }',
