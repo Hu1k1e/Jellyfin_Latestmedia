@@ -2288,4 +2288,6 @@
 
   JE.initializeDownloadsPage = initialize;
   window.lmInitDownloadsPage = initialize;
+  // Expose mount function so latestmedia.js sidebar link can call it directly
+  window.lmMountActiveDownloads = mountActiveDownloadsView;
 })();
