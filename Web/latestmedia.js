@@ -2213,9 +2213,9 @@ async function tryInject(){
         window.JE.pluginConfig.DownloadsPagePollingEnabled = true;
         window.JE.pluginConfig.DownloadsUsePluginPages = false;
         window.JE.pluginConfig.DownloadsUseCustomTabs = false;
-        
+
         loadModule('requests-page.js');
-        // Once the module registers JE.initializeDownloadsPage, call it.
+        // Still poll for the module to call initialize() (for page content setup)
         var downloadsInitPoll = setInterval(function() {
           if (typeof window.lmInitDownloadsPage === 'function') {
             clearInterval(downloadsInitPoll);
@@ -2223,6 +2223,50 @@ async function tryInject(){
           }
         }, 100);
         setTimeout(function() { clearInterval(downloadsInitPoll); }, 10000);
+
+        // === Direct sidebar injection (Discover plugin pattern) ===
+        // Done HERE in latestmedia.js, where the config is already in hand.
+        // This is immune to the module load timing race.
+        (function injectDownloadsSidebarLink() {
+          if (document.querySelector('.je-nav-downloads-item')) return;
+          var _sbInterval = setInterval(function() {
+            var menu = document.querySelector('.navMenu');
+            if (menu && !menu.querySelector('.je-nav-downloads-item')) {
+              clearInterval(_sbInterval);
+              var link = document.createElement('a');
+              link.className = 'navMenuOption emby-button je-nav-downloads-item';
+              link.title = 'Active Downloads';
+              link.innerHTML = '<span class="navMenuOptionIcon material-icons">download</span><span class="navMenuOptionText">Active Downloads</span>';
+              link.addEventListener('click', function(e) {
+                e.preventDefault();
+                var drawer = document.querySelector('.appDrawer-open');
+                if (drawer) drawer.classList.remove('appDrawer-open');
+                window.location.hash = '#/home?custom=active_downloads';
+                if (typeof window.lmMountActiveDownloads === 'function') {
+                  setTimeout(window.lmMountActiveDownloads, 150);
+                }
+              });
+              var container = document.querySelector('.customMenuOptions');
+              var watchlist = container ? container.querySelector('[data-name="watchlist"]') : null;
+              if (watchlist) watchlist.after(link);
+              else if (container) container.appendChild(link);
+              else {
+                var homeLink = menu.querySelector('a[href="#/home"]');
+                if (homeLink && homeLink.nextSibling) menu.insertBefore(link, homeLink.nextSibling);
+                else menu.appendChild(link);
+              }
+              console.log('[LM] Active Downloads nav link injected into sidebar');
+            }
+          }, 400);
+          // Re-inject when sidebar rebuilds on SPA navigation
+          ['hashchange', 'viewshow', 'pageshow'].forEach(function(evt) {
+            window.addEventListener(evt, function() {
+              if (!document.querySelector('.je-nav-downloads-item')) {
+                setTimeout(injectDownloadsSidebarLink, 300);
+              }
+            });
+          });
+        })();
       }
 
       // Feature 7: Star Ratings on Cards
