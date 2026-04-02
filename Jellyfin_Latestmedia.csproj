@@ -9,9 +9,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>CS1591</NoWarn>
-    <Version>3.4.7.5</Version>
-    <AssemblyVersion>3.4.7.5</AssemblyVersion>
-    <FileVersion>3.4.7.5</FileVersion>
+    <Version>3.4.7.6</Version>
+    <AssemblyVersion>3.4.7.6</AssemblyVersion>
+    <FileVersion>3.4.7.6</FileVersion>
     <DefaultItemExcludes>JE-source\**;$(DefaultItemExcludes)</DefaultItemExcludes>
   </PropertyGroup>
 

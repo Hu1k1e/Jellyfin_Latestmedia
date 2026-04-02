@@ -1935,103 +1935,47 @@
   /**
    * Create the downloads page container with proper Jellyfin page structure
    */
-  function createPageContainer() {
-    let page = document.getElementById("je-downloads-page");
-    if (!page) {
-      page = document.createElement("div");
-      page.id = "je-downloads-page";
-      // Use Jellyfin's page classes for proper full-page integration
-      page.className = "page type-interior mainAnimatedPage hide";
-      page.setAttribute("data-title", "Active Downloads");
-      page.setAttribute("data-backbutton", "true");
-      page.setAttribute("data-url", "#/downloads");
-      page.setAttribute("data-type", "custom");
-      page.innerHTML = `
-        <div data-role="content">
-          <div class="content-primary je-downloads-page">
-            <div id="je-downloads-container" style="padding-top: 5em;"></div>
-          </div>
-        </div>
-      `;
-
-      // CRITICAL: must append to .mainAnimatedPages for Jellyfin's SPA to treat
-      // our page as a real page (full-page, not a floating overlay on body)
-      const mainContent = document.querySelector(".mainAnimatedPages");
-      if (mainContent) {
-        mainContent.appendChild(page);
-      } else {
-        // Fallback: append to body only if mainAnimatedPages truly doesn't exist yet
-        // This shouldn't happen since we defer initialization until DOM is ready
-        document.body.appendChild(page);
-        console.warn(`${logPrefix} .mainAnimatedPages not found — page appended to body as fallback`);
-      }
-    }
-    return page;
-  }
-
   /**
-   * Show the downloads page with proper Jellyfin integration
+   * Mount Active Downloads view into the current Jellyfin Home page layout.
+   * Mirrors the Discover plugin's mountNativeDiscoverView() approach:
+   * hides native home sections, injects our content into content-primary.
    */
-  function showPage() {
-    if (state.pageVisible) return;
+  function mountActiveDownloadsView() {
+    // Target the currently visible page (Home page when using #/home?custom=active_downloads)
+    var page = document.querySelector('.page:not(.hide)');
+    if (!page) return;
 
-    state.pageVisible = true;
+    var contentTarget = page.querySelector('.content-primary') || page;
 
-    // Ensure page exists first
-    const page = createPageContainer();
-    if (!page) {
-      console.error(`${logPrefix} Failed to create page container`);
-      state.pageVisible = false;
+    // If already mounted, just refresh data
+    var existingWrapper = contentTarget.querySelector('.je-downloads-native-wrapper');
+    if (existingWrapper) {
+      if (!state.isLoading) loadAllData();
       return;
     }
 
-    if (window.location.hash !== "#/downloads") {
-      history.pushState({ page: "downloads" }, "Active Downloads", "#/downloads");
-    }
+    // Hide all native home sections (homeSectionsContainer, resumeSection, etc.)
+    Array.from(contentTarget.children).forEach(function(child) {
+      child.style.display = 'none';
+      child.setAttribute('data-je-hidden', 'true');
+    });
 
-    // Hide other Jellyfin pages - but track which one was active so we can restore it
-    const activePage = document.querySelector(
-      ".mainAnimatedPage:not(.hide):not(#je-downloads-page), .pageNotFound:not(.hide), .page:not(.hide):not(#je-downloads-page)"
-    );
-    if (activePage) {
-      state.previousPage = activePage;
-      activePage.classList.add("hide");
-      // Dispatch viewhide for the page we're leaving
-      activePage.dispatchEvent(
-        new CustomEvent("viewhide", {
-          bubbles: true,
-          detail: { type: "interior" },
-        }),
-      );
-    }
+    // Create our wrapper inside content-primary
+    var wrapper = document.createElement('div');
+    wrapper.className = 'je-downloads-native-wrapper je-downloads-page';
+    wrapper.style.cssText = 'padding-top: 4em; width: 100%;';
 
-    // Show our page
-    page.classList.remove("hide");
+    var inner = document.createElement('div');
+    inner.id = 'je-downloads-container';
+    wrapper.appendChild(inner);
+    contentTarget.appendChild(wrapper);
 
-    // Dispatch viewshow event so Jellyfin's libraryMenu updates header/back button
-    page.dispatchEvent(
-      new CustomEvent("viewshow", {
-        bubbles: true,
-        detail: {
-          type: "custom",
-          isRestored: false,
-          options: {},
-        },
-      }),
-    );
+    state.pageVisible = true;
+    state._nativeContainer = inner;
 
-    // Also dispatch pageshow for other integrations
-    page.dispatchEvent(
-      new CustomEvent("pageshow", {
-        bubbles: true,
-        detail: {
-          type: "custom",
-          isRestored: false,
-        },
-      }),
-    );
+    console.log(`${logPrefix} Mounted Active Downloads view into Home page layout`);
 
-    // Only load data once (guard against showPage retries)
+    renderPage(inner);
     if (!state.isLoading) {
       loadAllData();
       startPolling();
@@ -2039,46 +1983,20 @@
   }
 
   /**
-   * Hide the downloads page and clean up header state
+   * Unmount/restore the Home page — called when navigating away
    */
-  function hidePage() {
-    if (!state.pageVisible) return;
-
-    const page = document.getElementById("je-downloads-page");
-    if (page) {
-      page.classList.add("hide");
-
-      // Dispatch viewhide event so Jellyfin knows we're leaving
-      page.dispatchEvent(
-        new CustomEvent("viewhide", {
-          bubbles: true,
-          detail: { type: "custom" },
-        }),
-      );
+  function unmountActiveDownloadsView() {
+    var page = document.querySelector('.page:not(.hide)');
+    var contentTarget = page ? (page.querySelector('.content-primary') || page) : null;
+    if (contentTarget) {
+      // Remove our wrapper
+      var wrapper = contentTarget.querySelector('.je-downloads-native-wrapper');
+      if (wrapper) wrapper.remove();
     }
-
-    // Restore the previous page if Jellyfin's router hasn't already shown another page
-    // This handles the case where user clicks browser back button
-    // But NOT when clicking header tabs (Jellyfin handles those via viewshow events)
-    if (
-      state.previousPage &&
-      !document.querySelector(".mainAnimatedPage:not(.hide):not(#je-downloads-page), .pageNotFound:not(.hide), .page:not(.hide):not(#je-downloads-page)")
-    ) {
-      state.previousPage.classList.remove("hide");
-      // Dispatch viewshow so the page re-initializes properly
-      state.previousPage.dispatchEvent(
-        new CustomEvent("viewshow", {
-          bubbles: true,
-          detail: { type: "interior", isRestored: true },
-        }),
-      );
-    }
-
     state.pageVisible = false;
-    state.previousPage = null;
+    state._nativeContainer = null;
     clearAvatarObjectUrlCache(true);
     stopPolling();
-    stopLocationWatcher();
   }
 
   /**
@@ -2197,268 +2115,149 @@
    * Inject navigation item into sidebar
    */
   function injectNavigation() {
-    const config = JE.pluginConfig || {};
-    if (!config.DownloadsPageEnabled) return;
-    if (config.DownloadsUseCustomTabs) return;
+    const lmCfg = window.__latestMediaConfig || {};
+    if (!lmCfg.ArrDownloadsEnabled) return;
 
     if (document.querySelector('.je-nav-downloads-item')) return;
     if (window._jeDownloadsNavInterval) return;
 
-    // Find the sidebar menu using an interval to ensure full DOM propagation (Discover pattern)
+    // Use the exact Discover plugin pattern:
+    // Poll for .navMenu then inject a link that navigates to #/home?custom=active_downloads
     window._jeDownloadsNavInterval = setInterval(function() {
       var menu = document.querySelector('.navMenu');
       if (menu && !menu.querySelector('.je-nav-downloads-item')) {
         clearInterval(window._jeDownloadsNavInterval);
         window._jeDownloadsNavInterval = null;
-        
+
         var link = document.createElement('a');
-        link.className = 'navMenuOption lnkMediaFolder emby-button je-nav-downloads-item';
-        link.setAttribute('is', 'emby-linkbutton');
-        link.href = '#';
+        link.className = 'navMenuOption emby-button je-nav-downloads-item';
         link.title = 'Active Downloads';
         link.innerHTML = '<span class="navMenuOptionIcon material-icons">download</span><span class="navMenuOptionText">Active Downloads</span>';
-        
+
         link.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var drawer = document.querySelector('.appDrawer-open');
-            if (drawer) drawer.classList.remove('appDrawer-open');
-            showPage();
+          e.preventDefault();
+          // Close the nav drawer if open (mobile)
+          var drawer = document.querySelector('.appDrawer-open');
+          if (drawer) drawer.classList.remove('appDrawer-open');
+          // Navigate to the custom hash — the interceptor below will mount our view
+          window.location.hash = '#/home?custom=active_downloads';
+          setTimeout(mountActiveDownloadsView, 150);
         });
-        
+
+        // Insert after watchlist item if it exists, else after home link, else append
         var container = document.querySelector('.customMenuOptions');
         var watchlist = container ? container.querySelector('[data-name="watchlist"]') : null;
-        
         if (watchlist) {
-            watchlist.after(link);
+          watchlist.after(link);
         } else if (container) {
-            container.appendChild(link);
+          container.appendChild(link);
         } else {
-            // Fallback logic
-            var homeLink = menu.querySelector('a[href="#/home"]');
-            if (homeLink && homeLink.nextSibling) {
-                menu.insertBefore(link, homeLink.nextSibling);
-            } else {
-                menu.appendChild(link);
-            }
+          var homeLink = menu.querySelector('a[href="#/home"]');
+          if (homeLink && homeLink.nextSibling) menu.insertBefore(link, homeLink.nextSibling);
+          else menu.appendChild(link);
         }
-        console.log(`${logPrefix} Navigation item injected into sidebar (.navMenu)`);
+
+        console.log(`${logPrefix} Navigation item injected into sidebar (.navMenu) — Discover pattern`);
       }
     }, 500);
-    // Timeout clearInterval after 15s to prevent infinite loop if UI is fundamentally broken
-    setTimeout(function() { 
-        if (window._jeDownloadsNavInterval) {
-            clearInterval(window._jeDownloadsNavInterval); 
-            window._jeDownloadsNavInterval = null;
-        }
+
+    setTimeout(function() {
+      if (window._jeDownloadsNavInterval) {
+        clearInterval(window._jeDownloadsNavInterval);
+        window._jeDownloadsNavInterval = null;
+      }
     }, 15000);
   }
 
   /**
-   * Setup navigation watcher - observes only when link is missing
+   * Watch for sidebar rebuilds and re-inject if our item is lost.
    */
   function setupNavigationWatcher() {
-    const config = JE.pluginConfig || {};
-    if (!config.DownloadsPageEnabled) return;
-    if (config.DownloadsUseCustomTabs) return;
-
-    // Watch document.body for any sidebar appear/rebuild events
-    // (querySelector with multi-selector is unreliable for observe targets)
-    let _observerTimeout = null;
-    const observer = new MutationObserver(() => {
-      clearTimeout(_observerTimeout);
-      _observerTimeout = setTimeout(() => {
-          if (!document.querySelector('.je-nav-downloads-item')) {
-            // Check if sidebar is now available
-            const sb = document.querySelector('.mainDrawer-scrollContainer') ||
-                        document.querySelector('.navDrawer .scrollSlider') ||
-                        document.querySelector('.navDrawer .scrollContainer') ||
-                        document.querySelector('.navDrawer');
-            if (sb) {
-              console.log(`${logPrefix} Sidebar appeared/rebuilt — re-injecting navigation`);
-              injectNavigation();
-            }
-          }
+    let _obsTimeout = null;
+    const observer = new MutationObserver(function() {
+      clearTimeout(_obsTimeout);
+      _obsTimeout = setTimeout(function() {
+        if (!document.querySelector('.je-nav-downloads-item') && document.querySelector('.navMenu')) {
+          console.log(`${logPrefix} Sidebar rebuilt — re-injecting navigation`);
+          injectNavigation();
+        }
       }, 500);
     });
-
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /**
-   * Handle URL hash changes
-   */
-  function handleNavigation() {
-    const hash = window.location.hash;
-    const path = window.location.pathname;
-    if (hash === "#/downloads" || path === "/downloads") {
-      console.log(`${logPrefix} handleNavigation matched downloads (hash=${hash} path=${path})`);
-      // Show page to win races against Jellyfin's router rendering 404
-      showPage();
-    } else if (state.pageVisible) {
-      console.log(`${logPrefix} handleNavigation hiding page (hash=${hash} path=${path})`);
-      hidePage();
-    }
-  }
-
-  /**
-   * Initialize the downloads page module
+   * Initialize the downloads page module — Discover-plugin pattern
    */
   function initialize() {
-    console.log(`${logPrefix} Initializing downloads page module`);
+    console.log(`${logPrefix} Initializing downloads page module (Discover pattern)`);
 
-    // Use our plugin config first, fall back to JE config
     const lmCfg = window.__latestMediaConfig || {};
-    const config = JE.pluginConfig || {};
-    if (!lmCfg.ArrDownloadsEnabled && !config.DownloadsPageEnabled) {
+    if (!lmCfg.ArrDownloadsEnabled) {
       console.log(`${logPrefix} Downloads page is disabled`);
       return;
     }
 
     injectStyles();
 
-    // Defer createPageContainer until .mainAnimatedPages exists in the DOM.
-    // If we call it too early (before Jellyfin's SPA mounts its page container),
-    // the div gets appended to document.body and renders as a floating popup overlay.
-    function deferredInit() {
-      if (document.querySelector('.mainAnimatedPages')) {
-        // DOM is ready — create the page container now so it goes into the right parent
-        createPageContainer();
+    // === Discover plugin URL interceptor ===
+    // Watch for #/home?custom=active_downloads hash; mount/unmount our view accordingly
+    var _lastHash = window.location.hash;
+    setInterval(function() {
+      var currentHash = window.location.hash;
+      if (currentHash !== _lastHash) {
+        var wasOurs = _lastHash.indexOf('custom=active_downloads') !== -1;
+        var isOurs  = currentHash.indexOf('custom=active_downloads') !== -1;
+        _lastHash = currentHash;
 
-        // Inject navigation and set up one-time re-injection on sidebar rebuild
-        injectNavigation();
-        setupNavigationWatcher();
-
-        // Intercept router changes before Jellyfin handles them
-        window.addEventListener("hashchange", interceptNavigation, true);
-        window.addEventListener("popstate", interceptNavigation, true);
-
-        // Listen for hash changes - handles browser back/forward and direct URL changes
-        window.addEventListener("hashchange", handleNavigation);
-        window.addEventListener("popstate", handleNavigation);
-
-        startLocationWatcher();
-
-        // Listen for Jellyfin's viewshow events - hide our page when other pages show
-        document.addEventListener("viewshow", (e) => {
-          const targetPage = e.target;
-          const urlHash = window.location.hash;
-          // #/downloads is what showPage() sets — intercept Jellyfin's 404 for it
-          const isOurHash = urlHash === "#/downloads" || urlHash.includes("!/downloads");
-
-          // If Jellyfin's router fires pageNotFound for our hash, suppress it
-          if (isOurHash && targetPage && targetPage.classList.contains("pageNotFound")) {
-            targetPage.classList.add("hide");
-            return;
-          }
-
-          if (
-            state.pageVisible &&
-            targetPage &&
-            targetPage.id !== "je-downloads-page"
-          ) {
-            hidePage();
-          }
-        });
-
-        // Listen for clicks on header navigation buttons (Home, Favorites, etc.)
-        document.addEventListener(
-          "click",
-          (e) => {
-            if (!state.pageVisible) return;
-
-            // Handle play button clicks
-            const playBtn = e.target.closest(".je-request-watch-btn");
-            if (playBtn) {
-              e.preventDefault();
-              e.stopPropagation();
-              e.stopImmediatePropagation();
-              const mediaId = playBtn.getAttribute("data-media-id");
-              if (mediaId && window.Emby?.Page?.showItem) {
-                window.Emby.Page.showItem(mediaId);
-              }
-              return;
-            }
-
-            const btn = e.target.closest(
-              ".headerTabs button, .navMenuOption, .headerButton",
-            );
-            if (btn && !btn.classList.contains("je-nav-downloads-item")) {
-              hidePage();
-            }
-          },
-          true,
-        );
-
-        // Check current URL on init — handles direct navigation to #/downloads
-        handleNavigation();
-
-        console.log(`${logPrefix} Downloads page module initialized`);
-      } else {
-        // .mainAnimatedPages not ready yet — wait for it
-        const obs = new MutationObserver(() => {
-          if (document.querySelector('.mainAnimatedPages')) {
-            obs.disconnect();
-            deferredInit();
-          }
-        });
-        obs.observe(document.body, { childList: true, subtree: true });
-        console.log(`${logPrefix} Waiting for .mainAnimatedPages...`);
+        if (isOurs) {
+          // Let Jellyfin render the Home base first, then hijack
+          setTimeout(mountActiveDownloadsView, 150);
+        } else if (wasOurs && !isOurs) {
+          // Navigating away — unmount and reload so Home content is properly restored
+          unmountActiveDownloadsView();
+          window.location.reload();
+        }
       }
-    }
+    }, 150);
 
-    deferredInit();
-  }
+    // Handle page events that might fire for our fake home URL
+    ['pageshow', 'viewshow', 'viewbeforeshow', 'hashchange'].forEach(function(evtName) {
+      window.addEventListener(evtName, function() {
+        if (window.location.hash.indexOf('active_downloads') !== -1) {
+          setTimeout(mountActiveDownloadsView, 100);
+        }
+      });
+    });
 
-  /**
-   * Intercept hash/popstate changes for our route before Jellyfin router
-   */
-  function interceptNavigation(e) {
-    const url = e?.newURL ? new URL(e.newURL) : window.location;
-    const hash = url.hash;
-    // Match #/downloads — same hash showPage() writes via history.pushState
-    const matches = hash === "#/downloads" || hash.includes("!/downloads");
-    if (matches) {
-      if (e?.stopImmediatePropagation) e.stopImmediatePropagation();
-      if (e?.preventDefault) e.preventDefault();
-      showPage();
-    }
-  }
-
-  // Use event-based navigation detection (pushState/hashchange/popstate via je:navigate)
-  function startLocationWatcher() {
-    if (state.locationUnsubscribe) return;
-
-    state.locationSignature = `${window.location.pathname}${window.location.hash}`;
-
-    const check = () => {
-      const signature = `${window.location.pathname}${window.location.hash}`;
-      if (signature !== state.locationSignature) {
-        state.locationSignature = signature;
-        handleNavigation();
+    // Handle play button clicks globally
+    document.addEventListener('click', function(e) {
+      var playBtn = e.target.closest('.je-request-watch-btn');
+      if (playBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        var mediaId = playBtn.getAttribute('data-media-id');
+        if (mediaId && window.Emby && window.Emby.Page && window.Emby.Page.showItem) {
+          window.Emby.Page.showItem(mediaId);
+        }
       }
-    };
+    }, true);
 
-    state.locationUnsubscribe = JE.helpers?.onNavigate
-      ? JE.helpers.onNavigate(check)
-      : (() => {
-          // Fallback: narrow poller if helpers not yet available
-          const t = setInterval(check, 150);
-          return () => clearInterval(t);
-        })();
-  }
+    // Inject sidebar navigation (Discover pattern)
+    injectNavigation();
+    setupNavigationWatcher();
 
-  function stopLocationWatcher() {
-    if (state.locationUnsubscribe) {
-      state.locationUnsubscribe();
-      state.locationUnsubscribe = null;
+    // If already on our hash when script loads, mount immediately
+    if (window.location.hash.indexOf('custom=active_downloads') !== -1) {
+      setTimeout(mountActiveDownloadsView, 300);
     }
+
+    console.log(`${logPrefix} Downloads page module initialized`);
   }
 
   /**
    * Render content for custom tabs (without page state management).
-   * @param {HTMLElement} [targetContainer] - Optional container element to
-   *   render into, avoiding global getElementById lookups.
    */
   function renderForCustomTab(targetContainer) {
     state._customTabMode = true;
@@ -2468,21 +2267,9 @@
     startPolling();
   }
 
-  function handleNavigation() {
-    const hash = window.location.hash;
-    // showPage() sets history to #/downloads — match the same hash here
-    if (hash === "#/downloads" || hash.includes("!/downloads")) {
-      showPage();
-    } else {
-      hidePage();
-    }
-  }
-
   // Export to JE namespace
   JE.downloadsPage = {
     initialize,
-    showPage,
-    hidePage,
     refresh: loadAllData,
     startPolling,
     stopPolling,
@@ -2499,8 +2286,6 @@
     injectStyles
   };
 
-  // Export to window for LatestMedia plugin and to JE namespace for compatibility
   JE.initializeDownloadsPage = initialize;
-  // Expose globally so latestmedia.js bootloader can call it after script loads
   window.lmInitDownloadsPage = initialize;
 })();
