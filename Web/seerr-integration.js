@@ -78,8 +78,14 @@
             '#lm-seerr-search-section { order: 9999; }',
             /* Detail page scroll sections */
             '.lm-seerr-detail-section { padding-bottom: 16px; }',
-            '.lm-seerr-detail-section .lm-seerr-heading { font-size:1.1em; font-weight:600; padding: 16px 24px 8px; }',
-            '.lmSeerrScroll { display:flex; gap:0; overflow-x:auto; padding: 0 8px 8px; scrollbar-width:thin; }',
+            /* Detail section header — title left, arrows right */
+            '.lm-seerr-detail-header { display:flex; align-items:center; padding: 16px 24px 8px; }',
+            '.lm-seerr-detail-header .lm-seerr-heading { font-size:1.1em; font-weight:600; flex:1; margin:0; }',
+            '.lm-seerr-arrow-btns { display:flex; gap:4px; flex-shrink:0; }',
+            '.lm-seerr-arrow-btn { background:transparent; border:none; cursor:pointer; color:rgba(255,255,255,0.7); padding:4px; border-radius:50%; display:flex; align-items:center; justify-content:center; transition:color 0.15s,background 0.15s; }',
+            '.lm-seerr-arrow-btn:hover { color:#fff; background:rgba(255,255,255,0.1); }',
+            '.lm-seerr-arrow-btn .material-icons { font-size:22px; line-height:1; }',
+            '.lmSeerrScroll { display:flex; gap:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-behavior:smooth; padding: 0 8px 8px; scrollbar-width:thin; }',
             '.lmSeerrScroll::-webkit-scrollbar { height:4px; }',
             '.lmSeerrScroll::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.2); border-radius:4px; }',
             /* Seerr badge overlay on cards */
@@ -401,14 +407,50 @@
         sec.className = 'lm-seerr-detail-section verticalSection';
         if (sectionId) sec.id = sectionId;
         sec.setAttribute('data-jellyseerr-section', 'true');
+
+        // Header row: title on left, prev/next arrows on right
+        var header = document.createElement('div');
+        header.className = 'lm-seerr-detail-header';
+
         var h2 = document.createElement('h2');
         h2.className = 'sectionTitle lm-seerr-heading';
         h2.textContent = title;
-        sec.appendChild(h2);
+        header.appendChild(h2);
+
+        var arrowBtns = document.createElement('div');
+        arrowBtns.className = 'lm-seerr-arrow-btns';
+
+        var prevBtn = document.createElement('button');
+        prevBtn.className = 'lm-seerr-arrow-btn';
+        prevBtn.setAttribute('aria-label', 'Scroll left');
+        prevBtn.innerHTML = '<span class="material-icons">chevron_left</span>';
+
+        var nextBtn = document.createElement('button');
+        nextBtn.className = 'lm-seerr-arrow-btn';
+        nextBtn.setAttribute('aria-label', 'Scroll right');
+        nextBtn.innerHTML = '<span class="material-icons">chevron_right</span>';
+
+        arrowBtns.appendChild(prevBtn);
+        arrowBtns.appendChild(nextBtn);
+        header.appendChild(arrowBtns);
+        sec.appendChild(header);
+
+        // Scrollable card row
         var row = document.createElement('div');
         row.className = 'lmSeerrScroll';
         items.forEach(function (item) { row.appendChild(buildSeerrCard(item)); });
         sec.appendChild(row);
+
+        // Wire up arrows — scroll ~60% of visible row width per click
+        prevBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            row.scrollBy({ left: -(row.clientWidth * 0.6), behavior: 'smooth' });
+        });
+        nextBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            row.scrollBy({ left: row.clientWidth * 0.6, behavior: 'smooth' });
+        });
+
         return sec;
     }
 
