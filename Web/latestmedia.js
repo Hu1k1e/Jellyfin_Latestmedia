@@ -785,20 +785,8 @@ function refreshBadge(){
     api('Chat/DM/Conversations').catch(()=>[]),
     api('Chat/Read').catch(()=>({date:''}))
   ]).then(([cs, readResp]) => {
-    // Determine the authoritative "last read" timestamp:
-    //   - Server date wins if it's newer than local (or if local doesn't exist)
-    //   - If server has no date, fall back to local, then epoch
-    const serverDate = (readResp && readResp.date) ? readResp.date : null;
-    const localDate  = localStorage.getItem('lm_last_pub_read');
-    let lastRead;
-    if (serverDate && (!localDate || serverDate > localDate)) {
-      lastRead = serverDate;
-      localStorage.setItem('lm_last_pub_read', serverDate);
-    } else if (localDate) {
-      lastRead = localDate;
-    } else {
-      lastRead = new Date(0).toISOString();
-    }
+    // Determine the authoritative "last read" timestamp from the server.
+    const lastRead = (readResp && readResp.date) ? readResp.date : new Date(0).toISOString();
 
     return api(`Chat/Messages?since=${encodeURIComponent(lastRead)}`).catch(()=>[])
       .then(pub => {
@@ -1158,10 +1146,9 @@ function toggleCodePop(panel){
   },10);
 }
 
-function getPubRead() { return localStorage.getItem('lm_last_pub_read') || new Date(0).toISOString(); }
-function setPubRead() { 
-  localStorage.setItem('lm_last_pub_read', new Date().toISOString()); 
-  api('Chat/Read', {method:'POST'}).catch(()=>{});
+function setPubRead(maxTimestamp) { 
+  const payload = maxTimestamp ? { date: maxTimestamp } : {};
+  api('Chat/Read', { method: 'POST', body: JSON.stringify(payload) }).catch(()=>{});
 }
 
 async function drawBubbles(container,msgs,silent=false){
@@ -1169,7 +1156,7 @@ async function drawBubbles(container,msgs,silent=false){
     if(lastMsgHash==='empty')return;
     lastMsgHash='empty';
     container.innerHTML='<div class="lmEmpty">No messages yet.</div>';
-    if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}
+    if(chatTab==='pub'&&!dmTarget){setPubRead('');refreshBadge();}
     return;
   }
   
@@ -1264,7 +1251,14 @@ async function drawBubbles(container,msgs,silent=false){
   });
   
   if(isAtBot) container.scrollTop=container.scrollHeight;
-  if(chatTab==='pub'&&!dmTarget){setPubRead();refreshBadge();}
+  if(chatTab==='pub'&&!dmTarget) {
+    const maxStr = msgs.reduce((max, m) => {
+      const ts = m.Timestamp || m.timestamp || m.CreatedAt || m.createdAt || '';
+      return ts > max ? ts : max;
+    }, '');
+    setPubRead(maxStr);
+    refreshBadge();
+  }
 }
 
 async function cfm(q){

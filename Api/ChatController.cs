@@ -219,11 +219,15 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpPost("Read")]
-        public async Task<ActionResult> SetPublicRead()
+        public async Task<ActionResult> SetPublicRead([FromBody] System.Text.Json.JsonElement payload)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
             var path = $"chat_pub_read_{userId:N}";
-            await _repository.WriteItemAsync(path, new { date = DateTime.UtcNow.ToString("O") }).ConfigureAwait(false);
+            var date = payload.ValueKind == System.Text.Json.JsonValueKind.Object && payload.TryGetProperty("date", out var d) ? d.GetString() : null;
+            if (string.IsNullOrEmpty(date)) 
+                date = DateTime.UtcNow.ToString("O");
+
+            await _repository.WriteItemAsync(path, new { date = date }).ConfigureAwait(false);
             return Ok();
         }
 
