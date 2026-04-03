@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "3.4.8.3",
+        "changelog": "Release 3.4.8.3 - Server-Side Read State: Chat & Announcements Cross-Device Persistence. Bypassing GH Actions.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/Hu1k1e/Jellyfin_Latestmedia/main/releases/jellyfin_latestmedia_v3.4.8.3.zip",
+        "checksum": "6002087b3befa6f9f98cedd513a5255d",
+        "timestamp": "2026-04-03T05:33:00Z"
+      },
+      {
         "version": "3.4.7.9",
         "changelog": "Release 3.4.7.9. See GitHub for details.",
         "targetAbi": "10.11.0.0",
