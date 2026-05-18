@@ -785,8 +785,8 @@ function refreshOnline(){
   api('Chat/Online').then(r=>{const e=document.getElementById('lmOnl');if(e)e.innerHTML=`<span class="lmOnlDot"></span> ${r.Count} online`}).catch(()=>{});
 }
 function refreshBadge(){
-  // Skip when tab is hidden or plugin not ready — saves 3 API calls per tick
-  if (document.hidden || !S.ok) return;
+  // Skip when tab is hidden, plugin not ready, or chat is disabled
+  if (document.hidden || !S.ok || S.cfg?.EnableChat === false) return;
 
   const myUid = (S.uid||'').toLowerCase().replace(/-/g,'');
 
@@ -2375,14 +2375,21 @@ const obs=new MutationObserver(()=>{
     // Notify feature modules registered with the shared observer
     if(window.__latestMediaObserver) window.__latestMediaObserver._notify();
 
-    // Video lifecycle: inject/destroy toast container based on <video> presence
+    // Video lifecycle: inject/destroy toast container (chat DM notifications).
+    // Only active when chat is enabled — zero cost when disabled.
     const videoEl = document.querySelector('video');
-    if (videoEl && !window._lmVideoActive) {
-      window._lmVideoActive = true;
-      injectToastContainer();
-      startNotificationPolling();
-    }
-    if (!videoEl && window._lmVideoActive) {
+    if (S.cfg?.EnableChat !== false) {
+      if (videoEl && !window._lmVideoActive) {
+        window._lmVideoActive = true;
+        injectToastContainer();
+        startNotificationPolling();
+      }
+      if (!videoEl && window._lmVideoActive) {
+        window._lmVideoActive = false;
+        destroyToastContainer();
+      }
+    } else if (window._lmVideoActive) {
+      // Chat was disabled at runtime — clean up any existing toast state
       window._lmVideoActive = false;
       destroyToastContainer();
     }
@@ -2412,25 +2419,31 @@ setInterval(()=>{
   if(!document.getElementById('lm-btn-latest'))S.ok=false;
   tryInject();
   tryInjectPlayerChat();
-  // Also check video lifecycle on heartbeat (in case observer missed the event)
+  // Video lifecycle on heartbeat (in case observer missed the event)
+  // Only active when chat is enabled — zero cost when disabled.
   const videoEl = document.querySelector('video');
-  if (videoEl && !window._lmVideoActive) {
-    window._lmVideoActive = true;
-    injectToastContainer();
-    startNotificationPolling();
-  }
-  if (!videoEl && window._lmVideoActive) {
+  if (S.cfg?.EnableChat !== false) {
+    if (videoEl && !window._lmVideoActive) {
+      window._lmVideoActive = true;
+      injectToastContainer();
+      startNotificationPolling();
+    }
+    if (!videoEl && window._lmVideoActive) {
+      window._lmVideoActive = false;
+      destroyToastContainer();
+    }
+  } else if (window._lmVideoActive) {
     window._lmVideoActive = false;
     destroyToastContainer();
   }
 },3000);
-// Badge: every 30s (was 4s). refreshBadge already skips when document.hidden.
+// Badge: every 30s. Skipped entirely if chat is disabled or tab is hidden.
 setInterval(()=>{
-  if(S.ok && !document.getElementById('lmChat')) refreshBadge();
+  if(S.ok && S.cfg?.EnableChat!==false && !document.getElementById('lmChat')) refreshBadge();
 }, 30000);
-// Announcements: every 60s (was 4s). refreshAnnounceBadge already skips when document.hidden.
+// Announcements: every 60s. Skipped entirely if announcements are disabled or tab is hidden.
 setInterval(()=>{
-  if(S.ok) refreshAnnounceBadge();
+  if(S.ok && S.cfg?.EnableAnnouncements!==false) refreshAnnounceBadge();
 }, 60000);
 
 // --- Feature 7: Star Ratings (JE ratingtags.js pattern) ---
