@@ -1,0 +1,652 @@
+[
+  {
+    "guid": "f94d6caf-2a62-4dd7-9f64-684ce8efff43",
+    "name": "Latest Media & Management",
+    "description": "Adds Latest Media, Media Management, and Chat to the Jellyfin header. Includes End-to-End encrypted DMs and admin scheduled deletions.",
+    "overview": "Comprehensive plugin providing recently added UI, admin media management, and integrated chat system with E2E encrypted private messaging.",
+    "owner": "Hu1k1e",
+    "category": "General",
+    "versions": [
+      {
+        "version": "3.4.8.3",
+        "changelog": "Release 3.4.8.3 - Server-Side Read State: Chat & Announcements Cross-Device Persistence. Bypassing GH Actions.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://raw.githubusercontent.com/Hu1k1e/Jellyfin_Latestmedia/main/releases/jellyfin_latestmedia_v3.4.8.3.zip",
+        "checksum": "6002087b3befa6f9f98cedd513a5255d",
+        "timestamp": "2026-04-03T05:33:00Z"
+      },
+      {
+        "version": "3.4.7.9",
+        "changelog": "Release 3.4.7.9. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.9/jellyfin_latestmedia_v3.4.7.9.zip",
+        "checksum": "b5203597e911682d171638a52ccd1658",
+        "timestamp": "2026-04-02T03:46:35Z"
+      },
+      {
+        "version": "3.4.7.8",
+        "changelog": "Release 3.4.7.8. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.8/jellyfin_latestmedia_v3.4.7.8.zip",
+        "checksum": "732c8848146227dfc2741d27bd0cd2ac",
+        "timestamp": "2026-04-02T03:43:06Z"
+      },
+      {
+        "version": "3.4.7.7",
+        "changelog": "Release 3.4.7.7. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.7/jellyfin_latestmedia_v3.4.7.7.zip",
+        "checksum": "91c3034e8c0bff893d8409ca2b1a672e",
+        "timestamp": "2026-04-02T03:36:15Z"
+      },
+      {
+        "version": "3.4.7.6",
+        "changelog": "Release 3.4.7.6. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.6/jellyfin_latestmedia_v3.4.7.6.zip",
+        "checksum": "0f41435a924ed4d1b3a679f318217b0e",
+        "timestamp": "2026-04-02T03:04:23Z"
+      },
+      {
+        "version": "3.4.7.5",
+        "changelog": "Release 3.4.7.5. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.5/jellyfin_latestmedia_v3.4.7.5.zip",
+        "checksum": "1b324d02ffa8dc08576faeaff566c8a0",
+        "timestamp": "2026-04-01T14:08:47Z"
+      },
+      {
+        "version": "3.4.7.4",
+        "changelog": "Release 3.4.7.4. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.4/jellyfin_latestmedia_v3.4.7.4.zip",
+        "checksum": "3338c50a34f58f416233b725ba7eec5b",
+        "timestamp": "2026-04-01T14:07:22Z"
+      },
+      {
+        "version": "3.4.7.3",
+        "changelog": "Release 3.4.7.3. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.3/jellyfin_latestmedia_v3.4.7.3.zip",
+        "checksum": "1ef507af12990bc487515cb6ce06b34e",
+        "timestamp": "2026-04-01T13:59:48Z"
+      },
+      {
+        "version": "3.4.7.2",
+        "changelog": "Release 3.4.7.2. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.2/jellyfin_latestmedia_v3.4.7.2.zip",
+        "checksum": "a87656ed030dbd34d36612bd1ccfa6dd",
+        "timestamp": "2026-04-01T13:46:05Z"
+      },
+      {
+        "version": "3.4.7.1",
+        "changelog": "Release 3.4.7.1. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.1/jellyfin_latestmedia_v3.4.7.1.zip",
+        "checksum": "908c8828eaf0657676e073e688c91a14",
+        "timestamp": "2026-04-01T13:41:41Z"
+      },
+      {
+        "version": "3.4.7.0",
+        "changelog": "Release 3.4.7.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.7.0/jellyfin_latestmedia_v3.4.7.0.zip",
+        "checksum": "51a974c2b2a7614fb8f89b85d6de1347",
+        "timestamp": "2026-04-01T13:27:22Z"
+      },
+      {
+        "version": "3.4.6.3",
+        "changelog": "Release 3.4.6.3. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.3/jellyfin_latestmedia_v3.4.6.3.zip",
+        "checksum": "e5a9b40239617992becca89863ed0a90",
+        "timestamp": "2026-04-01T12:07:21Z"
+      },
+      {
+        "version": "3.4.6.2",
+        "changelog": "Release 3.4.6.2. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.2/jellyfin_latestmedia_v3.4.6.2.zip",
+        "checksum": "1c40bfb13d2d8c4a57b86f6d034525ed",
+        "timestamp": "2026-04-01T11:56:33Z"
+      },
+      {
+        "version": "3.4.6.1",
+        "changelog": "Release 3.4.6.1. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.1/jellyfin_latestmedia_v3.4.6.1.zip",
+        "checksum": "b4018b55a1c53ac6bfe347ca3fe8d078",
+        "timestamp": "2026-04-01T11:42:09Z"
+      },
+      {
+        "version": "3.4.6.0",
+        "changelog": "Release 3.4.6.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.0/jellyfin_latestmedia_v3.4.6.0.zip",
+        "checksum": "a2c660924eba529af446a47877e94445",
+        "timestamp": "2026-04-01T11:30:16Z"
+      },
+      {
+        "version": "3.4.6.0",
+        "changelog": "Release 3.4.6.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.6.0/jellyfin_latestmedia_v3.4.6.0.zip",
+        "checksum": "3d2d99d0db0c906d72dde580202703ee",
+        "timestamp": "2026-04-01T11:28:25Z"
+      },
+      {
+        "version": "3.4.5.1",
+        "changelog": "Release 3.4.5.1. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.5.1/jellyfin_latestmedia_v3.4.5.1.zip",
+        "checksum": "46b8add8c5908cd43b70c309b98e9daa",
+        "timestamp": "2026-04-01T11:09:07Z"
+      },
+      {
+        "version": "3.4.4.0",
+        "changelog": "Release 3.4.4.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.4.0/jellyfin_latestmedia_v3.4.4.0.zip",
+        "checksum": "a470981d508fe1a41a79715d7af46d44",
+        "timestamp": "2026-04-01T10:38:54Z"
+      },
+      {
+        "version": "3.4.3.0",
+        "changelog": "Release 3.4.3.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.3.0/jellyfin_latestmedia_v3.4.3.0.zip",
+        "checksum": "3391bc70d27c90b1c6ca5fdb351e11d4",
+        "timestamp": "2026-04-01T10:13:11Z"
+      },
+      {
+        "version": "3.4.2.0",
+        "changelog": "Release 3.4.2.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.2.0/jellyfin_latestmedia_v3.4.2.0.zip",
+        "checksum": "31f431e093edf7dca6fd1ec3cd5f2b2b",
+        "timestamp": "2026-04-01T09:49:45Z"
+      },
+      {
+        "version": "3.4.1.0",
+        "changelog": "Release 3.4.1.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.1.0/jellyfin_latestmedia_v3.4.1.0.zip",
+        "checksum": "8fd5acba476a68e46d1075ae3f03d792",
+        "timestamp": "2026-04-01T09:25:09Z"
+      },
+      {
+        "version": "3.4.0.0",
+        "changelog": "Release 3.4.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.4.0.0/jellyfin_latestmedia_v3.4.0.0.zip",
+        "checksum": "ecf60945e09b9093940d01afd75f12b8",
+        "timestamp": "2026-04-01T08:55:28Z"
+      },
+      {
+        "version": "3.3.0.2",
+        "changelog": "Release 3.3.0.2. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.3.0.2/jellyfin_latestmedia_v3.3.0.2.zip",
+        "checksum": "59b8305211358c2b7e69b0b2fca06dc0",
+        "timestamp": "2026-04-01T08:16:12Z"
+      },
+      {
+        "version": "3.3.0.1",
+        "changelog": "Release 3.3.0.1. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.3.0.1/jellyfin_latestmedia_v3.3.0.1.zip",
+        "checksum": "051ca381c562b4a0c34a3bd72d1d13e0",
+        "timestamp": "2026-04-01T08:11:49Z"
+      },
+      {
+        "version": "3.2.0.0",
+        "changelog": "Release 3.2.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.2.0.0/jellyfin_latestmedia_v3.2.0.0.zip",
+        "checksum": "becb850014395997628bc7ed0d224296",
+        "timestamp": "2026-04-01T07:31:15Z"
+      },
+      {
+        "version": "3.1.0.0",
+        "changelog": "Release 3.1.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.1.0.0/jellyfin_latestmedia_v3.1.0.0.zip",
+        "checksum": "dc37bfa010902285af540c9e2da88ae0",
+        "timestamp": "2026-04-01T06:35:30Z"
+      },
+      {
+        "version": "3.0.9.0",
+        "changelog": "Release 3.0.9.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.9.0/jellyfin_latestmedia_v3.0.9.0.zip",
+        "checksum": "983435e7555a8c276354a170872edecb",
+        "timestamp": "2026-04-01T06:06:49Z"
+      },
+      {
+        "version": "3.0.8.0",
+        "changelog": "Release 3.0.8.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.8.0/jellyfin_latestmedia_v3.0.8.0.zip",
+        "checksum": "3b8682a5cee59dd411eca2c26fdf5fb6",
+        "timestamp": "2026-04-01T05:59:01Z"
+      },
+      {
+        "version": "3.0.7.0",
+        "changelog": "Release 3.0.7.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.7.0/jellyfin_latestmedia_v3.0.7.0.zip",
+        "checksum": "2203fab195d7639281bf5c493e146d37",
+        "timestamp": "2026-04-01T05:52:25Z"
+      },
+      {
+        "version": "3.0.6.0",
+        "changelog": "Release 3.0.6.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.6.0/jellyfin_latestmedia_v3.0.6.0.zip",
+        "checksum": "2fd7d4681f4a804f88ecf76b98aa7208",
+        "timestamp": "2026-04-01T05:35:29Z"
+      },
+      {
+        "version": "3.0.5.0",
+        "changelog": "Release 3.0.5.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.5.0/jellyfin_latestmedia_v3.0.5.0.zip",
+        "checksum": "93887b06405ec50d17774d0d9d5bde52",
+        "timestamp": "2026-04-01T05:06:03Z"
+      },
+      {
+        "version": "3.0.4.0",
+        "changelog": "Release 3.0.4.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.4.0/jellyfin_latestmedia_v3.0.4.0.zip",
+        "checksum": "2e58ff0927b833406330a38d9722b68f",
+        "timestamp": "2026-04-01T04:54:50Z"
+      },
+      {
+        "version": "3.0.3.0",
+        "changelog": "Release 3.0.3.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.3.0/jellyfin_latestmedia_v3.0.3.0.zip",
+        "checksum": "659ae2ee6f276814c0748d74385c579c",
+        "timestamp": "2026-04-01T04:34:16Z"
+      },
+      {
+        "version": "3.0.2.0",
+        "changelog": "Release 3.0.2.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.2.0/jellyfin_latestmedia_v3.0.2.0.zip",
+        "checksum": "6917d15804f8cae5c01ab75a24e84b96",
+        "timestamp": "2026-04-01T04:16:35Z"
+      },
+      {
+        "version": "3.0.1.0",
+        "changelog": "Release 3.0.1.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.1.0/jellyfin_latestmedia_v3.0.1.0.zip",
+        "checksum": "18f35280c58c3141538b5bc79a003d5b",
+        "timestamp": "2026-04-01T03:57:53Z"
+      },
+      {
+        "version": "3.0.0.0",
+        "changelog": "Release 3.0.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v3.0.0.0/jellyfin_latestmedia_v3.0.0.0.zip",
+        "checksum": "0d66850eeaf5bdde9b48c32974419ee3",
+        "timestamp": "2026-04-01T02:45:52Z"
+      },
+      {
+        "version": "2.2.7.0",
+        "changelog": "Release 2.2.7.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.7.0/jellyfin_latestmedia_v2.2.7.0.zip",
+        "checksum": "f9522a1ae350399a53622d25b4510475",
+        "timestamp": "2026-03-30T08:50:16Z"
+      },
+      {
+        "version": "2.2.6.0",
+        "changelog": "Release 2.2.6.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.6.0/jellyfin_latestmedia_v2.2.6.0.zip",
+        "checksum": "a0a4e4711df1cfe31f49aedaaa7797b3",
+        "timestamp": "2026-03-30T06:48:09Z"
+      },
+      {
+        "version": "2.2.5.0",
+        "changelog": "Release 2.2.5.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.5.0/jellyfin_latestmedia_v2.2.5.0.zip",
+        "checksum": "51bd9f75afd7edfb62528302ee3377c0",
+        "timestamp": "2026-03-30T06:35:33Z"
+      },
+      {
+        "version": "2.2.4.0",
+        "changelog": "Release 2.2.4.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.4.0/jellyfin_latestmedia_v2.2.4.0.zip",
+        "checksum": "9dd56ea2e4523e580110b062cfc65375",
+        "timestamp": "2026-03-30T06:23:30Z"
+      },
+      {
+        "version": "2.2.3.0",
+        "changelog": "Release 2.2.3.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.3.0/jellyfin_latestmedia_v2.2.3.0.zip",
+        "checksum": "53d682b5d735fbadbf0c8ab4e3168bb4",
+        "timestamp": "2026-03-30T06:10:27Z"
+      },
+      {
+        "version": "2.2.2.0",
+        "changelog": "Release 2.2.2.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.2.0/jellyfin_latestmedia_v2.2.2.0.zip",
+        "checksum": "5698c467e46227a2e1d5a9cef749d6e6",
+        "timestamp": "2026-03-30T05:57:02Z"
+      },
+      {
+        "version": "2.2.1.0",
+        "changelog": "Release 2.2.1.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.1.0/jellyfin_latestmedia_v2.2.1.0.zip",
+        "checksum": "37f8fda1c615e1a2f170ef2072a7be64",
+        "timestamp": "2026-03-30T05:39:23Z"
+      },
+      {
+        "version": "2.2.0.0",
+        "changelog": "Release 2.2.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.2.0.0/jellyfin_latestmedia_v2.2.0.0.zip",
+        "checksum": "a286623f1e70b798937c6226fe7894cb",
+        "timestamp": "2026-03-30T05:30:58Z"
+      },
+      {
+        "version": "2.1.0.0",
+        "changelog": "Release 2.1.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.1.0.0/jellyfin_latestmedia_v2.1.0.0.zip",
+        "checksum": "5385206eff4547722d382226eea113dc",
+        "timestamp": "2026-03-30T04:56:59Z"
+      },
+      {
+        "version": "2.0.0.0",
+        "changelog": "Release 2.0.0.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v2.0.0.0/jellyfin_latestmedia_v2.0.0.0.zip",
+        "checksum": "3d41696d0846eef43c3cd04b323b3260",
+        "timestamp": "2026-03-30T03:44:53Z"
+      },
+      {
+        "version": "1.0.89.0",
+        "changelog": "Release 1.0.89.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.89/jellyfin_latestmedia_v1.0.89.zip",
+        "checksum": "9d53047c3bf3bea3e8ceddad480756a5",
+        "timestamp": "2026-03-27T06:21:11Z"
+      },
+      {
+        "version": "1.0.88.0",
+        "changelog": "Release 1.0.88.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.88/jellyfin_latestmedia_v1.0.88.zip",
+        "checksum": "f2a16787b0c6aec3ec0591b4633f8266",
+        "timestamp": "2026-03-27T06:19:31Z"
+      },
+      {
+        "version": "1.0.87.0",
+        "changelog": "Release 1.0.87.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.87/jellyfin_latestmedia_v1.0.87.zip",
+        "checksum": "1931409fd2f882434fc713fcfe443c65",
+        "timestamp": "2026-03-27T06:16:21Z"
+      },
+      {
+        "version": "1.0.86.0",
+        "changelog": "Release 1.0.86.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.86/jellyfin_latestmedia_v1.0.86.zip",
+        "checksum": "59e7aa5ae45844aa5422863efbf319ee",
+        "timestamp": "2026-03-27T06:05:31Z"
+      },
+      {
+        "version": "1.0.85.0",
+        "changelog": "Release 1.0.85.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.85/jellyfin_latestmedia_v1.0.85.zip",
+        "checksum": "01f55ffee4873f1cbf120a46c383cc39",
+        "timestamp": "2026-03-27T06:04:37Z"
+      },
+      {
+        "version": "1.0.84.0",
+        "changelog": "Release 1.0.84.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.84/jellyfin_latestmedia_v1.0.84.zip",
+        "checksum": "89961546f2190797bda4b2a1a4de030d",
+        "timestamp": "2026-03-27T05:58:33Z"
+      },
+      {
+        "version": "1.0.83.0",
+        "changelog": "Release 1.0.83.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.83/jellyfin_latestmedia_v1.0.83.zip",
+        "checksum": "afa1522d5866b5d0276e6053dab138f9",
+        "timestamp": "2026-03-27T05:43:28Z"
+      },
+      {
+        "version": "1.0.82.0",
+        "changelog": "Release 1.0.82.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.82/jellyfin_latestmedia_v1.0.82.zip",
+        "checksum": "7a978451235843b83b62c15cf6c85065",
+        "timestamp": "2026-03-27T05:29:02Z"
+      },
+      {
+        "version": "1.0.81.0",
+        "changelog": "Release 1.0.81.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.81/jellyfin_latestmedia_v1.0.81.zip",
+        "checksum": "799dea68868ea47cb871b706e7ae7eba",
+        "timestamp": "2026-03-26T09:16:26Z"
+      },
+      {
+        "version": "1.0.80.0",
+        "changelog": "Release 1.0.80.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.80/jellyfin_latestmedia_v1.0.80.zip",
+        "checksum": "ebda184828eca65c6357715e40972243",
+        "timestamp": "2026-03-26T09:04:45Z"
+      },
+      {
+        "version": "1.0.79.0",
+        "changelog": "Release 1.0.79.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.79/jellyfin_latestmedia_v1.0.79.zip",
+        "checksum": "7343209721af1bd27f34cc0175f18786",
+        "timestamp": "2026-03-26T08:47:34Z"
+      },
+      {
+        "version": "1.0.75.1",
+        "changelog": "Release 1.0.75.1.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.75.1/jellyfin_latestmedia_v1.0.75.1.zip",
+        "checksum": "d8885650d56ddbcf112c8acf731ce421",
+        "timestamp": "2026-03-26T08:33:07Z"
+      },
+      {
+        "version": "1.0.74.0",
+        "changelog": "Release 1.0.74.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.74/jellyfin_latestmedia_v1.0.74.zip",
+        "checksum": "535ed06acbe2e172089bbae3a6c884c5",
+        "timestamp": "2026-03-26T07:54:13Z"
+      },
+      {
+        "version": "1.0.73.0",
+        "changelog": "Release 1.0.73.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.73/jellyfin_latestmedia_v1.0.73.zip",
+        "checksum": "be5fd50078f9b45768e13fe054fb1488",
+        "timestamp": "2026-03-26T07:39:26Z"
+      },
+      {
+        "version": "1.0.72.0",
+        "changelog": "Release 1.0.72.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.72/jellyfin_latestmedia_v1.0.72.zip",
+        "checksum": "5adefa8eeb00f6ffa4ac981f7882f0a1",
+        "timestamp": "2026-03-26T07:26:07Z"
+      },
+      {
+        "version": "1.0.68.0",
+        "changelog": "Release 1.0.68.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.68/jellyfin_latestmedia_v1.0.68.zip",
+        "checksum": "fc59a10ea6f44e14e23d9bc79c6c3521",
+        "timestamp": "2026-03-25T23:32:12Z"
+      },
+      {
+        "version": "1.0.67.0",
+        "changelog": "Release 1.0.67.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.67/jellyfin_latestmedia_v1.0.67.zip",
+        "checksum": "5767118e65aa768077af874525b9b939",
+        "timestamp": "2026-03-25T17:26:20Z"
+      },
+      {
+        "version": "1.0.66.0",
+        "changelog": "Release 1.0.66.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.66/jellyfin_latestmedia_v1.0.66.zip",
+        "checksum": "9eedbb4defc79048f149e620c458452e",
+        "timestamp": "2026-03-25T17:22:48Z"
+      },
+      {
+        "version": "1.0.65.0",
+        "changelog": "Release 1.0.65.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.65/jellyfin_latestmedia_v1.0.65.zip",
+        "checksum": "fe9ee3a43415b7b585129d75907fa59e",
+        "timestamp": "2026-03-25T17:16:46Z"
+      },
+      {
+        "version": "1.0.64.0",
+        "changelog": "Release 1.0.64.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.64/jellyfin_latestmedia_v1.0.64.zip",
+        "checksum": "11983cee05d876ec46ff6409f788f15a",
+        "timestamp": "2026-03-25T17:12:26Z"
+      },
+      {
+        "version": "1.0.63.0",
+        "changelog": "Release 1.0.63.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.63/jellyfin_latestmedia_v1.0.63.zip",
+        "checksum": "13c9b1f0db5810b754e9b1d784c9d008",
+        "timestamp": "2026-03-25T17:02:18Z"
+      },
+      {
+        "version": "1.0.62.0",
+        "changelog": "Release 1.0.62.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.62/jellyfin_latestmedia_v1.0.62.zip",
+        "checksum": "c7fd5e85745023872379e19797cf97a0",
+        "timestamp": "2026-03-25T16:56:40Z"
+      },
+      {
+        "version": "1.0.61.0",
+        "changelog": "Release 1.0.61.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.61/jellyfin_latestmedia_v1.0.61.zip",
+        "checksum": "49327fad95551ef9616101b2e6f05499",
+        "timestamp": "2026-03-25T16:55:48Z"
+      },
+      {
+        "version": "1.0.60.0",
+        "changelog": "Release 1.0.60.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.60/jellyfin_latestmedia_v1.0.60.zip",
+        "checksum": "16d0ea0a570cc51b8b2d9c950670d3ec",
+        "timestamp": "2026-03-25T16:41:11Z"
+      },
+      {
+        "version": "1.0.59.0",
+        "changelog": "Release 1.0.59.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.59/jellyfin_latestmedia_v1.0.59.zip",
+        "checksum": "fccf22bad2d30f4406af260162fd848d",
+        "timestamp": "2026-03-25T16:35:35Z"
+      },
+      {
+        "version": "1.0.58.0",
+        "changelog": "Release 1.0.58.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.58/jellyfin_latestmedia_v1.0.58.zip",
+        "checksum": "53ea44d01e954f87a6507e8deb4dbf3a",
+        "timestamp": "2026-03-25T16:29:05Z"
+      },
+      {
+        "version": "1.0.57.0",
+        "changelog": "Release 1.0.57.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.57/jellyfin_latestmedia_v1.0.57.zip",
+        "checksum": "a3dc7da6105e118bc16cd2c2b29f44c6",
+        "timestamp": "2026-03-25T16:12:46Z"
+      },
+      {
+        "version": "1.0.56.0",
+        "changelog": "Release 1.0.56.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.56/jellyfin_latestmedia_v1.0.56.zip",
+        "checksum": "1db05a1215b8ee9482f3424d5ae251df",
+        "timestamp": "2026-03-25T07:56:59Z"
+      },
+      {
+        "version": "1.0.55.0",
+        "changelog": "Release 1.0.55.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.55/jellyfin_latestmedia_v1.0.55.zip",
+        "checksum": "f107386c91e779a97bc876ec4853e5e4",
+        "timestamp": "2026-03-25T07:44:03Z"
+      },
+      {
+        "version": "1.0.54.0",
+        "changelog": "Release 1.0.54.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.54/jellyfin_latestmedia_v1.0.54.zip",
+        "checksum": "88a0329da7623199d5da96ded947118e",
+        "timestamp": "2026-03-25T07:38:29Z"
+      },
+      {
+        "version": "1.0.53.0",
+        "changelog": "Release 1.0.53.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.53/jellyfin_latestmedia_v1.0.53.zip",
+        "checksum": "96f9a0d8a5bc7e491c12574e40e6c535",
+        "timestamp": "2026-03-25T07:11:51Z"
+      },
+      {
+        "version": "1.0.52.0",
+        "changelog": "Release 1.0.52.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.52/jellyfin_latestmedia_v1.0.52.zip",
+        "checksum": "022d8e0e8e916298ade5ded21160356c",
+        "timestamp": "2026-03-25T02:46:17Z"
+      },
+      {
+        "version": "1.0.51.0",
+        "changelog": "Release 1.0.51.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.51/jellyfin_latestmedia_v1.0.51.zip",
+        "checksum": "9592dd7fcce34079836967733221b79d",
+        "timestamp": "2026-03-25T02:40:48Z"
+      },
+      {
+        "version": "1.0.50.0",
+        "changelog": "Release 1.0.50.0. See GitHub for details.",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/Hu1k1e/Jellyfin_Latestmedia/releases/download/v1.0.50/jellyfin_latestmedia_v1.0.50.zip",
+        "checksum": "9bd850c9044cc2b6dbd7f9509f6b9bc2",
+        "timestamp": "2026-03-25T02:37:37Z"
+      }
+    ]
+  }
+]

@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>Jellyfin_Latestmedia</RootNamespace>
+    <AssemblyName>Jellyfin_Latestmedia</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>CS1591</NoWarn>
+    <Version>3.4.8.5</Version>
+    <AssemblyVersion>3.4.8.5</AssemblyVersion>
+    <FileVersion>3.4.8.5</FileVersion>
+    <DefaultItemExcludes>JE-source\**;$(DefaultItemExcludes)</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference Jellyfin 10.11.6 stable packages — ExcludeAssets runtime so they are not bundled -->
+    <PackageReference Include="Jellyfin.Controller" Version="10.11.5">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+    <PackageReference Include="Jellyfin.Model" Version="10.11.5">
+      <ExcludeAssets>runtime</ExcludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- Embed all web assets and config page HTML as resources inside the DLL -->
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html" />
+    <EmbeddedResource Include="Configuration\configPage.html" />
+
+    <None Remove="Web\latestmedia.js" />
+    <EmbeddedResource Include="Web\latestmedia.js" />
+    
+    <None Remove="Web\inject.js" />
+    <EmbeddedResource Include="Web\inject.js" />
+
+    <!-- v3.0.0.0 Feature Modules — lazy-loaded by bootloader -->
+    <None Remove="Web\playback-controls.js" />
+    <EmbeddedResource Include="Web\playback-controls.js" />
+
+    <None Remove="Web\random-button.js" />
+    <EmbeddedResource Include="Web\random-button.js" />
+
+    <None Remove="Web\seerr-integration.js" />
+    <EmbeddedResource Include="Web\seerr-integration.js" />
+
+    <None Remove="Web\branding.js" />
+    <EmbeddedResource Include="Web\branding.js" />
+
+    <None Remove="Web\apply-branding.js" />
+    <EmbeddedResource Include="Web\apply-branding.js" />
+
+    <None Remove="Web\arr-integration.js" />
+    <EmbeddedResource Include="Web\arr-integration.js" />
+
+    <None Remove="Web\requests-page.js" />
+    <EmbeddedResource Include="Web\requests-page.js" />
+  </ItemGroup>
+
+</Project>
