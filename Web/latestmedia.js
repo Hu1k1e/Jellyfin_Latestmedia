@@ -22,6 +22,11 @@ const ICO={
 
 const S={url:'',tok:'',uid:'',dev:'',code:'',admin:false,cfg:{},ok:false,timer:null};
 
+// Badge polling cache — avoids redundant API calls on every tick
+let _badgeReadCache = null;      // cached Chat/Read date string
+let _badgeReadCacheAt = 0;       // epoch ms when last fetched
+const BADGE_READ_TTL = 300000;   // reuse Chat/Read result for 5 minutes
+
 function fmtCd(iso){
   if(!iso)return'';
   const rem=(new Date(iso)-new Date())/1000;
@@ -780,23 +785,37 @@ function refreshOnline(){
   api('Chat/Online').then(r=>{const e=document.getElementById('lmOnl');if(e)e.innerHTML=`<span class="lmOnlDot"></span> ${r.Count} online`}).catch(()=>{});
 }
 function refreshBadge(){
-  // Always fetch server-side read state first — this is the cross-device source of truth
-  Promise.all([
-    api('Chat/DM/Conversations').catch(()=>[]),
-    api('Chat/Read').catch(()=>({date:''}))
-  ]).then(([cs, readResp]) => {
-    // Determine the authoritative "last read" timestamp from the server.
-    const lastRead = (readResp && readResp.date) ? readResp.date : new Date(0).toISOString();
+  // Skip when tab is hidden or plugin not ready — saves 3 API calls per tick
+  if (document.hidden || !S.ok) return;
 
+  const myUid = (S.uid||'').toLowerCase().replace(/-/g,'');
+
+  // Re-use the in-memory conversations cache when available.
+  // CHAT_CACHE.convs is kept fresh by the 2.5s S.timer when chat is open,
+  // and by the badge poller's own fetch below when chat is closed.
+  const convsPromise = CHAT_CACHE.convs
+    ? Promise.resolve(CHAT_CACHE.convs)
+    : api('Chat/DM/Conversations').catch(()=>[]);
+
+  // Re-use the cached "last read" cursor for up to 5 minutes.
+  // setPubRead() and drawBubbles() both update _badgeReadCache directly.
+  const readPromise = (_badgeReadCache !== null && Date.now() - _badgeReadCacheAt < BADGE_READ_TTL)
+    ? Promise.resolve({date: _badgeReadCache})
+    : api('Chat/Read').catch(()=>({date:''}));
+
+  Promise.all([convsPromise, readPromise]).then(([cs, readResp]) => {
+    if (!CHAT_CACHE.convs) CHAT_CACHE.convs = cs || [];
+    const lastRead = (readResp && readResp.date) ? readResp.date : new Date(0).toISOString();
+    if (_badgeReadCache === null) {
+      _badgeReadCache = lastRead;
+      _badgeReadCacheAt = Date.now();
+    }
     return api(`Chat/Messages?since=${encodeURIComponent(lastRead)}`).catch(()=>[])
       .then(pub => {
-        const myUid = (S.uid||'').toLowerCase();
         const dmUnread = (cs||[]).reduce((a,c)=>a+(c.UnreadCount||c.unreadCount||0),0);
-        // Exclude own messages — a user's own sent messages are never "unread"
         const pubUnread = (pub||[]).filter(m => {
           const sender = (m.SenderId||m.senderId||'').toString().toLowerCase().replace(/-/g,'');
-          const me = myUid.replace(/-/g,'');
-          return sender !== me;
+          return sender !== myUid;
         }).length;
         const hasUnread = !fsMuted && (dmUnread > 0 || pubUnread > 0);
         const b=document.getElementById('lmChatBdg');
@@ -966,17 +985,23 @@ function showFsNotification(msg) {
 function startNotificationPolling() {
   if (_lmPollInterval) return;
   _lmPollStartTime = Date.now();
+  // Track last-known unread count per conversation to avoid re-fetching unchanged convs
+  const _lastUnreadCounts = {};
 
   _lmPollInterval = setInterval(() => {
     if (fsMuted) return;
+    if (document.hidden) return;            // skip when tab is not visible
     if (document.getElementById('lmChat')) return;
-    // Poll DM conversations for new unread messages
     api('Chat/DM/Conversations').then(convs => {
       if (!Array.isArray(convs)) return;
       const unreadConvs = convs.filter(c => (c.UnreadCount || c.unreadCount || 0) > 0);
       unreadConvs.forEach(conv => {
         const uid = conv.UserId || conv.userId;
         if (!uid) return;
+        const unreadCount = conv.UnreadCount || conv.unreadCount || 0;
+        // Skip if unread count hasn't changed since last tick — no new messages
+        if (_lastUnreadCounts[uid] === unreadCount) return;
+        _lastUnreadCounts[uid] = unreadCount;
         api(`Chat/DM/${uid}/Messages`).then(msgs => {
           if (!Array.isArray(msgs)) return;
           const newMsgs = msgs.filter(m => {
@@ -991,7 +1016,7 @@ function startNotificationPolling() {
         }).catch(() => {});
       });
     }).catch(() => {});
-  }, 3000);
+  }, 10000); // increased from 3000ms — DM toasts are not time-critical to the second
 }
 
 function preserveCache(oldArr, newArr) {
@@ -1147,6 +1172,10 @@ function toggleCodePop(panel){
 }
 
 function setPubRead(maxTimestamp) { 
+  if (maxTimestamp && (_badgeReadCache === null || maxTimestamp > _badgeReadCache)) {
+    _badgeReadCache = maxTimestamp;
+    _badgeReadCacheAt = Date.now();
+  }
   const payload = maxTimestamp ? { date: maxTimestamp } : {};
   api('Chat/Read', { method: 'POST', body: JSON.stringify(payload) }).catch(()=>{});
 }
@@ -1420,8 +1449,9 @@ function renderMarkdown(raw) {
 
 function refreshAnnounceBadge() {
   if (!S.ok || S.cfg?.EnableAnnouncements === false) return;
+  if (document.hidden) return;
   Promise.all([
-    api(`Announcement?_t=${Date.now()}`),
+    api('Announcement'),          // no cache-buster — let HTTP caching work
     api('Announcement/Read')
   ]).then(([list, readRes]) => {
     if (!Array.isArray(list)) return;
@@ -2223,10 +2253,13 @@ async function tryInject(){
         // This is immune to the module load timing race.
         (function injectDownloadsSidebarLink() {
           if (document.querySelector('.je-nav-downloads-item')) return;
-          var _sbInterval = setInterval(function() {
+          // Guard: only one polling interval allowed at a time
+          if (window._lmSbInterval) return;
+          window._lmSbInterval = setInterval(function() {
             var menu = document.querySelector('.navMenu');
             if (menu && !menu.querySelector('.je-nav-downloads-item')) {
-              clearInterval(_sbInterval);
+              clearInterval(window._lmSbInterval);
+              window._lmSbInterval = null;
               var link = document.createElement('a');
               link.className = 'navMenuOption emby-button je-nav-downloads-item';
               link.title = 'Active Downloads';
@@ -2250,12 +2283,16 @@ async function tryInject(){
                 else menu.appendChild(link);
               }
               console.log('[LM] Active Downloads nav link injected into sidebar');
+            } else if (menu && menu.querySelector('.je-nav-downloads-item')) {
+              // Already injected — stop polling
+              clearInterval(window._lmSbInterval);
+              window._lmSbInterval = null;
             }
           }, 400);
           // Re-inject when sidebar rebuilds on SPA navigation
           ['hashchange', 'viewshow', 'pageshow'].forEach(function(evt) {
             window.addEventListener(evt, function() {
-              if (!document.querySelector('.je-nav-downloads-item')) {
+              if (!document.querySelector('.je-nav-downloads-item') && !window._lmSbInterval) {
                 setTimeout(injectDownloadsSidebarLink, 300);
               }
             });
@@ -2351,8 +2388,13 @@ const obs=new MutationObserver(()=>{
     }
   }, 150);
 });
-obs.observe(document.body,{childList:true,subtree:true});
+// Watch only direct children of body (SPA view container swaps).
+// subtree:false prevents firing on every image load, card render, and chat bubble —
+// the 3s heartbeat below handles re-injection after navigation.
+obs.observe(document.body,{childList:true,subtree:false});
 setInterval(()=>{
+  // Skip all work when the browser tab is hidden — saves CPU and avoids stacking up injections
+  if (document.hidden) return;
   const curUid = window.ApiClient ? window.ApiClient.getCurrentUserId() : null;
   if (curUid && S.uid && S.uid !== curUid) {
     S.tok = window.ApiClient.accessToken();
@@ -2382,10 +2424,14 @@ setInterval(()=>{
     destroyToastContainer();
   }
 },3000);
+// Badge: every 30s (was 4s). refreshBadge already skips when document.hidden.
 setInterval(()=>{
   if(S.ok && !document.getElementById('lmChat')) refreshBadge();
+}, 30000);
+// Announcements: every 60s (was 4s). refreshAnnounceBadge already skips when document.hidden.
+setInterval(()=>{
   if(S.ok) refreshAnnounceBadge();
-}, 4000);
+}, 60000);
 
 // --- Feature 7: Star Ratings (JE ratingtags.js pattern) ---
 var _starRatingObserver = null;
@@ -2393,7 +2439,7 @@ var _starProcessed = new WeakSet();
 var _starPendingQueue = [];
 var _starProcessing = false;
 var _starDebounceTimer = null;
-var STAR_DEBOUNCE_MS = 150;
+var STAR_DEBOUNCE_MS = 500;  // increased from 150ms — reduces scan frequency after each DOM change
 var STAR_TAGGED_ATTR = 'data-lm-star-checked';
 var STAR_CACHE = JSON.parse(sessionStorage.getItem('lmStarCache') || '{}');
 var STAR_MEDIA_TYPES = { Movie: true, Series: true, Episode: true, Season: true };
@@ -2477,6 +2523,7 @@ function _starProcessQueue() {
 }
 
 function _starScanAndProcess() {
+    if (document.hidden) return; // skip scan when tab is not visible
     document.querySelectorAll('.cardImageContainer:not([' + STAR_TAGGED_ATTR + '])').forEach(function(el) {
         if (_starProcessed.has(el)) return;
         if (_starShouldIgnore(el)) { el.setAttribute(STAR_TAGGED_ATTR, 'skip'); return; }

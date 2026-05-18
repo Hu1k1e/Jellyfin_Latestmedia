@@ -82,18 +82,42 @@ namespace Jellyfin_Latestmedia.Services
                                 _logger.LogInformation("Deleting scheduled item {ItemName} ({ItemId}), scheduled by {ScheduledBy}",
                                     libraryItem.Name, item.ItemId, item.ScheduledByName);
 
-                                // First, remove from Radarr/Sonarr so the item doesn't get re-imported
                                 var kind = libraryItem.GetBaseItemKind();
-                                if (kind == BaseItemKind.Movie)
-                                    await DeleteFromRadarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
-                                else if (kind == BaseItemKind.Series || kind == BaseItemKind.Episode || kind == BaseItemKind.Season)
-                                    await DeleteFromSonarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
 
-                                // Then delete from Jellyfin (and disk)
+                                // ── Step 1: Remove from Radarr/Sonarr with import exclusion ──
+                                // This must happen BEFORE the Jellyfin deletion so we still
+                                // have provider IDs and can look up the item in the *arr DB.
+                                if (kind == BaseItemKind.Movie)
+                                {
+                                    await DeleteFromRadarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
+                                }
+                                else if (kind == BaseItemKind.Series)
+                                {
+                                    // Series carries the TVDB ID directly.
+                                    await DeleteFromSonarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
+                                }
+                                else if (kind == BaseItemKind.Season || kind == BaseItemKind.Episode)
+                                {
+                                    // Seasons and episodes don't carry the TVDB ID themselves —
+                                    // walk up to the parent Series to get it.
+                                    var seriesItem = GetParentSeries(libraryItem);
+                                    if (seriesItem != null)
+                                        await DeleteFromSonarr(seriesItem.Name, seriesItem.ProviderIds).ConfigureAwait(false);
+                                    else
+                                        _logger.LogWarning("[ArrDelete] Could not find parent Series for {Name} — skipping Sonarr delete", libraryItem.Name);
+                                }
+
+                                // ── Step 2: Delete from Jellyfin and from disk ──
                                 _libraryManager.DeleteItem(libraryItem, new DeleteOptions
                                 {
                                     DeleteFileLocation = true
                                 }, true);
+
+                                _logger.LogInformation("Deleted '{ItemName}' from Jellyfin library and disk.", libraryItem.Name);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Scheduled item {ItemId} not found in Jellyfin library — removing from schedule.", item.ItemId);
                             }
                         }
                     }
@@ -112,6 +136,22 @@ namespace Jellyfin_Latestmedia.Services
             }
 
             progress.Report(100);
+        }
+
+        /// <summary>
+        /// Walks up the Jellyfin item hierarchy to find the Series parent.
+        /// Used for Season and Episode items that don't carry a direct TVDB ID.
+        /// </summary>
+        private MediaBrowser.Controller.Entities.BaseItem? GetParentSeries(MediaBrowser.Controller.Entities.BaseItem item)
+        {
+            var parent = item.GetParent();
+            while (parent != null)
+            {
+                if (parent.GetBaseItemKind() == BaseItemKind.Series)
+                    return parent;
+                parent = parent.GetParent();
+            }
+            return null;
         }
 
         /// <summary>
@@ -154,10 +194,11 @@ namespace Jellyfin_Latestmedia.Services
                 if (movie == null || !movie.Value.TryGetProperty("id", out var idEl)) return;
                 var radarrId = idEl.GetInt32();
 
-                // Delete from Radarr (deleteFiles=true so disk copy is removed too)
-                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/movie/{radarrId}?deleteFiles=true&addImportExclusion=false").ConfigureAwait(false);
+                // Delete from Radarr — deleteFiles=true removes the disk copy,
+                // addImportExclusion=true prevents Radarr from ever re-adding this movie.
+                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/movie/{radarrId}?deleteFiles=true&addImportExclusion=true").ConfigureAwait(false);
                 if (delResp.IsSuccessStatusCode)
-                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Radarr ID {Id}) from Radarr", name, radarrId);
+                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Radarr ID {Id}) from Radarr with import exclusion", name, radarrId);
                 else
                     _logger.LogWarning("[ArrDelete] Radarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
             }
@@ -204,10 +245,11 @@ namespace Jellyfin_Latestmedia.Services
                 if (series == null || !series.Value.TryGetProperty("id", out var idEl)) return;
                 var sonarrId = idEl.GetInt32();
 
-                // Delete from Sonarr (deleteFiles=true)
-                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/series/{sonarrId}?deleteFiles=true").ConfigureAwait(false);
+                // Delete from Sonarr — deleteFiles=true removes the disk copy,
+                // addImportExclusion=true prevents Sonarr from ever re-adding this series.
+                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/series/{sonarrId}?deleteFiles=true&addImportExclusion=true").ConfigureAwait(false);
                 if (delResp.IsSuccessStatusCode)
-                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Sonarr ID {Id}) from Sonarr", name, sonarrId);
+                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Sonarr ID {Id}) from Sonarr with import exclusion", name, sonarrId);
                 else
                     _logger.LogWarning("[ArrDelete] Sonarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
             }
