@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Jellyfin_Latestmedia.Configuration;
 using Jellyfin_Latestmedia.Data;
 using Jellyfin_Latestmedia.Models;
 using MediaBrowser.Controller.Library;
