@@ -321,6 +321,8 @@ st.innerHTML=`
 .lmAnnCanBtn:hover{background:rgba(255,255,255,.13)}
 .lmAnnBdg{position:absolute;top:-2px;right:-2px;background:#e53935;color:#fff;border-radius:50%;width:15px;height:15px;font-size:.56em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0;pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.6);line-height:1}
 .lmAnnBdg.on{display:flex}
+.lmAnnUnreadDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#e53935;flex-shrink:0;margin-right:7px;align-self:center;box-shadow:0 0 4px rgba(229,57,53,.6)}
+.lmAnnCard{display:flex;align-items:center}
 `;
 document.head.appendChild(st);
 
@@ -1493,6 +1495,7 @@ function openAnnouncements(wrap) {
   const hdrRight = document.createElement('div');
   hdrRight.style.cssText = 'display:flex;align-items:center;gap:6px';
 
+  // Header right side: Mark all read + optional admin + close
   if (S.admin) {
     const addBtn = document.createElement('button');
     addBtn.className = 'lmAnnAddBtn';
@@ -1501,6 +1504,28 @@ function openAnnouncements(wrap) {
     addBtn.onclick = (e) => { e.stopPropagation(); openAnnCreate(); };
     hdrRight.appendChild(addBtn);
   }
+
+  const markAllBtn = document.createElement('button');
+  markAllBtn.className = 'lmAnnAddBtn';
+  markAllBtn.title = 'Mark all read';
+  markAllBtn.style.cssText = 'font-size:.75em;padding:2px 7px;opacity:.7;';
+  markAllBtn.textContent = '✓ All';
+  markAllBtn.onclick = (e) => {
+    e.stopPropagation();
+    // Advance read cursor to the newest announcement
+    api('Announcement').then(list => {
+      if (!Array.isArray(list) || !list.length) return;
+      const maxStr = list.reduce((m, a) => (a.CreatedAt || '') > m ? (a.CreatedAt || '') : m, '');
+      api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: maxStr }) })
+        .then(() => {
+          refreshAnnounceBadge();
+          // Reload card list to remove unread dots
+          const lb = document.getElementById('lmAnnBody');
+          if (lb) loadAnnouncementList(lb);
+        });
+    }).catch(() => {});
+  };
+  hdrRight.appendChild(markAllBtn);
 
   const cl = document.createElement('button');
   cl.className = 'lmCCl';
@@ -1532,9 +1557,14 @@ function closeAnnouncements() {
 }
 
 function loadAnnouncementList(body) {
-  api(`Announcement?_t=${Date.now()}`).then(list => {
+  // Fetch announcements and the current user's read cursor in parallel
+  Promise.all([
+    api(`Announcement?_t=${Date.now()}`),
+    api('Announcement/Read')
+  ]).then(([list, readRes]) => {
     if (!Array.isArray(list)) list = [];
 
+    const lastRead = readRes && readRes.date ? readRes.date : '';
     const nowMs = Date.now();
 
     // Filter out expired IsScheduled announcements (event already passed)
@@ -1550,36 +1580,42 @@ function loadAnnouncementList(body) {
       return;
     }
 
-    // Sort: scheduled ones by EventDate ascending (soonest first), regular by CreatedAt descending
+    // Sort: regular newest-first at top, scheduled soonest-first at bottom
     list.sort((a, b) => {
-      // Regular announcements at top, sorted newest first
       if (!a.IsScheduled && !b.IsScheduled) return new Date(b.CreatedAt).getTime() - new Date(a.CreatedAt).getTime();
-      // Scheduled at bottom, sorted soonest first
       if (a.IsScheduled && !b.IsScheduled) return 1;
       if (!a.IsScheduled && b.IsScheduled) return -1;
       return new Date(a.EventDate).getTime() - new Date(b.EventDate).getTime();
     });
 
-    const maxStr = list.reduce((max, a) => (a.CreatedAt || '') > max ? (a.CreatedAt || '') : max, '');
-    api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: maxStr }) }).then(() => refreshAnnounceBadge());
+    // NOTE: Do NOT auto-mark-all-read here — that broke the badge.
+    // Read state is advanced only when the user opens an individual announcement.
 
     body.innerHTML = '';
     list.forEach(a => {
       const card = document.createElement('div');
       card.className = 'lmAnnCard';
 
+      // Unread indicator dot for this user
+      const isUnread = !a.IsScheduled && (a.CreatedAt || '') > lastRead;
+      if (isUnread) {
+        const dot = document.createElement('span');
+        dot.className = 'lmAnnUnreadDot';
+        dot.title = 'Unread';
+        card.appendChild(dot);
+        card.style.borderLeft = '2px solid #e53935';
+      }
+
       const main = document.createElement('div');
       main.className = 'lmAnnCardMain';
 
       if (a.IsScheduled && a.EventDate) {
-        // Scheduled announcement card
         const d = new Date(a.EventDate);
         const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' }) + ' ' + d.toLocaleTimeString(undefined, {hour: '2-digit', minute:'2-digit'});
         main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div>
                           <div class="lmAnnCardDate">${esc(dateStr)}</div>`;
         card.appendChild(main);
 
-        // White right-aligned countdown — no green badge
         const cd = document.createElement('span');
         cd.className = 'lmCdT';
         cd.dataset.iso = a.EventDate;
@@ -1588,10 +1624,8 @@ function loadAnnouncementList(body) {
         cd.textContent = 'in ' + fmtCd(a.EventDate);
         card.appendChild(cd);
 
-        // Opens detail view, NOT the edit form
-        card.onclick = () => openAnnDetail(a);
+        card.onclick = () => openAnnDetail(a, lastRead);
       } else {
-        // Regular announcement card
         const d = new Date(a.CreatedAt);
         const dateStr = d.toLocaleDateString(undefined, { month:'short', day:'numeric', year:'numeric' });
         main.innerHTML = `<div class="lmAnnCardTitle">${esc(a.Title)}</div><div class="lmAnnCardDate">${esc(dateStr)}</div>`;
@@ -1602,7 +1636,7 @@ function loadAnnouncementList(body) {
           ver.textContent = esc(a.Version);
           card.appendChild(ver);
         }
-        card.onclick = () => openAnnDetail(a);
+        card.onclick = () => openAnnDetail(a, lastRead);
       }
 
       body.appendChild(card);
@@ -1612,9 +1646,21 @@ function loadAnnouncementList(body) {
   });
 }
 
-function openAnnDetail(ann) {
+function openAnnDetail(ann, lastRead) {
   let det = document.getElementById('lmAnnDetail');
   if (det) det.remove();
+
+  // Mark this announcement as read for the current user:
+  // advance cursor only if this ann's CreatedAt is newer than what we last saw.
+  if (!ann.IsScheduled && ann.CreatedAt && ann.CreatedAt > (lastRead || '')) {
+    api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: ann.CreatedAt }) })
+      .then(() => {
+        refreshAnnounceBadge();
+        // Refresh the card list to remove this card's unread dot
+        const lb = document.getElementById('lmAnnBody');
+        if (lb) loadAnnouncementList(lb);
+      }).catch(() => {});
+  }
 
   det = document.createElement('div');
   det.id = 'lmAnnDetail';
