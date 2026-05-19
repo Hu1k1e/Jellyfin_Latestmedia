@@ -322,7 +322,6 @@ st.innerHTML=`
 .lmAnnBdg{position:absolute;top:-2px;right:-2px;background:#e53935;color:#fff;border-radius:50%;width:15px;height:15px;font-size:.56em;font-weight:700;display:none;align-items:center;justify-content:center;padding:0;pointer-events:none;box-shadow:0 0 4px rgba(0,0,0,.6);line-height:1}
 .lmAnnBdg.on{display:flex}
 .lmAnnUnreadDot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#e53935;flex-shrink:0;margin-right:7px;align-self:center;box-shadow:0 0 4px rgba(229,57,53,.6)}
-.lmAnnCard{display:flex;align-items:center}
 `;
 document.head.appendChild(st);
 
@@ -1505,28 +1504,6 @@ function openAnnouncements(wrap) {
     hdrRight.appendChild(addBtn);
   }
 
-  const markAllBtn = document.createElement('button');
-  markAllBtn.className = 'lmAnnAddBtn';
-  markAllBtn.title = 'Mark all read';
-  markAllBtn.style.cssText = 'font-size:.75em;padding:2px 7px;opacity:.7;';
-  markAllBtn.textContent = '✓ All';
-  markAllBtn.onclick = (e) => {
-    e.stopPropagation();
-    // Advance read cursor to the newest announcement
-    api('Announcement').then(list => {
-      if (!Array.isArray(list) || !list.length) return;
-      const maxStr = list.reduce((m, a) => (a.CreatedAt || '') > m ? (a.CreatedAt || '') : m, '');
-      api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: maxStr }) })
-        .then(() => {
-          refreshAnnounceBadge();
-          // Reload card list to remove unread dots
-          const lb = document.getElementById('lmAnnBody');
-          if (lb) loadAnnouncementList(lb);
-        });
-    }).catch(() => {});
-  };
-  hdrRight.appendChild(markAllBtn);
-
   const cl = document.createElement('button');
   cl.className = 'lmCCl';
   cl.innerHTML = '&times;';
@@ -1733,6 +1710,7 @@ function openAnnDetail(ann, lastRead) {
 }
 
 function openSchedCreate(editObj = null) {
+  if (!S.admin) return; // safety guard — admin only
   if (document.getElementById('lmSchedCreateOv')) return;
 
   const ov = document.createElement('div');
@@ -2009,6 +1987,7 @@ function openAllScheduledTasks() {
 }
 
 function openAnnCreate(editObj = null) {
+  if (!S.admin) return; // safety guard — UI already hides this for non-admins
   if (document.getElementById('lmAnnCreateOv')) return;
 
   const ov = document.createElement('div');
