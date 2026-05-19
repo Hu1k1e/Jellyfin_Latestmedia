@@ -158,5 +158,37 @@ namespace Jellyfin_Latestmedia.Api
             // Order by closest deletion date
             return Ok(result.OrderBy(x => x.ScheduledDate).ToList());
         }
+
+        /// <summary>GET /LatestMedia/Config — Public config flags for all authenticated users.</summary>
+        /// <remarks>
+        /// The built-in Plugins/{id}/Configuration endpoint is admin-only.
+        /// Non-admins got 403 → empty cfg → all feature flags defaulted to enabled.
+        /// This endpoint exposes only the UI display flags to any logged-in user.
+        /// </remarks>
+        [HttpGet("Config")]
+        public ActionResult GetPublicConfig()
+        {
+            var cfg = Plugin.Instance?.Configuration ?? new PluginConfiguration();
+            return Ok(new
+            {
+                cfg.EnableLatestMediaButton,
+                cfg.EnableMediaManagement,
+                cfg.EnableChat,
+                cfg.EnableAnnouncements,
+                cfg.AutoPauseEnabled,
+                cfg.AutoResumeEnabled,
+                cfg.AutoPipEnabled,
+                cfg.RandomButtonEnabled,
+                cfg.JellyseerrEnabled,
+                cfg.JellyseerrEnable4KRequests,
+                cfg.JellyseerrEnable4KTvRequests,
+                cfg.EnableCustomBranding,
+                cfg.ArrLinksEnabled,
+                cfg.ArrDownloadsEnabled,
+                cfg.ShowOnMobile,
+                cfg.AnnouncementHeading,
+                cfg.PluginTheme
+            });
+        }
     }
 }

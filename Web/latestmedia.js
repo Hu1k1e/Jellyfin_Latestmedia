@@ -665,6 +665,19 @@ let currentChatContext='';
 let fsMuted = localStorage.getItem('lm_fs_muted') === 'true';
 let fsSeenIds = new Set();
 
+// Per-announcement read tracking (localStorage, by announcement ID).
+// Separate from the server cursor — individual opens don't move the server date.
+let _annReadIds = new Set(JSON.parse(localStorage.getItem('lm_ann_read') || '[]'));
+function _annMarkRead(id) {
+  if (!id || _annReadIds.has(id)) return;
+  _annReadIds.add(id);
+  // Trim to avoid unbounded growth
+  if (_annReadIds.size > 500) {
+    const arr = [..._annReadIds]; _annReadIds = new Set(arr.slice(-400));
+  }
+  localStorage.setItem('lm_ann_read', JSON.stringify([..._annReadIds]));
+}
+
 /* Notification state — declared here so mute handler can reference them */
 window._lmVideoActive = false;
 let _lmActiveTimers = new Map();
@@ -1472,6 +1485,18 @@ function refreshAnnounceBadge() {
 function openAnnouncements(wrap) {
   if (document.getElementById('lmAnnDD')) { closeAnnouncements(); return; }
 
+  // ── Panel opened: clear the header badge by advancing the server cursor to
+  // the newest announcement. In-panel dots are NOT affected (those use localStorage).
+  api('Announcement').then(list => {
+    if (!Array.isArray(list) || !list.length) return;
+    const maxStr = list
+      .filter(a => !a.IsScheduled)
+      .reduce((m, a) => (a.CreatedAt || '') > m ? (a.CreatedAt || '') : m, '');
+    if (!maxStr) return;
+    api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: maxStr }) })
+      .then(() => refreshAnnounceBadge())
+      .catch(() => {});
+  }).catch(() => {});
   const dd = document.createElement('div');
   dd.id = 'lmAnnDD';
   dd.className = 'lmPanel lmAnnDD';
@@ -1565,16 +1590,16 @@ function loadAnnouncementList(body) {
       return new Date(a.EventDate).getTime() - new Date(b.EventDate).getTime();
     });
 
-    // NOTE: Do NOT auto-mark-all-read here — that broke the badge.
-    // Read state is advanced only when the user opens an individual announcement.
+    // NOTE: Do NOT advance cursor here. Cursor is moved when panel opens (header badge).
+    // Individual dots use _annReadIds (localStorage) — not the server cursor.
 
     body.innerHTML = '';
     list.forEach(a => {
       const card = document.createElement('div');
       card.className = 'lmAnnCard';
 
-      // Unread indicator dot for this user
-      const isUnread = !a.IsScheduled && (a.CreatedAt || '') > lastRead;
+      // Unread indicator dot: based on localStorage (per device, not affected by server cursor)
+      const isUnread = !a.IsScheduled && !_annReadIds.has(a.Id);
       if (isUnread) {
         const dot = document.createElement('span');
         dot.className = 'lmAnnUnreadDot';
@@ -1627,16 +1652,17 @@ function openAnnDetail(ann, lastRead) {
   let det = document.getElementById('lmAnnDetail');
   if (det) det.remove();
 
-  // Mark this announcement as read for the current user:
-  // advance cursor only if this ann's CreatedAt is newer than what we last saw.
-  if (!ann.IsScheduled && ann.CreatedAt && ann.CreatedAt > (lastRead || '')) {
-    api('Announcement/Read', { method: 'POST', body: JSON.stringify({ date: ann.CreatedAt }) })
-      .then(() => {
-        refreshAnnounceBadge();
-        // Refresh the card list to remove this card's unread dot
-        const lb = document.getElementById('lmAnnBody');
-        if (lb) loadAnnouncementList(lb);
-      }).catch(() => {});
+  // Mark this specific announcement as read (localStorage, per-device).
+  // This ONLY clears this announcement's in-panel dot — it does NOT touch the
+  // server cursor (which is used only for the header badge).
+  if (!ann.IsScheduled && ann.Id) {
+    const wasUnread = !_annReadIds.has(ann.Id);
+    _annMarkRead(ann.Id);
+    if (wasUnread) {
+      // Refresh the card list to remove this card's dot
+      const lb = document.getElementById('lmAnnBody');
+      if (lb) loadAnnouncementList(lb);
+    }
   }
 
   det = document.createElement('div');
@@ -2191,7 +2217,7 @@ async function tryInject(){
     S.url=((typeof ac.serverAddress==='function'?ac.serverAddress():null)||location.origin).replace(/\/$/,'');
     const me=await api('Users/Me');
     S.uid=me.Id;S.admin=me.Policy?.IsAdministrator||false;
-    let cfg={};try{cfg=await api(`Plugins/${PID}/Configuration`)}catch(e){}
+    let cfg={};try{cfg=await api('LatestMedia/Config')}catch(e){}
     S.cfg=cfg;
 
     // ── Expose shared globals for feature modules ──
@@ -2363,15 +2389,16 @@ async function tryInject(){
       const bdg=document.createElement('span');bdg.id='lmChatBdg';bdg.className='lmBdg';b.appendChild(bdg);
       f.appendChild(b);
       api('Chat/MyCode').then(r=>{S.code=r.Code}).catch(()=>{});
-      refreshBadge();
     }
     if(cfg.EnableAnnouncements!==false){
       const ab=mkBtn('lm-btn-announce',ICO.announce,(ev,w)=>openAnnouncements(w));
       const abdg=document.createElement('span');abdg.id='lmAnnBdg';abdg.className='lmAnnBdg';ab.appendChild(abdg);
       f.appendChild(ab);
-      refreshAnnounceBadge();
     }
     hr.insertBefore(f,hr.firstChild);S.ok=true;
+    // Fire badge refreshes NOW that S.ok is true (they bail early if S.ok is false)
+    if(cfg.EnableChat!==false) refreshBadge();
+    if(cfg.EnableAnnouncements!==false) refreshAnnounceBadge();
   }catch(ex){console.debug('[LM] deferred:',ex.message)}finally{ij=false}
 }
 
