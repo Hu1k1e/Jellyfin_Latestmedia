@@ -1470,7 +1470,9 @@ function refreshAnnounceBadge() {
   ]).then(([list, readRes]) => {
     if (!Array.isArray(list)) return;
     const lastRead = readRes && readRes.date ? readRes.date : '';
-    const unread = list.filter(a => (a.CreatedAt || '') > lastRead).length;
+    // Only count non-scheduled items — scheduled ones are time-based events, not
+    // unread content, and their CreatedAt is never included in the cursor advancement.
+    const unread = list.filter(a => !a.IsScheduled && (a.CreatedAt || '') > lastRead).length;
     const bdg = document.getElementById('lmAnnBdg');
     if (!bdg) return;
     if (unread > 0) {
