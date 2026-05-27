@@ -370,7 +370,13 @@ namespace Jellyfin_Latestmedia.Api
             if (removed > 0)
                 await _repository.WriteListAsync("scheduled_deletions", deletions);
 
-            return Ok(new { success = true, message = $"'{libraryItem.Name}' deleted from arr. Jellyfin will remove it on next library scan." });
+            // Delete from Jellyfin library now that arr has removed the files
+            _libraryManager.DeleteItem(libraryItem, new DeleteOptions
+            {
+                DeleteFileLocation = false // Arr already deleted the physical file
+            }, true);
+
+            return Ok(new { success = true, message = $"'{libraryItem.Name}' deleted from arr and Jellyfin library." });
         }
 
         /// <summary>

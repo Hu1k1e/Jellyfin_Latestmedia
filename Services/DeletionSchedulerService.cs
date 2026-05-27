@@ -116,8 +116,14 @@ namespace Jellyfin_Latestmedia.Services
                                 }
 
                                 // Step 2: arr deleted the files — remove from schedule.
-                                // Jellyfin will detect the missing files on its next library scan.
-                                _logger.LogInformation("Deleted '{ItemName}' via arr. Jellyfin will remove it on next library scan.", libraryItem.Name);
+                                // The user requested to also delete the item from Jellyfin right away
+                                // rather than waiting for the next library scan.
+                                _libraryManager.DeleteItem(libraryItem, new DeleteOptions
+                                {
+                                    DeleteFileLocation = false // arr already deleted the file
+                                }, true);
+
+                                _logger.LogInformation("Deleted '{ItemName}' via arr and removed from Jellyfin library.", libraryItem.Name);
                             }
                             else
                             {
