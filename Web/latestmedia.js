@@ -335,7 +335,14 @@ function api(ep,opts={}){
   if (opts.body) headers['Content-Type'] = 'application/json';
   
   return fetch(`${base}/${ep}`,{...opts, headers})
-    .then(r=>{if(!r.ok)throw new Error(r.status+'');return r.text().then(t=>t?JSON.parse(t):{})});
+    .then(async r=>{
+      if(!r.ok){
+        let msg = r.status+'';
+        try{const t=await r.text();if(t){const j=JSON.parse(t);if(j.error)msg=j.error;}}catch(e){}
+        throw new Error(msg);
+      }
+      return r.text().then(t=>t?JSON.parse(t):{});
+    });
 }
 
 function modCfm(msg){
