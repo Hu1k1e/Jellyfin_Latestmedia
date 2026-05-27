@@ -442,7 +442,7 @@ function renderL(b,items){
 let mmTab='movies';
 function openMgmt(){
   const ov=document.createElement('div');ov.className='lmOv';
-  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div class="lmMTabs"><div class="lmMTab on" data-mt="movies">Movies</div><div class="lmMTab" data-mt="series">Series</div><div class="lmMTab" data-mt="scheduled">Scheduled</div></div><div class="lmMMSrch"><input id="lmMMSearch" class="lmInp" placeholder="Search…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
+  ov.innerHTML=`<div class="lmPanel lmMod"><div class="lmMHdr"><h2>Media Management</h2><button class="lmMCl">&times;</button></div><div id="lmArrBanner" style="display:none;background:rgba(229,57,53,.18);border:1px solid rgba(229,57,53,.5);border-radius:6px;padding:8px 12px;margin:8px 12px 0;font-size:.8em;color:#f28b82">⚠ Radarr/Sonarr not reachable — scheduling is disabled until connection is restored.</div><div class="lmMTabs"><div class="lmMTab on" data-mt="movies">Movies</div><div class="lmMTab" data-mt="series">Series</div><div class="lmMTab" data-mt="scheduled">Scheduled</div></div><div class="lmMMSrch"><input id="lmMMSearch" class="lmInp" placeholder="Search…" autocomplete="off" style="width:100%;box-sizing:border-box;margin:0"/></div><div class="lmMBdy" id="lmMM"><div class="lmEmpty" style="padding:28px">Loading…</div></div></div>`;
   document.body.appendChild(ov);
   ov.querySelector('.lmMCl').onclick=()=>ov.remove();
   ov.addEventListener('click',e=>{if(e.target===ov)ov.remove()});
@@ -450,6 +450,24 @@ function openMgmt(){
     ov.querySelectorAll('.lmMTab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
     mmTab=t.dataset.mt;loadMM(ov);
   }));
+
+  // Validate arr connectivity before allowing scheduling
+  window._lmArrOk = false;
+  Promise.all([
+    api('Arr/TestRadarr', { method: 'POST' }).catch(() => ({ success: false })),
+    api('Arr/TestSonarr', { method: 'POST' }).catch(() => ({ success: false }))
+  ]).then(([radarr, sonarr]) => {
+    window._lmArrOk = (radarr?.success === true) || (sonarr?.success === true);
+    const banner = document.getElementById('lmArrBanner');
+    if (banner) banner.style.display = window._lmArrOk ? 'none' : '';
+    // Re-render current tab so dropdowns reflect the correct enabled state
+    loadMM(ov);
+  }).catch(() => {
+    window._lmArrOk = false;
+    const banner = document.getElementById('lmArrBanner');
+    if (banner) banner.style.display = '';
+  });
+
   mmTab='movies';loadMM(ov);
 }
 
@@ -497,8 +515,9 @@ function bindActions(b,ov){
 
 function actionCell(id,title,status){
   const sched=status&&status!=='Active';
-  return sched?`<button class="lmBtn dn lmCD" data-id="${id}" data-t="${esc(title)}">Cancel</button>`
-    :`<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+  if(sched) return `<button class="lmBtn dn lmCD" data-id="${id}" data-t="${esc(title)}">Cancel</button>`;
+  const disabled = window._lmArrOk === false ? ' disabled title="Radarr/Sonarr not reachable"' : '';
+  return `<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"${disabled}><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
 }
 
 function loadMM(ov){

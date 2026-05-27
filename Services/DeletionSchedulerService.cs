@@ -84,36 +84,40 @@ namespace Jellyfin_Latestmedia.Services
 
                                 var kind = libraryItem.GetBaseItemKind();
 
-                                // ── Step 1: Remove from Radarr/Sonarr with import exclusion ──
-                                // This must happen BEFORE the Jellyfin deletion so we still
-                                // have provider IDs and can look up the item in the *arr DB.
+                                // ── Step 1: Remove from Radarr/Sonarr ──
+                                // This deletes the files from disk via Radarr/Sonarr.
+                                // We do NOT call _libraryManager.DeleteItem — instead we let
+                                // Jellyfin's next scheduled library scan detect the missing files
+                                // and remove them from the library automatically.
+                                // addImportExclusion=false so the movie can still be re-requested.
+                                bool arrSuccess = false;
                                 if (kind == BaseItemKind.Movie)
                                 {
-                                    await DeleteFromRadarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
+                                    arrSuccess = await DeleteFromRadarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
                                 }
                                 else if (kind == BaseItemKind.Series)
                                 {
-                                    // Series carries the TVDB ID directly.
-                                    await DeleteFromSonarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
+                                    arrSuccess = await DeleteFromSonarr(libraryItem.Name, libraryItem.ProviderIds).ConfigureAwait(false);
                                 }
                                 else if (kind == BaseItemKind.Season || kind == BaseItemKind.Episode)
                                 {
-                                    // Seasons and episodes don't carry the TVDB ID themselves —
-                                    // walk up to the parent Series to get it.
                                     var seriesItem = GetParentSeries(libraryItem);
                                     if (seriesItem != null)
-                                        await DeleteFromSonarr(seriesItem.Name, seriesItem.ProviderIds).ConfigureAwait(false);
+                                        arrSuccess = await DeleteFromSonarr(seriesItem.Name, seriesItem.ProviderIds).ConfigureAwait(false);
                                     else
                                         _logger.LogWarning("[ArrDelete] Could not find parent Series for {Name} — skipping Sonarr delete", libraryItem.Name);
                                 }
 
-                                // ── Step 2: Delete from Jellyfin and from disk ──
-                                _libraryManager.DeleteItem(libraryItem, new DeleteOptions
+                                if (!arrSuccess)
                                 {
-                                    DeleteFileLocation = true
-                                }, true);
+                                    _logger.LogWarning("[ArrDelete] Skipping '{ItemName}' — arr deletion failed or service unreachable. Item remains scheduled.", libraryItem.Name);
+                                    remaining.Add(item);
+                                    continue;
+                                }
 
-                                _logger.LogInformation("Deleted '{ItemName}' from Jellyfin library and disk.", libraryItem.Name);
+                                // Step 2: arr deleted the files — remove from schedule.
+                                // Jellyfin will detect the missing files on its next library scan.
+                                _logger.LogInformation("Deleted '{ItemName}' via arr. Jellyfin will remove it on next library scan.", libraryItem.Name);
                             }
                             else
                             {
@@ -154,109 +158,151 @@ namespace Jellyfin_Latestmedia.Services
             return null;
         }
 
-        /// <summary>
-        /// Deletes a movie from Radarr using its TMDB ID so it won't be re-imported.
-        /// </summary>
-        private async Task DeleteFromRadarr(string name, IReadOnlyDictionary<string, string> providerIds)
+    /// <summary>
+    /// Deletes a movie from Radarr using its TMDB ID.
+    /// deleteFiles=true removes the disk copy.
+    /// addImportExclusion=false so the movie can still be re-requested normally.
+    /// Returns true if deletion succeeded, false if arr is unreachable or lookup fails.
+    /// </summary>
+    private async Task<bool> DeleteFromRadarr(string name, IReadOnlyDictionary<string, string> providerIds)
+    {
+        try
         {
-            try
+            var config = Plugin.Instance?.Configuration;
+            if (config == null || string.IsNullOrEmpty(config.RadarrUrl) || string.IsNullOrEmpty(config.RadarrApiKey))
             {
-                var config = Plugin.Instance?.Configuration;
-                if (config == null || string.IsNullOrEmpty(config.RadarrUrl) || string.IsNullOrEmpty(config.RadarrApiKey))
-                    return;
-
-                if (!providerIds.TryGetValue("Tmdb", out var tmdbId))
-                {
-                    _logger.LogDebug("[ArrDelete] No TMDB ID on {Name} — skipping Radarr delete", name);
-                    return;
-                }
-
-                var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Add("X-Api-Key", config.RadarrApiKey);
-                client.Timeout = TimeSpan.FromSeconds(15);
-                var baseUrl = config.RadarrUrl.TrimEnd('/');
-
-                // Look up by TMDB ID
-                var lookupResp = await client.GetAsync($"{baseUrl}/api/v3/movie?tmdbId={tmdbId}").ConfigureAwait(false);
-                if (!lookupResp.IsSuccessStatusCode) return;
-
-                var body = await lookupResp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
-
-                // Radarr returns an array
-                JsonElement? movie = null;
-                if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
-                    movie = root[0];
-                else if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("id", out _))
-                    movie = root;
-
-                if (movie == null || !movie.Value.TryGetProperty("id", out var idEl)) return;
-                var radarrId = idEl.GetInt32();
-
-                // Delete from Radarr — deleteFiles=true removes the disk copy,
-                // addImportExclusion=true prevents Radarr from ever re-adding this movie.
-                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/movie/{radarrId}?deleteFiles=true&addImportExclusion=true").ConfigureAwait(false);
-                if (delResp.IsSuccessStatusCode)
-                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Radarr ID {Id}) from Radarr with import exclusion", name, radarrId);
-                else
-                    _logger.LogWarning("[ArrDelete] Radarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
+                _logger.LogWarning("[ArrDelete] Radarr not configured — cannot delete '{Name}'", name);
+                return false;
             }
-            catch (Exception ex)
+
+            if (!providerIds.TryGetValue("Tmdb", out var tmdbId))
             {
-                _logger.LogWarning(ex, "[ArrDelete] Error deleting '{Name}' from Radarr", name);
+                _logger.LogDebug("[ArrDelete] No TMDB ID on {Name} — skipping Radarr delete", name);
+                return false;
+            }
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("X-Api-Key", config.RadarrApiKey);
+            client.Timeout = TimeSpan.FromSeconds(15);
+            var baseUrl = config.RadarrUrl.TrimEnd('/');
+
+            // Validate connectivity before attempting destructive operation
+            var pingResp = await client.GetAsync($"{baseUrl}/api/v3/system/status").ConfigureAwait(false);
+            if (!pingResp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[ArrDelete] Radarr connectivity check failed (HTTP {Status}) — skipping delete of '{Name}'", pingResp.StatusCode, name);
+                return false;
+            }
+
+            // Look up by TMDB ID
+            var lookupResp = await client.GetAsync($"{baseUrl}/api/v3/movie?tmdbId={tmdbId}").ConfigureAwait(false);
+            if (!lookupResp.IsSuccessStatusCode) return false;
+
+            var body = await lookupResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            // Radarr returns an array
+            JsonElement? movie = null;
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                movie = root[0];
+            else if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("id", out _))
+                movie = root;
+
+            if (movie == null || !movie.Value.TryGetProperty("id", out var idEl)) return false;
+            var radarrId = idEl.GetInt32();
+
+            // Delete from Radarr — deleteFiles=true removes the disk copy.
+            // addImportExclusion=false: movie can still be re-requested via normal flow.
+            var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/movie/{radarrId}?deleteFiles=true&addImportExclusion=false").ConfigureAwait(false);
+            if (delResp.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Radarr ID {Id}) from Radarr with files", name, radarrId);
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("[ArrDelete] Radarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
+                return false;
             }
         }
-
-        /// <summary>
-        /// Deletes a series from Sonarr using its TVDB ID so it won't be re-imported.
-        /// </summary>
-        private async Task DeleteFromSonarr(string name, IReadOnlyDictionary<string, string> providerIds)
+        catch (Exception ex)
         {
-            try
+            _logger.LogWarning(ex, "[ArrDelete] Error deleting '{Name}' from Radarr", name);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a series from Sonarr using its TVDB ID.
+    /// deleteFiles=true removes the disk copy.
+    /// addImportExclusion=false so the series can still be re-requested normally.
+    /// Returns true if deletion succeeded, false if arr is unreachable or lookup fails.
+    /// </summary>
+    private async Task<bool> DeleteFromSonarr(string name, IReadOnlyDictionary<string, string> providerIds)
+    {
+        try
+        {
+            var config = Plugin.Instance?.Configuration;
+            if (config == null || string.IsNullOrEmpty(config.SonarrUrl) || string.IsNullOrEmpty(config.SonarrApiKey))
             {
-                var config = Plugin.Instance?.Configuration;
-                if (config == null || string.IsNullOrEmpty(config.SonarrUrl) || string.IsNullOrEmpty(config.SonarrApiKey))
-                    return;
-
-                if (!providerIds.TryGetValue("Tvdb", out var tvdbId))
-                {
-                    _logger.LogDebug("[ArrDelete] No TVDB ID on {Name} — skipping Sonarr delete", name);
-                    return;
-                }
-
-                var client = _httpClientFactory.CreateClient();
-                client.DefaultRequestHeaders.Add("X-Api-Key", config.SonarrApiKey);
-                client.Timeout = TimeSpan.FromSeconds(15);
-                var baseUrl = config.SonarrUrl.TrimEnd('/');
-
-                // Look up by TVDB ID
-                var lookupResp = await client.GetAsync($"{baseUrl}/api/v3/series?tvdbId={tvdbId}").ConfigureAwait(false);
-                if (!lookupResp.IsSuccessStatusCode) return;
-
-                var body = await lookupResp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
-
-                JsonElement? series = null;
-                if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
-                    series = root[0];
-
-                if (series == null || !series.Value.TryGetProperty("id", out var idEl)) return;
-                var sonarrId = idEl.GetInt32();
-
-                // Delete from Sonarr — deleteFiles=true removes the disk copy,
-                // addImportExclusion=true prevents Sonarr from ever re-adding this series.
-                var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/series/{sonarrId}?deleteFiles=true&addImportExclusion=true").ConfigureAwait(false);
-                if (delResp.IsSuccessStatusCode)
-                    _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Sonarr ID {Id}) from Sonarr with import exclusion", name, sonarrId);
-                else
-                    _logger.LogWarning("[ArrDelete] Sonarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
+                _logger.LogWarning("[ArrDelete] Sonarr not configured — cannot delete '{Name}'", name);
+                return false;
             }
-            catch (Exception ex)
+
+            if (!providerIds.TryGetValue("Tvdb", out var tvdbId))
             {
-                _logger.LogWarning(ex, "[ArrDelete] Error deleting '{Name}' from Sonarr", name);
+                _logger.LogDebug("[ArrDelete] No TVDB ID on {Name} — skipping Sonarr delete", name);
+                return false;
+            }
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("X-Api-Key", config.SonarrApiKey);
+            client.Timeout = TimeSpan.FromSeconds(15);
+            var baseUrl = config.SonarrUrl.TrimEnd('/');
+
+            // Validate connectivity before attempting destructive operation
+            var pingResp = await client.GetAsync($"{baseUrl}/api/v3/system/status").ConfigureAwait(false);
+            if (!pingResp.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("[ArrDelete] Sonarr connectivity check failed (HTTP {Status}) — skipping delete of '{Name}'", pingResp.StatusCode, name);
+                return false;
+            }
+
+            // Look up by TVDB ID
+            var lookupResp = await client.GetAsync($"{baseUrl}/api/v3/series?tvdbId={tvdbId}").ConfigureAwait(false);
+            if (!lookupResp.IsSuccessStatusCode) return false;
+
+            var body = await lookupResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            JsonElement? series = null;
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                series = root[0];
+
+            if (series == null || !series.Value.TryGetProperty("id", out var idEl)) return false;
+            var sonarrId = idEl.GetInt32();
+
+            // Delete from Sonarr — deleteFiles=true removes the disk copy.
+            // addImportExclusion=false: series can still be re-requested via normal flow.
+            var delResp = await client.DeleteAsync($"{baseUrl}/api/v3/series/{sonarrId}?deleteFiles=true&addImportExclusion=false").ConfigureAwait(false);
+            if (delResp.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("[ArrDelete] Deleted '{Name}' (Sonarr ID {Id}) from Sonarr with files", name, sonarrId);
+                return true;
+            }
+            else
+            {
+                _logger.LogWarning("[ArrDelete] Sonarr delete returned {Status} for '{Name}'", delResp.StatusCode, name);
+                return false;
             }
         }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[ArrDelete] Error deleting '{Name}' from Sonarr", name);
+            return false;
+        }
+    }
     }
 }
