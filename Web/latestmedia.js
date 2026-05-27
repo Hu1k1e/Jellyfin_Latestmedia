@@ -471,13 +471,29 @@ function openMgmt(){
   mmTab='movies';loadMM(ov);
 }
 
-const SCHED_SEL=`<select class="lmSel lmSD"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
-
 function bindActions(b,ov){
   b.querySelectorAll('.lmSD').forEach(s=>{
     s.onchange=async()=>{
       if(!s.value)return;
       const id=s.dataset.id,t=s.dataset.t||'this item';
+
+      // ── Delete Now (immediate) ──
+      if(s.value==='now'){
+        const ok=await modCfm(`⚠ <b>Immediately delete</b> <b>${esc(t)}</b> from Radarr/Sonarr?<br><small style="opacity:.7">Files will be removed from disk. This cannot be undone.</small>`);
+        if(!ok){s.value='';return}
+        try{
+          s.disabled=true;
+          await api(`MediaMgmt/Items/${id}/DeleteNow`,{method:'POST'});
+          const tr=s.closest('tr');
+          if(tr){
+            tr.children[tr.children.length-2].textContent='Deleted';
+            tr.children[tr.children.length-1].innerHTML='<span style="opacity:.5;font-size:.8em">Done</span>';
+          } else { loadMM(ov); }
+        }catch(ex){alert('Delete failed: '+(ex.message||'arr unreachable'));s.value='';s.disabled=false;}
+        return;
+      }
+
+      // ── Schedule for future ──
       const ok=await modCfm(`Schedule <b>${esc(t)}</b> for deletion in <b>${s.value} day(s)</b>?`);
       if(!ok){s.value='';return}
       try{
@@ -503,7 +519,7 @@ function bindActions(b,ov){
           if (tr) {
             const t = btn.dataset.t || 'this item';
             tr.children[tr.children.length - 2].textContent = 'Active';
-            tr.children[tr.children.length - 1].innerHTML = `<select class="lmSel lmSD" data-id="${btn.dataset.id}" data-t="${esc(t)}"><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+            tr.children[tr.children.length - 1].innerHTML = `<select class="lmSel lmSD" data-id="${btn.dataset.id}" data-t="${esc(t)}"><option value="">Schedule…</option><option value="now" style="color:#f28b82;font-weight:600">⚡ Delete Now</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
             bindActions(tr, ov);
           } else { loadMM(ov); }
         }
@@ -517,7 +533,7 @@ function actionCell(id,title,status){
   const sched=status&&status!=='Active';
   if(sched) return `<button class="lmBtn dn lmCD" data-id="${id}" data-t="${esc(title)}">Cancel</button>`;
   const disabled = window._lmArrOk === false ? ' disabled title="Radarr/Sonarr not reachable"' : '';
-  return `<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"${disabled}><option value="">Schedule…</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
+  return `<select class="lmSel lmSD" data-id="${id}" data-t="${esc(title)}"${disabled}><option value="">Schedule…</option><option value="now" style="color:#f28b82;font-weight:600">⚡ Delete Now</option><option value="1">1 Day</option><option value="3">3 Days</option><option value="7">1 Week</option><option value="14">2 Weeks</option><option value="30">1 Month</option></select>`;
 }
 
 function loadMM(ov){

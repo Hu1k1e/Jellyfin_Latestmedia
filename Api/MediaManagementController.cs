@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Jellyfin_Latestmedia.Data;
 using Jellyfin_Latestmedia.Models;
@@ -21,13 +23,15 @@ namespace Jellyfin_Latestmedia.Api
         private readonly ILibraryManager _libraryManager;
         private readonly IUserManager _userManager;
         private readonly ISessionManager _sessionManager;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly PluginRepository _repository;
 
-        public MediaMgmtController(ILibraryManager libraryManager, IUserManager userManager, ISessionManager sessionManager)
+        public MediaMgmtController(ILibraryManager libraryManager, IUserManager userManager, ISessionManager sessionManager, IHttpClientFactory httpClientFactory)
         {
             _libraryManager = libraryManager;
             _userManager = userManager;
             _sessionManager = sessionManager;
+            _httpClientFactory = httpClientFactory;
             _repository = Plugin.Instance.Repository;
         }
 
@@ -295,7 +299,140 @@ namespace Jellyfin_Latestmedia.Api
 
             return Ok(new { success = true });
         }
+        [HttpPost("Items/{itemId}/DeleteNow")]
+        public async Task<ActionResult> DeleteNow([FromRoute] Guid itemId)
+        {
+            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
+            if (!Guid.TryParse(itemId.ToString(), out var parsedGuid))
+                return BadRequest("Invalid item ID.");
 
+            var libraryItem = _libraryManager.GetItemById(parsedGuid);
+            if (libraryItem == null)
+                return NotFound(new { error = "Item not found in Jellyfin library." });
+
+            var config = Plugin.Instance?.Configuration;
+            if (config == null)
+                return StatusCode(500, new { error = "Plugin configuration unavailable." });
+
+            var kind = libraryItem.GetBaseItemKind();
+            bool success = false;
+            string arrError = string.Empty;
+
+            try
+            {
+                if (kind == BaseItemKind.Movie)
+                {
+                    (success, arrError) = await DeleteFromArrNow(
+                        libraryItem.Name, libraryItem.ProviderIds,
+                        config.RadarrUrl, config.RadarrApiKey,
+                        "movie", "tmdbId", "Tmdb", "Radarr").ConfigureAwait(false);
+                }
+                else if (kind == BaseItemKind.Series)
+                {
+                    (success, arrError) = await DeleteFromArrNow(
+                        libraryItem.Name, libraryItem.ProviderIds,
+                        config.SonarrUrl, config.SonarrApiKey,
+                        "series", "tvdbId", "Tvdb", "Sonarr").ConfigureAwait(false);
+                }
+                else if (kind == BaseItemKind.Season || kind == BaseItemKind.Episode)
+                {
+                    // Walk up to parent Series for the TVDB ID
+                    var parent = libraryItem.GetParent();
+                    while (parent != null && parent.GetBaseItemKind() != BaseItemKind.Series)
+                        parent = parent.GetParent();
+
+                    if (parent == null)
+                        return BadRequest(new { error = "Could not resolve parent Series for this Season/Episode." });
+
+                    (success, arrError) = await DeleteFromArrNow(
+                        parent.Name, parent.ProviderIds,
+                        config.SonarrUrl, config.SonarrApiKey,
+                        "series", "tvdbId", "Tvdb", "Sonarr").ConfigureAwait(false);
+                }
+                else
+                {
+                    return BadRequest(new { error = $"Unsupported item type: {kind}" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+
+            if (!success)
+                return StatusCode(502, new { error = arrError });
+
+            // Remove from scheduled_deletions if it was queued
+            string normalizedId = itemId.ToString("N");
+            var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
+            int removed = deletions.RemoveAll(x => x.ItemId.Replace("-", "").ToLowerInvariant() == normalizedId);
+            if (removed > 0)
+                await _repository.WriteListAsync("scheduled_deletions", deletions);
+
+            return Ok(new { success = true, message = $"'{libraryItem.Name}' deleted from arr. Jellyfin will remove it on next library scan." });
+        }
+
+        /// <summary>
+        /// Shared immediate-delete helper for both Radarr and Sonarr.
+        /// Pings /api/v3/system/status first, then looks up and deletes the item.
+        /// Returns (success, errorMessage).
+        /// </summary>
+        private async Task<(bool, string)> DeleteFromArrNow(
+            string name,
+            IReadOnlyDictionary<string, string> providerIds,
+            string baseUrl,
+            string apiKey,
+            string resourcePath,   // "movie" or "series"
+            string idQueryParam,   // "tmdbId" or "tvdbId"
+            string providerKey,    // "Tmdb" or "Tvdb"
+            string label)
+        {
+            if (string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(apiKey))
+                return (false, $"{label} not configured in plugin settings.");
+
+            if (!providerIds.TryGetValue(providerKey, out var externalId))
+                return (false, $"No {providerKey} ID found on '{name}' — cannot look up in {label}.");
+
+            var client = _httpClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("X-Api-Key", apiKey);
+            client.Timeout = TimeSpan.FromSeconds(15);
+            var cleanBase = baseUrl.TrimEnd('/');
+
+            // 1. Connectivity check
+            var pingResp = await client.GetAsync($"{cleanBase}/api/v3/system/status").ConfigureAwait(false);
+            if (!pingResp.IsSuccessStatusCode)
+                return (false, $"{label} is not reachable (HTTP {(int)pingResp.StatusCode}). Check your configuration.");
+
+            // 2. Look up the item
+            var lookupResp = await client.GetAsync($"{cleanBase}/api/v3/{resourcePath}?{idQueryParam}={externalId}").ConfigureAwait(false);
+            if (!lookupResp.IsSuccessStatusCode)
+                return (false, $"{label} lookup failed (HTTP {(int)lookupResp.StatusCode}).");
+
+            var body = await lookupResp.Content.ReadAsStringAsync().ConfigureAwait(false);
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+
+            JsonElement? found = null;
+            if (root.ValueKind == JsonValueKind.Array && root.GetArrayLength() > 0)
+                found = root[0];
+            else if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("id", out _))
+                found = root;
+
+            if (found == null || !found.Value.TryGetProperty("id", out var idEl))
+                return (false, $"'{name}' not found in {label} library.");
+
+            var arrId = idEl.GetInt32();
+
+            // 3. Delete — deleteFiles=true, addImportExclusion=false
+            var delResp = await client.DeleteAsync(
+                $"{cleanBase}/api/v3/{resourcePath}/{arrId}?deleteFiles=true&addImportExclusion=false"
+            ).ConfigureAwait(false);
+
+            if (delResp.IsSuccessStatusCode)
+                return (true, string.Empty);
+
+            return (false, $"{label} delete returned HTTP {(int)delResp.StatusCode}.");
+        }
     }
 }
