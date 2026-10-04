@@ -1779,8 +1779,9 @@ function openAnnDetail(ann, lastRead) {
   document.body.appendChild(det);
 }
 
-function openSchedCreate(editObj = null) {
+function openSchedCreate(editObj = null, forceMaintenance = false) {
   if (!S.admin) return; // safety guard — admin only
+  const isMaintenance = forceMaintenance || (editObj && editObj.IsMaintenance);
   if (document.getElementById('lmSchedCreateOv')) return;
 
   const ov = document.createElement('div');
@@ -1792,7 +1793,7 @@ function openSchedCreate(editObj = null) {
 
   const panelHdr = document.createElement('div');
   panelHdr.className = 'lmAnnCreateHdr';
-  panelHdr.innerHTML = `<span style="font-weight:700;font-size:.95em">${editObj ? 'Edit Scheduled Task' : 'New Scheduled Task'}</span>`;
+  panelHdr.innerHTML = `<span style="font-weight:700;font-size:.95em">${editObj ? 'Edit ' + (isMaintenance ? 'Maintenance' : 'Scheduled Task') : 'New ' + (isMaintenance ? 'Maintenance' : 'Scheduled Task')}</span>`;
   const panelCl = document.createElement('button');
   panelCl.className = 'lmCCl';
   panelCl.innerHTML = '&times;';
@@ -1843,6 +1844,18 @@ function openSchedCreate(editObj = null) {
         <input type="number" id="lmSchDaysBox" class="lmAnnInp" min="1" max="90" value="${editObj?.PostDaysBefore || 7}" />
       </div>
     </div>
+    ${isMaintenance ? `
+    <div style="display:flex;gap:12px;margin-top:10px">
+      <div style="flex:1">
+        <label class="lmFieldLabel">Maintenance Duration (Hours) *</label>
+        <input type="number" id="lmMaintDur" class="lmAnnInp" min="1" max="72" value="${editObj?.MaintenanceDurationHours || 2}" />
+      </div>
+      <div style="flex:1">
+        <label class="lmFieldLabel">Show Banner Hours Before *</label>
+        <input type="number" id="lmMaintBan" class="lmAnnInp" min="1" max="168" value="${editObj?.BannerDisplayHoursBefore || 24}" />
+      </div>
+    </div>
+    ` : ''}
     <div style="margin-top:10px">
       <label class="lmFieldLabel">Description (Markdown supported)</label>
       <textarea id="lmSchDesc" class="lmAnnTxt" placeholder="Write the announcement body here...">${esc(editObj?.Description || '')}</textarea>
@@ -1869,6 +1882,8 @@ function openSchedCreate(editObj = null) {
     const recur = document.getElementById('lmSchRecur').value;
     const days = parseInt(document.getElementById('lmSchDaysBox').value, 10) || 7;
     const desc = document.getElementById('lmSchDesc').value.trim();
+    const maintDur = isMaintenance ? parseInt(document.getElementById('lmMaintDur').value, 10) || 2 : 2;
+    const maintBan = isMaintenance ? parseInt(document.getElementById('lmMaintBan').value, 10) || 24 : 24;
 
     if (!title || !date || !time || !tz) { alert('All marked fields are required.'); return; }
     
@@ -1918,7 +1933,10 @@ function openSchedCreate(editObj = null) {
           EventUtcIso: eventUtcIso,
           OriginalEventDate: editObj && editObj.OriginalEventDate ? editObj.OriginalEventDate : (date + 'T00:00:00Z'),
           Recurrence: recur,
-          PostDaysBefore: days
+          PostDaysBefore: days,
+          IsMaintenance: isMaintenance,
+          MaintenanceDurationHours: maintDur,
+          BannerDisplayHoursBefore: maintBan
         })
       });
       ov.remove();
@@ -2113,9 +2131,15 @@ function openAnnCreate(editObj = null) {
 
   const addSchedBtn = document.createElement('button');
   addSchedBtn.className = 'lmAnnCanBtn';
-  addSchedBtn.style.marginRight = 'auto'; // push to left
+  addSchedBtn.style.marginRight = '8px';
   addSchedBtn.textContent = 'Add Scheduled Task';
-  addSchedBtn.onclick = (e) => { e.preventDefault(); ov.remove(); openSchedCreate(); };
+  addSchedBtn.onclick = (e) => { e.preventDefault(); ov.remove(); openSchedCreate(null, false); };
+
+  const addMaintBtn = document.createElement('button');
+  addMaintBtn.className = 'lmAnnCanBtn';
+  addMaintBtn.style.marginRight = 'auto'; // push to left
+  addMaintBtn.textContent = 'Scheduled Maintenance';
+  addMaintBtn.onclick = (e) => { e.preventDefault(); ov.remove(); openSchedCreate(null, true); };
 
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'lmAnnCanBtn';
@@ -2155,6 +2179,7 @@ function openAnnCreate(editObj = null) {
   panelFoot.appendChild(addLinkBtn);
   panelFoot.appendChild(viewSchedBtn);
   panelFoot.appendChild(addSchedBtn);
+  panelFoot.appendChild(addMaintBtn);
   panelFoot.appendChild(cancelBtn);
   panelFoot.appendChild(publishBtn);
   panel.appendChild(panelFoot);
@@ -2694,3 +2719,164 @@ function initStarRatings() {
 
 tryInject();
 })();
+
+// --- Maintenance Banner Logic ---
+function initMaintenanceBanner() {
+  function applyStylesOnce() {
+    if (document.getElementById('lm-maint-style')) return;
+    const style = document.createElement('style');
+    style.id = 'lm-maint-style';
+    style.textContent = `
+      :root {
+        --banner-height: 40px; 
+      }
+      
+      body.maintenance-active .skinHeader {
+        top: var(--banner-height) !important;
+      }
+      body.maintenance-active .mainDrawer {
+        top: var(--banner-height) !important;
+        height: calc(100% - var(--banner-height)) !important;
+      }
+      body.maintenance-active .mainAnimatedPages, 
+      body.maintenance-active .page {
+        padding-top: var(--banner-height) !important;
+      }
+      
+      body.maintenance-active iframe {
+        padding-top: var(--banner-height) !important;
+        box-sizing: border-box !important;
+      }
+      
+      #maintenance-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        min-height: 40px; 
+        padding: 8px 10px;
+        box-sizing: border-box;
+        background-color: #cc0000;
+        color: #ffffff;
+        text-align: center;
+        display: none; 
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        font-weight: bold;
+        line-height: 1.5;
+        z-index: 99999;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        pointer-events: none;
+      }
+      
+      body.maintenance-active #maintenance-banner {
+        display: block;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function adjustLayout() {
+    const bannerEl = document.getElementById('maintenance-banner');
+    if (bannerEl && document.body.classList.contains('maintenance-active')) {
+      document.documentElement.style.setProperty('--banner-height', bannerEl.offsetHeight + 'px');
+    }
+  }
+
+  function renderBanner(task) {
+    if (!task) return;
+    let bannerEl = document.getElementById('maintenance-banner');
+    if (!bannerEl) {
+      applyStylesOnce();
+      bannerEl = document.createElement('div');
+      bannerEl.id = 'maintenance-banner';
+      document.body.prepend(bannerEl);
+      window.addEventListener('resize', adjustLayout);
+    }
+    
+    // We already advanced to the correct ExecutionUtc via the backend
+    const maintenanceStartDate = new Date(task.ExecutionUtc);
+    const maintenanceEndDate = new Date(maintenanceStartDate.getTime() + (task.MaintenanceDurationHours * 3600000));
+    const now = new Date();
+    
+    const diffToStart = maintenanceStartDate - now;
+    const diffToEnd = maintenanceEndDate - now;
+
+    if (diffToEnd <= 0) {
+      document.body.classList.remove('maintenance-active');
+      document.documentElement.style.removeProperty('--banner-height');
+      bannerEl.style.display = 'none';
+      return;
+    }
+
+    document.body.classList.add('maintenance-active');
+    bannerEl.style.display = 'block';
+
+    const formatTime = (date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const localStartTime = formatTime(maintenanceStartDate);
+    const localEndTime = formatTime(maintenanceEndDate);
+
+    if (diffToStart <= 0) {
+      bannerEl.innerHTML = `Server is currently in maintenance. Maintenance will end at&nbsp;<strong>${localEndTime}</strong>.`;
+    } else {
+      const hours = Math.floor(diffToStart / (1000 * 60 * 60));
+      const minutes = Math.floor((diffToStart % (1000 * 60 * 60)) / (1000 * 60));
+      let countdownStr = '';
+      if (hours > 0) countdownStr += hours + (hours === 1 ? ' hour ' : ' hours ');
+      countdownStr += minutes + (minutes === 1 ? ' minute' : ' minutes');
+
+      bannerEl.innerHTML = `Server will go into maintenance at&nbsp;<strong>${localStartTime}</strong> (in ${countdownStr.trim()}). Maintenance will end at&nbsp;<strong>${localEndTime}</strong>.`;
+    }
+    adjustLayout();
+  }
+
+  async function pollMaintenance() {
+    try {
+      // Backend handles advancing recurring tasks so ExecutionUtc is always the next upcoming one
+      const list = await api('ScheduledTask/Maintenance');
+      if (Array.isArray(list) && list.length > 0) {
+        // Find the earliest maintenance task that either is active right now or within its banner display threshold
+        const nowMs = Date.now();
+        let targetTask = null;
+
+        // Sort by execution date (should already be sorted by backend, but just to be sure)
+        const sorted = list.sort((a,b) => new Date(a.ExecutionUtc).getTime() - new Date(b.ExecutionUtc).getTime());
+        
+        for (const t of sorted) {
+          const startMs = new Date(t.ExecutionUtc).getTime();
+          const endMs = startMs + (t.MaintenanceDurationHours * 3600000);
+          const showMs = startMs - (t.BannerDisplayHoursBefore * 3600000);
+          
+          if (nowMs >= showMs && nowMs < endMs) {
+            targetTask = t;
+            break;
+          }
+        }
+        
+        if (targetTask) {
+          renderBanner(targetTask);
+          return;
+        }
+      }
+      
+      // If we got here, no active maintenance requires a banner right now
+      const bannerEl = document.getElementById('maintenance-banner');
+      if (bannerEl) {
+        document.body.classList.remove('maintenance-active');
+        document.documentElement.style.removeProperty('--banner-height');
+        bannerEl.style.display = 'none';
+      }
+      
+    } catch(e) {
+      // fail silently, could be network error or similar
+    }
+  }
+
+  pollMaintenance();
+  setInterval(pollMaintenance, 60000);
+}
+
+document.addEventListener('DOMContentLoaded', initMaintenanceBanner);
+if (document.readyState !== 'loading') {
+  initMaintenanceBanner();
+}

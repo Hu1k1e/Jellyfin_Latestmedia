@@ -9,18 +9,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>CS1591</NoWarn>
-    <Version>3.4.9.5</Version>
-    <AssemblyVersion>3.4.9.5</AssemblyVersion>
-    <FileVersion>3.4.9.5</FileVersion>
+    <Version>3.4.9.6</Version>
+    <AssemblyVersion>3.4.9.6</AssemblyVersion>
+    <FileVersion>3.4.9.6</FileVersion>
     <DefaultItemExcludes>JE-source\**;$(DefaultItemExcludes)</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Reference Jellyfin 10.11.6 stable packages — ExcludeAssets runtime so they are not bundled -->
-    <PackageReference Include="Jellyfin.Controller" Version="10.11.5">
+    <!-- Reference Jellyfin 10.12.1 stable packages — ExcludeAssets runtime so they are not bundled -->
+    <PackageReference Include="Jellyfin.Controller" Version="10.12.1">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="Jellyfin.Model" Version="10.11.5">
+    <PackageReference Include="Jellyfin.Model" Version="10.12.1">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
   </ItemGroup>

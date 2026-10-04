@@ -19,5 +19,8 @@ namespace Jellyfin_Latestmedia.Models
         public string CreatedByName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string? GeneratedAnnouncementId { get; set; }
+        public bool IsMaintenance { get; set; } = false;
+        public int MaintenanceDurationHours { get; set; } = 2;
+        public int BannerDisplayHoursBefore { get; set; } = 24;
     }
 }

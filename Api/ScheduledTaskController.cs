@@ -237,6 +237,9 @@ namespace Jellyfin_Latestmedia.Api
             existing.Recurrence = update.Recurrence;
             existing.OriginalEventDate = update.OriginalEventDate ?? update.EventDate;
             existing.PostDaysBefore = update.PostDaysBefore;
+            existing.IsMaintenance = update.IsMaintenance;
+            existing.MaintenanceDurationHours = update.MaintenanceDurationHours;
+            existing.BannerDisplayHoursBefore = update.BannerDisplayHoursBefore;
             
             // Clear stale GeneratedAnnouncementId — force re-evaluation below
             existing.GeneratedAnnouncementId = null;
@@ -290,6 +293,35 @@ namespace Jellyfin_Latestmedia.Api
             }
 
             return Ok(new { success = true });
+        }
+
+        [HttpGet("Maintenance")]
+        public async Task<ActionResult<IEnumerable<ScheduledTask>>> GetMaintenanceTasks()
+        {
+            // Allowed for all authenticated users
+            var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
+            var maintenanceTasks = tasks.Where(t => t.IsMaintenance).ToList();
+
+            foreach (var t in maintenanceTasks)
+            {
+                if (!string.IsNullOrEmpty(t.EventUtcIso) && DateTime.TryParse(t.EventUtcIso, null, System.Globalization.DateTimeStyles.RoundtripKind, out DateTime parsedUtc))
+                {
+                    t.ExecutionUtc = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
+                }
+                else
+                {
+                    // Fallback to simple calculation (similar to GetAll)
+                    try
+                    {
+                        DateTime dt = DateTime.SpecifyKind(t.EventDate.Date, DateTimeKind.Unspecified);
+                        if (TimeSpan.TryParse(t.EventTime, out TimeSpan time)) dt = dt.Add(time);
+                        t.ExecutionUtc = dt.ToUniversalTime();
+                    }
+                    catch { }
+                }
+            }
+
+            return Ok(maintenanceTasks.OrderBy(t => t.EventDate));
         }
     }
 }
