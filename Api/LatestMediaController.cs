@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediaBrowser.Controller.Entities;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Model.Entities;
+using Jellyfin.Database.Implementations.Enums;
 
 namespace Jellyfin_Latestmedia.Api
 {
