@@ -45,7 +45,7 @@ namespace Jellyfin_Latestmedia.Api
                 return BadRequest("Code must be exactly 6 characters.");
 
             code = code.ToUpperInvariant();
-            var match = _userManager.Users.FirstOrDefault(u =>
+            var match = _userManager.GetUsers().FirstOrDefault(u =>
                 u.Id.ToString("N")[..6].ToUpperInvariant() == code);
 
             if (match == null) return NotFound("No user found with that code.");
@@ -262,7 +262,7 @@ namespace Jellyfin_Latestmedia.Api
         {
             if (string.IsNullOrWhiteSpace(query)) return Ok(new List<object>());
 
-            var users = _userManager.Users
+            var users = _userManager.GetUsers()
                 .Where(u => u.Username.Equals(query, StringComparison.OrdinalIgnoreCase))
                 .Select(u => new { Id = u.Id.ToString("N"), Name = u.Username })
                 .ToList();

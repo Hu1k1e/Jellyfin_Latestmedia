@@ -118,7 +118,7 @@ namespace Jellyfin_Latestmedia.Services
                 if (matching.Count == 0) return;
 
                 // Build fast lookup: normalized user ID → user
-                var userLookup = _userManager.Users
+                var userLookup = _userManager.GetUsers()
                     .GroupBy(u => Normalize(u.Id.ToString()), StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
