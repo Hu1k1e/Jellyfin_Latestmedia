@@ -14,6 +14,20 @@ namespace Jellyfin_Latestmedia;
 /// </summary>
 public class ScriptInjectionMiddleware
 {
+    // Only this plugin's own pages get the long-lived cache header (never other plugins' pages).
+    private static readonly System.Collections.Generic.HashSet<string> OwnPageNames =
+        new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "LatestMediaUI",
+            "playback-controls.js",
+            "random-button.js",
+            "seerr-integration.js",
+            "branding.js",
+            "apply-branding.js",
+            "arr-integration.js",
+            "requests-page.js"
+        };
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ScriptInjectionMiddleware> _logger;
 
@@ -27,13 +41,19 @@ public class ScriptInjectionMiddleware
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
-        // Intercept script requests to add Cache-Control if versioned
-        if (path.Contains("ConfigurationPage", StringComparison.OrdinalIgnoreCase) && 
-            context.Request.Query.ContainsKey("v"))
+        // Add a long-lived Cache-Control to this plugin's own versioned scripts (?v=<plugin version>)
+        if (path.Contains("ConfigurationPage", StringComparison.OrdinalIgnoreCase) &&
+            context.Request.Query.ContainsKey("v") &&
+            context.Request.Query.TryGetValue("name", out var pageName) &&
+            OwnPageNames.Contains(pageName.ToString()))
         {
             context.Response.OnStarting(() =>
             {
-                context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                // Never cache errors for a year; only successful responses
+                if (context.Response.StatusCode == 200)
+                {
+                    context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                }
                 return Task.CompletedTask;
             });
             await _next(context).ConfigureAwait(false);

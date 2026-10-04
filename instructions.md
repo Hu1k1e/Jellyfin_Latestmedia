@@ -40,7 +40,7 @@ https://raw.githubusercontent.com/Hu1k1e/Jellyfin_Latestmedia/main/manifest.json
 
 This project uses a **GitHub Actions CI/CD pipeline** (`.github/workflows/build-release.yml`). When triggered by a version tag, it automatically:
 
-1. Builds the plugin DLL on Ubuntu using the **.NET 9 SDK** against **Jellyfin 10.11.5 stable**
+1. Builds the plugin DLL on Ubuntu using the **.NET 10 SDK** against **Jellyfin 12.1.0**
 2. Zips only the DLL (Jellyfin runtime deps are excluded via `ExcludeAssets`)
 3. Computes the MD5 checksum of the zip
 4. Prepends a new version entry to `manifest.json` on the `main` branch
@@ -189,7 +189,6 @@ Jellyfin_Latestmedia/
 │   ├── DeletionSchedulerService.cs      # Executes scheduled deletions (Jellyfin + Radarr/Sonarr + disk)
 │   └── WatchlistMonitor.cs             # IHostedService: auto-adds requested media to user watchlists
 ├── Web/
-│   ├── inject.js                        # Bootloader (injected into index.html)
 │   ├── latestmedia.js                   # Core UI: header, chat, media management
 │   ├── playback-controls.js             # Auto-pause/resume/PiP tab controls
 │   ├── random-button.js                 # Random play header button
@@ -200,7 +199,7 @@ Jellyfin_Latestmedia/
 │   └── requests-page.js                 # Requests management full-page view
 ├── Plugin.cs                            # Plugin entry point + GetPages()
 ├── PluginServiceRegistrar.cs            # DI service registration
-├── Jellyfin_Latestmedia.csproj          # net9.0 project file
+├── Jellyfin_Latestmedia.csproj          # net10.0 project file
 ├── manifest.json                        # Auto-updated by CI
 ├── instructions.md                      # ← This file
 └── project_specs.md                     # Full implementation history + next steps (READ FIRST)
@@ -212,10 +211,10 @@ Jellyfin_Latestmedia/
 
 ```xml
 <!-- Pin to STABLE Jellyfin packages, NOT unstable wildcards -->
-<PackageReference Include="Jellyfin.Controller" Version="10.11.5">
+<PackageReference Include="Jellyfin.Controller" Version="12.1.0">
   <ExcludeAssets>runtime</ExcludeAssets>
 </PackageReference>
-<PackageReference Include="Jellyfin.Model" Version="10.11.5">
+<PackageReference Include="Jellyfin.Model" Version="12.1.0">
   <ExcludeAssets>runtime</ExcludeAssets>
 </PackageReference>
 
@@ -229,7 +228,8 @@ Jellyfin_Latestmedia/
 > **WARNING:** If you add a new JS file to `Web/`, you must:
 > 1. Add `<None Remove>` + `<EmbeddedResource Include>` entries to the `.csproj`
 > 2. Add a new `PluginPageInfo` entry in `Plugin.cs` `GetPages()`
-> 3. Load it from `inject.js` (the bootloader)
+> 3. Load it from the bootloader in `Web/latestmedia.js` (`bootloadFeatureModules`)
+> 4. If you ever DELETE a file in `Web/`, also delete its `<EmbeddedResource>` line in the `.csproj` (a missing embedded file fails the whole build)
 
 ---
 

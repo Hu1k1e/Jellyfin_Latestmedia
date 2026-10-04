@@ -36,9 +36,6 @@
     <None Remove="Web\latestmedia.js" />
     <EmbeddedResource Include="Web\latestmedia.js" />
     
-    <None Remove="Web\inject.js" />
-    <EmbeddedResource Include="Web\inject.js" />
-
     <!-- v3.0.0.0 Feature Modules — lazy-loaded by bootloader -->
     <None Remove="Web\playback-controls.js" />
     <EmbeddedResource Include="Web\playback-controls.js" />
