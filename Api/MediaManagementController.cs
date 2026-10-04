@@ -53,35 +53,10 @@ namespace Jellyfin_Latestmedia.Api
             return Guid.Empty;
         }
 
-        private async Task<bool> IsAdminAsync()
-        {
-            // Jellyfin 10.11 sets an "Administrator" role claim on the JWT for admin users
-            if (User.IsInRole("Administrator")) return true;
-
-            // Fallback: check via user manager without any extension methods
-            var uid = await GetRequestUserIdAsync().ConfigureAwait(false);
-            if (uid == Guid.Empty) return false;
-            var user = _userManager.GetUserById(uid);
-            if (user == null) return false;
-            // user.Permissions is IList<MediaBrowser.Model.Configuration.AccessSchedule> — not what we want
-            // Instead read the raw JSON-serialised policy
-            try
-            {
-                var policy = user.GetType().GetProperty("Policy")?.GetValue(user);
-                if (policy != null)
-                {
-                    var isAdmin = policy.GetType().GetProperty("IsAdministrator")?.GetValue(policy);
-                    if (isAdmin is bool b) return b;
-                }
-            }
-            catch { }
-            return false;
-        }
 
         [HttpGet("Items")]
         public async Task<ActionResult<object>> GetMediaItems()
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
             var scheduledDict = scheduledDeletions.ToDictionary(k => k.ItemId, v => v);
@@ -126,7 +101,6 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("Scheduled")]
         public async Task<ActionResult<object>> GetScheduledItems()
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
             var result = new List<object>();
@@ -157,7 +131,6 @@ namespace Jellyfin_Latestmedia.Api
         [HttpGet("Series")]
         public async Task<ActionResult<object>> GetSeriesHierarchy()
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var scheduledDeletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
             var schedSet = new HashSet<string>(scheduledDeletions.Select(s => s.ItemId.Replace("-", "").ToLowerInvariant()));
@@ -259,7 +232,6 @@ namespace Jellyfin_Latestmedia.Api
         [HttpPost("Items/{itemId}/ScheduleDelete")]
         public async Task<ActionResult> ScheduleDelete([FromRoute] Guid itemId, [FromQuery] int? days = null)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var actualDelayDays = days ?? 7;
             if (actualDelayDays < 1 || actualDelayDays > 365)
@@ -288,7 +260,6 @@ namespace Jellyfin_Latestmedia.Api
         [HttpDelete("Items/{itemId}/CancelDelete")]
         public async Task<ActionResult> CancelDelete([FromRoute] Guid itemId)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             string normalizedId = itemId.ToString("N");
             var deletions = await _repository.ReadListAsync<ScheduledDeletion>("scheduled_deletions");
@@ -302,7 +273,6 @@ namespace Jellyfin_Latestmedia.Api
         [HttpPost("Items/{itemId}/DeleteNow")]
         public async Task<ActionResult> DeleteNow([FromRoute] Guid itemId)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             if (!Guid.TryParse(itemId.ToString(), out var parsedGuid))
                 return BadRequest("Invalid item ID.");

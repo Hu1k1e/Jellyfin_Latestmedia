@@ -24,6 +24,9 @@ namespace Jellyfin_Latestmedia.Api
         private readonly ILibraryManager _libraryManager;
         private readonly IDtoService _dtoService;
         private readonly PluginRepository _repository;
+        private static List<LatestMediaItem>? _cachedLatestItems;
+        private static DateTime _cacheTime = DateTime.MinValue;
+        private static readonly object _cacheLock = new object();
 
         public LatestMediaController(
             ILibraryManager libraryManager,
@@ -46,16 +49,24 @@ namespace Jellyfin_Latestmedia.Api
             int count = config?.LatestMediaCount ?? 50;
             
             // Query for latest added items, ensuring we only get video media (Movies, Episodes, Anime)
+            lock (_cacheLock)
+            {
+                if (_cachedLatestItems != null && (DateTime.UtcNow - _cacheTime).TotalSeconds < 60)
+                {
+                    return Ok(_cachedLatestItems);
+                }
+            }
+
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { BaseItemKind.Movie, BaseItemKind.Episode, BaseItemKind.Series },
                 IsFolder = false,
-                Recursive = true
+                Recursive = true,
+                OrderBy = new[] { (ItemSortBy.DateCreated, SortOrder.Descending) },
+                Limit = count
             };
 
-            var items = _libraryManager.GetItemList(query)
-                .OrderByDescending(i => i.DateCreated)
-                .Take(count);
+            var items = _libraryManager.GetItemList(query);
             var result = new List<LatestMediaItem>();
 
             foreach (var item in items)
@@ -96,6 +107,11 @@ namespace Jellyfin_Latestmedia.Api
                 });
             }
 
+            lock (_cacheLock)
+            {
+                _cachedLatestItems = result;
+                _cacheTime = DateTime.UtcNow;
+            }
             return Ok(result);
         }
 

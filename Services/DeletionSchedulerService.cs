@@ -51,7 +51,7 @@ namespace Jellyfin_Latestmedia.Services
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Starting Scheduled Deletion run");
+            _logger.LogDebug("Starting Scheduled Deletion run");
             const string filename = "scheduled_deletions";
 
             var schedule = await _repository.ReadListAsync<ScheduledDeletion>(filename);
@@ -142,7 +142,7 @@ namespace Jellyfin_Latestmedia.Services
                 }
 
                 await _repository.WriteListAsync(filename, remaining);
-                _logger.LogInformation("Scheduled Deletion run complete. Deleted {Count} items.", processed);
+                _logger.LogDebug("Scheduled Deletion run complete. Deleted {Count} items.", processed);
             }
 
             progress.Report(100);

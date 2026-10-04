@@ -38,9 +38,9 @@ namespace Jellyfin_Latestmedia.Api
 
         /// <summary>POST /Announcement — Admin only: create a new announcement.</summary>
         [HttpPost]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult<Announcement>> Create([FromBody] Announcement dto)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
             if (string.IsNullOrWhiteSpace(dto.Title)) return BadRequest("Title is required.");
 
             var userId = await GetUserIdAsync().ConfigureAwait(false);
@@ -62,9 +62,9 @@ namespace Jellyfin_Latestmedia.Api
 
         /// <summary>PUT /Announcement/{id} — Admin only: edit an existing announcement.</summary>
         [HttpPut("{id}")]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult<Announcement>> Update(string id, [FromBody] Announcement dto)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var list = await _repository.ReadListAsync<Announcement>(FileName).ConfigureAwait(false);
             var existing = list.FirstOrDefault(a => a.Id == id);
@@ -80,9 +80,9 @@ namespace Jellyfin_Latestmedia.Api
 
         /// <summary>DELETE /Announcement/{id} — Admin only.</summary>
         [HttpDelete("{id}")]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult> Delete(string id)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var list = await _repository.ReadListAsync<Announcement>(FileName).ConfigureAwait(false);
             var count = list.RemoveAll(a => a.Id == id);
@@ -146,12 +146,5 @@ namespace Jellyfin_Latestmedia.Api
             return User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Admin";
         }
 
-        private Task<bool> IsAdminAsync()
-        {
-            var isAdmin = User.IsInRole("Administrator")
-                       || User.FindFirst("IsAdministrator")?.Value == "true"
-                       || User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value == "Administrator";
-            return Task.FromResult(isAdmin);
-        }
     }
 }

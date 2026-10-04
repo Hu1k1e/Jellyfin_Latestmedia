@@ -27,6 +27,19 @@ public class ScriptInjectionMiddleware
     {
         var path = context.Request.Path.Value ?? string.Empty;
 
+        // Intercept script requests to add Cache-Control if versioned
+        if (path.Contains("ConfigurationPage", StringComparison.OrdinalIgnoreCase) && 
+            context.Request.Query.ContainsKey("v"))
+        {
+            context.Response.OnStarting(() =>
+            {
+                context.Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                return Task.CompletedTask;
+            });
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
         // Only intercept requests that map to the Jellyfin web UI's index.html
         if (!IsIndexHtmlRequest(path))
         {
@@ -158,7 +171,8 @@ public class ScriptInjectionMiddleware
 
         // Serve latestmedia.js via the plugin page endpoint registered in Plugin.cs
         var safeBasePath = System.Net.WebUtility.HtmlEncode(basePath);
-        var scriptTag = $"<script defer src=\"{safeBasePath}/web/ConfigurationPage?name=LatestMediaUI\"></script>";
+        var version = Plugin.Instance.Version.ToString();
+        var scriptTag = $"<script defer src=\"{safeBasePath}/web/ConfigurationPage?name=LatestMediaUI&v={version}\"></script>";
         // NOTE: requests-page.js is loaded conditionally by latestmedia.js bootloader
         // only when ArrDownloadsEnabled = true. Do NOT inject it here unconditionally.
         var injected = html.Insert(bodyCloseIndex, scriptTag + "\n");

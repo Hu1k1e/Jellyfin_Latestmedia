@@ -44,7 +44,7 @@ namespace Jellyfin_Latestmedia.Services
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Starting Chat Cleanup run");
+            _logger.LogDebug("Starting Chat Cleanup run");
             
             var config = Plugin.Instance?.Configuration;
             int publicRetentionHours = config?.PublicChatRetentionHours ?? 24;
@@ -62,7 +62,7 @@ namespace Jellyfin_Latestmedia.Services
                 if (publicChat.Count < pubInitialCount)
                 {
                     await _repository.WriteListAsync("chat_public", publicChat);
-                    _logger.LogInformation("Cleaned up {Count} public chat messages", pubInitialCount - publicChat.Count);
+                    _logger.LogDebug("Cleaned up {Count} public chat messages", pubInitialCount - publicChat.Count);
                 }
             }
             progress.Report(30);
@@ -76,7 +76,7 @@ namespace Jellyfin_Latestmedia.Services
                 if (broadcasts.Count < bInitialCount)
                 {
                     await _repository.WriteListAsync("broadcast_messages", broadcasts);
-                    _logger.LogInformation("Cleaned up {Count} broadcast messages", bInitialCount - broadcasts.Count);
+                    _logger.LogDebug("Cleaned up {Count} broadcast messages", bInitialCount - broadcasts.Count);
                 }
             }
             progress.Report(50);
@@ -117,12 +117,12 @@ namespace Jellyfin_Latestmedia.Services
                 
                 if (totalCleaned > 0)
                 {
-                    _logger.LogInformation("Cleaned up {Count} private encrypted DM messages", totalCleaned);
+                    _logger.LogDebug("Cleaned up {Count} private encrypted DM messages", totalCleaned);
                 }
             }
 
             progress.Report(100);
-            _logger.LogInformation("Chat Cleanup run complete");
+            _logger.LogDebug("Chat Cleanup run complete");
         }
     }
 }
