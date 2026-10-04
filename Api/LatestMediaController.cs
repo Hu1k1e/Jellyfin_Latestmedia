@@ -204,6 +204,8 @@ namespace Jellyfin_Latestmedia.Api
                 cfg.EnableCustomBranding,
                 cfg.ArrLinksEnabled,
                 cfg.ArrDownloadsEnabled,
+                cfg.ArrTagsShowAsLinks,
+                cfg.ShowStarRatingOnCards,
                 cfg.ShowOnMobile,
                 cfg.AnnouncementHeading,
                 cfg.PluginTheme
