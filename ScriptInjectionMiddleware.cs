@@ -19,6 +19,8 @@ public class ScriptInjectionMiddleware
         new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "LatestMediaUI",
+            "chat.js",
+            "star-ratings.js",
             "playback-controls.js",
             "random-button.js",
             "seerr-integration.js",

@@ -189,7 +189,10 @@ Jellyfin_Latestmedia/
 │   ├── DeletionSchedulerService.cs      # Executes scheduled deletions (Jellyfin + Radarr/Sonarr + disk)
 │   └── WatchlistMonitor.cs             # IHostedService: auto-adds requested media to user watchlists
 ├── Web/
-│   ├── latestmedia.js                   # Core UI: header, chat, media management
+│   ├── latestmedia.js                   # Core UI (MINIFIED build): header, Latest Media, announcements, media management, maintenance banner
+│   ├── chat.js                          # Chat + E2E DMs + notifications (MINIFIED, lazy-loaded only when Enable Chat is on)
+│   ├── star-ratings.js                  # Star rating badges (MINIFIED, lazy-loaded only when enabled)
+│   ├── src/                             # READABLE sources of the three files above + README.md (how to rebuild with terser)
 │   ├── playback-controls.js             # Auto-pause/resume/PiP tab controls
 │   ├── random-button.js                 # Random play header button
 │   ├── seerr-integration.js             # Jellyseerr search, request, discovery
@@ -235,8 +238,9 @@ Jellyfin_Latestmedia/
 
 ## Architecture Notes
 
-- **UI Injection:** `ScriptInjectionStartupFilter` (IStartupFilter) wraps the response pipeline and appends `inject.js` to every `index.html` response. This requires the **File Transformation** community plugin.
-- **JS Module Loading:** `inject.js` dynamically fetches each module via Jellyfin's `/web/configurationpage?name=<module-name>` endpoint.
+- **UI Injection:** `ScriptInjectionStartupFilter` (IStartupFilter) wraps the response pipeline and appends a `<script ... name=LatestMediaUI&v=<version>>` tag (core `latestmedia.js`) to every `index.html` response. This requires the **File Transformation** community plugin.
+- **JS Module Loading:** the core script fetches each feature module via Jellyfin's `/web/configurationpage?name=<module-name>&v=<version>` endpoint. `chat.js` and `star-ratings.js` are only requested when their setting is on. The middleware adds a 1-year immutable `Cache-Control` for this plugin's own versioned pages.
+- **Editing the web scripts:** edit the readable files in `Web/src/`, rebuild with terser (see `Web/src/README.md`) and commit source + build together.
 - **Data Persistence:** All state is JSON files managed by `PluginRepository`. Files live in Jellyfin's plugin data directory alongside the config XML.
 - **Auth:** Controllers use `User.IsInRole("Administrator")` (JWT claim) with a reflection-based fallback for Jellyfin 10.11 compatibility.
 - **WebCrypto E2E Chat:** ECDH key exchange with keys stored server-side. All decryption is client-side only. Keys are memoized in a Map for O(1) repeated decryption.

@@ -67,6 +67,19 @@ namespace Jellyfin_Latestmedia
                     EmbeddedResourcePath = GetType().Namespace + ".Web.latestmedia.js",
                     EnableInMainMenu = false
                 },
+                // Lazy-loaded parts of the core UI (only downloaded when the feature is enabled)
+                new PluginPageInfo
+                {
+                    Name = "chat.js",
+                    EmbeddedResourcePath = GetType().Namespace + ".Web.chat.js",
+                    EnableInMainMenu = false
+                },
+                new PluginPageInfo
+                {
+                    Name = "star-ratings.js",
+                    EmbeddedResourcePath = GetType().Namespace + ".Web.star-ratings.js",
+                    EnableInMainMenu = false
+                },
                 // v3.0.0.0 Feature Modules
                 new PluginPageInfo
                 {
