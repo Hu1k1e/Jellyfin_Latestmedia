@@ -90,14 +90,6 @@ namespace Jellyfin_Latestmedia.Api
             return User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "User";
         }
 
-        private Task<bool> IsAdminAsync()
-        {
-            // Jellyfin 10.11 sets an IsAdministrator claim in the JWT for admin users
-            var isAdmin = User.IsInRole("Administrator") ||
-                          User.FindFirst("IsAdministrator")?.Value == "true" ||
-                          User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value == "Administrator";
-            return Task.FromResult(isAdmin);
-        }
 
         // Admin delete bypass: admins can delete any message at any time
 
@@ -183,7 +175,7 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult> DeletePublicMessage(string id)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
-            bool isAdmin = await IsAdminAsync().ConfigureAwait(false);
+            bool isAdmin = User.IsInRole("Administrator");
 
             var messages = await _repository.ReadListAsync<ChatMessage>("chat_public");
             var msg = messages.FirstOrDefault(m => m.Id == id);
@@ -425,7 +417,7 @@ namespace Jellyfin_Latestmedia.Api
         public async Task<ActionResult> DeleteDm(string id, [FromQuery] Guid? targetUserId)
         {
             var userId = await GetUserIdAsync().ConfigureAwait(false);
-            bool isAdmin = await IsAdminAsync().ConfigureAwait(false);
+            bool isAdmin = User.IsInRole("Administrator");
             
             if (targetUserId.HasValue && targetUserId.Value != Guid.Empty)
             {

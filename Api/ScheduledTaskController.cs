@@ -45,26 +45,6 @@ namespace Jellyfin_Latestmedia.Api
             return Guid.Empty;
         }
 
-        private async Task<bool> IsAdminAsync()
-        {
-            if (User.IsInRole("Administrator")) return true;
-
-            var uid = await GetRequestUserIdAsync().ConfigureAwait(false);
-            if (uid == Guid.Empty) return false;
-            var user = _userManager.GetUserById(uid);
-            if (user == null) return false;
-            try
-            {
-                var policy = user.GetType().GetProperty("Policy")?.GetValue(user);
-                if (policy != null)
-                {
-                    var isAdmin = policy.GetType().GetProperty("IsAdministrator")?.GetValue(policy);
-                    if (isAdmin is bool b) return b;
-                }
-            }
-            catch { }
-            return false;
-        }
 
         /// <summary>
         /// Resolves the next future execution UTC for a task.
@@ -146,9 +126,9 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpGet]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult<IEnumerable<ScheduledTask>>> GetAll()
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
             
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             foreach (var t in tasks)
@@ -185,9 +165,9 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpPost]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult<ScheduledTask>> Create([FromBody] ScheduledTask task)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var uid = await GetRequestUserIdAsync().ConfigureAwait(false);
             var user = _userManager.GetUserById(uid);
@@ -213,9 +193,9 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpPut("{id}")]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult<ScheduledTask>> Update(string id, [FromBody] ScheduledTask update)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             var index = tasks.FindIndex(t => t.Id == id);
@@ -272,9 +252,9 @@ namespace Jellyfin_Latestmedia.Api
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Policy = "RequiresElevation")]
         public async Task<ActionResult> Delete(string id)
         {
-            if (!await IsAdminAsync().ConfigureAwait(false)) return Forbid();
 
             var tasks = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             var task = tasks.FirstOrDefault(t => t.Id == id);

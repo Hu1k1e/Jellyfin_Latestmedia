@@ -40,7 +40,7 @@ namespace Jellyfin_Latestmedia.Services
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Starting Scheduled Announcement run");
+            _logger.LogDebug("Starting Scheduled Announcement run");
             
             var schedule = await _repository.ReadListAsync<ScheduledTask>("scheduled_announcements");
             var announcements = await _repository.ReadListAsync<Announcement>("announcements");
@@ -161,7 +161,7 @@ namespace Jellyfin_Latestmedia.Services
             if (announcementsChanged)
                 await _repository.WriteListAsync("announcements", announcements);
 
-            _logger.LogInformation("Scheduled Announcement run complete.");
+            _logger.LogDebug("Scheduled Announcement run complete.");
             progress.Report(100);
         }
 

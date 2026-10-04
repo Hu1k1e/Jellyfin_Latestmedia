@@ -44,6 +44,13 @@ namespace Jellyfin_Latestmedia.Services
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
+            var config = Plugin.Instance?.Configuration;
+            if (config == null || !config.ShowStarRatingOnCards)
+            {
+                _logger.LogDebug("Star ratings disabled, skipping Community Ratings cache.");
+                return;
+            }
+
             progress.Report(0);
 
             var query = new InternalItemsQuery
@@ -79,7 +86,7 @@ namespace Jellyfin_Latestmedia.Services
             await Plugin.Instance.Repository.WriteItemAsync("community_ratings_cache", ratingsDict);
 
             progress.Report(100);
-            _logger.LogInformation("Successfully cached {Count} community ratings for fast-loading UI.", ratingsDict.Count);
+            _logger.LogDebug("Successfully cached {Count} community ratings for fast-loading UI.", ratingsDict.Count);
         }
     }
 }

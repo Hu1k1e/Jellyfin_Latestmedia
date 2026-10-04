@@ -54,28 +54,27 @@ namespace Jellyfin_Latestmedia.Services
             var config = Plugin.Instance?.Configuration;
             if (config == null || !config.JellyseerrEnabled || !config.AddRequestedMediaToWatchlist)
             {
-                _logger.LogInformation("[WatchlistMonitor] Watchlist monitoring disabled — not subscribing to library events");
+                _logger.LogDebug("[WatchlistMonitor] Watchlist monitoring disabled — not subscribing to library events");
                 return Task.CompletedTask;
             }
 
             _libraryManager.ItemAdded += OnItemAdded;
-            _libraryManager.ItemUpdated += OnItemUpdated;
-            _logger.LogInformation("[WatchlistMonitor] Subscribed to ItemAdded + ItemUpdated");
+            
+            _logger.LogInformation("[WatchlistMonitor] Subscribed to ItemAdded");
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _libraryManager.ItemAdded -= OnItemAdded;
-            _libraryManager.ItemUpdated -= OnItemUpdated;
+            
             return Task.CompletedTask;
         }
 
         private void OnItemAdded(object sender, ItemChangeEventArgs e)
             => Task.Run(() => ProcessItem(e.Item));
 
-        private void OnItemUpdated(object sender, ItemChangeEventArgs e)
-            => Task.Run(() => ProcessItem(e.Item));
+        
 
         private async Task ProcessItem(BaseItem? item)
         {
@@ -135,7 +134,7 @@ namespace Jellyfin_Latestmedia.Services
                         userData.Likes = true;
                         _userDataManager.SaveUserData(user, item, userData, UserDataSaveReason.UpdateUserRating, default);
                         added++;
-                        _logger.LogInformation("[WatchlistMonitor] Added '{Title}' to watchlist for {User}", item.Name, user.Username);
+                        _logger.LogDebug("[WatchlistMonitor] Added '{Title}' to watchlist for {User}", item.Name, user.Username);
                     }
                 }
 
